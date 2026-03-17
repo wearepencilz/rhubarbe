@@ -17,7 +17,6 @@ export default function AdminNav() {
     { href: '/admin/modifiers', label: 'Modifiers' },
     { href: '/admin/batches', label: 'Batches' },
     { href: '/admin/news', label: 'News' },
-    { href: '/admin/games', label: 'Games' },
     { href: '/admin/settings', label: 'Settings' },
   ];
 
@@ -27,7 +26,7 @@ export default function AdminNav() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <span className="text-xl font-semibold text-gray-900">Janine CMS</span>
+              <span className="text-xl font-semibold text-gray-900">Rhubarbe CMS</span>
             </div>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-1">
               {navItems.map((item) => {

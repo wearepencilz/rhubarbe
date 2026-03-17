@@ -1,5 +1,5 @@
 {
-  "logo": "/uploads/1773633391366-logo.svg",
+  "logo": "/uploads/1773788582982-logo.svg",
   "email": "help@janinemtl.com",
   "phone": "",
   "companyName": "Janine",
@@ -10,11 +10,11 @@
     "photo": "/uploads/1773633761972-come-see-us.jpg"
   },
   "footer": {
-    "address": "<p>2455 rue Notre Dame Ouest</p><p>Montreal, H3J 1N6</p>",
-    "addressUrl": "https://maps.app.goo.gl/3yU5y5Mnq4Bqf8bAA",
-    "hours": "<p>THU / FRI / SAT</p><p>13H – 20H – <em>SOMETIMES LATER</em></p>",
+    "address": "<p>cueillettes des commandes</p><p>1320 rue Charlevoix</p>",
+    "addressUrl": "https://maps.app.goo.gl/qcGUwYiQJKtGz2iEA",
+    "hours": "<p>Samedi entre 9h et 12h</p>",
     "instagram": "https://instagram.com/janinemtl",
-    "contact": "<p>bonjour@janinemtl.ca</p><p>514.970.9266</p>"
+    "contact": "<p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"mailto:info@rhubarbe.ca\">info@rhubarbe.ca</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"tel:+15143162935\">514&nbsp;316-2935</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/rhubarbe_mtl/\" title=\"Instagram\">@rhubarbe_mtl</a></p><p></p><p>informations GÂTEAUX / MARIAGES</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://rhubarbe.ca/traiteur/\">informations TRAITEUR</a></p>"
   },
   "about": {
     "bg": "#948c22",

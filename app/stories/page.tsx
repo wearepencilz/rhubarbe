@@ -4,7 +4,7 @@ import SiteFooter from '@/components/home/SiteFooter';
 import { getStories as getStoriesFromDB } from '@/lib/db';
 
 export const metadata = {
-  title: 'Stories – Janine',
+  title: 'Stories – Rhubarbe',
   description: 'A seasonal archive of moments, ingredients, and people.',
 };
 

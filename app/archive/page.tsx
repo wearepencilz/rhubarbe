@@ -5,8 +5,8 @@ import SiteFooter from '@/components/home/SiteFooter';
 import { getLaunches, getFlavours } from '@/lib/db';
 
 export const metadata = {
-  title: 'Archive – Janine',
-  description: 'All Janine launches — upcoming, active, and archived.',
+  title: 'Archive – Rhubarbe',
+  description: 'All Rhubarbe launches — upcoming, active, and archived.',
 };
 
 function formatDate(dateStr: string | null): string {

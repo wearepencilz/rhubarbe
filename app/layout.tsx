@@ -13,13 +13,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Janine - Artisanal Ice Cream',
+  title: 'Rhubarbe',
   description: 'Artisanal ice cream and soft serve in Montreal',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Janine',
+    title: 'Rhubarbe',
   },
 };
 

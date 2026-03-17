@@ -1,0 +1,546 @@
+{
+  "site": {
+    "name": "Rhubarbe",
+    "url": "https://rhubarbe.ca",
+    "language": "fr",
+    "platform": "WordPress + WooCommerce",
+    "instagram": "https://instagram.com/rhubarbe_mtl"
+  },
+  "pages": {
+    "home": {
+      "url": "https://rhubarbe.ca/",
+      "content": "prenez note que rhubarbe a déménagé et a changé de formule — pré-commandes et service traiteur au 1320 rue Charlevoix",
+      "notice": "menu en ligne disponible du 10 mars 12h au 13 mars 12h pour cueillette 21 mars",
+      "links": {
+        "traiteur": "https://rhubarbe.ca/traiteur/",
+        "gateaux_signatures": "https://rhubarbe.ca/gateaux-signatures/"
+      }
+    },
+    "a_propos": {
+      "url": "https://rhubarbe.ca/a-propos/",
+      "content": "Pâtisserie Rhubarbe a ouvert modestement en octobre 2010. Stéphanie Labelle croyait qu'il y avait un manque à Montréal pour une pâtisserie boutique où l'on peut trouver des produits frais tous les jours, de bons ingrédients de saison.",
+      "founders": [
+        {
+          "name": "Stéphanie Labelle",
+          "role": "Fondatrice / Pâtissière",
+          "bio": "8 ans d'expérience en pâtisserie boutique et en restauration avant d'ouvrir en 2010 sur rue De Lanaudière"
+        },
+        {
+          "name": "Julien Joré",
+          "role": "Chef cuisinier / Associé",
+          "bio": "Chef cuisinier depuis plus de 20 ans, associé depuis l'expansion et le déménagement sur avenue Laurier en mai 2017"
+        }
+      ],
+      "history": [
+        "Ouverture octobre 2010 sur rue De Lanaudière",
+        "Déménagement avenue Laurier mai 2017 — ouverture Comptoir Rhubarbe",
+        "Déménagement 13 juillet 2025 — nouveau modèle pré-commandes uniquement",
+        "Nouveau local: 1320 rue Charlevoix, quartier Pointe St-Charles",
+        "Cueillettes les samedis entre 9h et 12h"
+      ]
+    },
+    "contact": {
+      "url": "https://rhubarbe.ca/contact/",
+      "pickup": {
+        "hours": "samedi entre 9h et 12h",
+        "address": "1320 rue Charlevoix"
+      },
+      "phone": "514 316-2935",
+      "email_cakes_weddings": "info@rhubarbe.ca",
+      "instagram": "https://www.instagram.com/rhubarbe_mtl/",
+      "traiteur_link": "https://rhubarbe.ca/traiteur/"
+    },
+    "traiteur": {
+      "url": "https://rhubarbe.ca/traiteur/",
+      "description": "rhubarbe offre également un service de traiteur pour tous genres d'événements, réunions d'affaires, familiales et même un service à domicile.",
+      "menu_status": "à venir",
+      "contact_form_fields": ["Prénom et nom", "Courriel", "Téléphone", "Date", "Heure", "Nombre de personnes", "Type d'événement", "Livraison?", "Adresse de livraison", "Autres informations"]
+    },
+    "gateaux_signatures": {
+      "url": "https://rhubarbe.ca/gateaux-signatures/",
+      "description": "rhubarbe offre également un service de gâteaux signatures.",
+      "menu_status": "à venir",
+      "contact_form_fields": ["Prénom et nom", "Courriel", "Téléphone", "Date", "Heure", "Nombre de personnes", "Type d'événement", "Livraison?", "Adresse de livraison", "Autres informations"]
+    },
+    "commandes": {
+      "url": "https://rhubarbe.ca/commandez-nos-produits/",
+      "categories": ["tout", "21 mars", "salé", "sucré"]
+    },
+    "remboursements": {
+      "url": "https://rhubarbe.ca/remboursements_retours/",
+      "note": "Page WooCommerce par défaut — contenu générique non personnalisé",
+      "policy_duration_days": 30,
+      "perishables_returnable": false
+    }
+  },
+  "products": {
+    "categories": {
+      "sucre": {
+        "label": "sucré",
+        "url": "https://rhubarbe.ca/categorie-produit/sucre/"
+      },
+      "sale": {
+        "label": "salé",
+        "url": "https://rhubarbe.ca/categorie-produit/sale/"
+      }
+    },
+    "items": [
+      {
+        "slug": "tropezienne-pistache-orange",
+        "name": "'tropézienne' pistache-orange",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/tropezienne-pistache-orange/",
+        "description": "brioche, crème + croustillant pistache, fleur d'oranger, oranges",
+        "serves": "6 pers",
+        "price": 50.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2026/03/A9E88F29-AF50-4526-B3EF-C2A3AA4B9E00-960x1265.jpeg"
+      },
+      {
+        "slug": "4-patisseries",
+        "name": "4 pâtisseries",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/4-patisseries/",
+        "description": "4 pâtisseries individuelles: tartelette mangue-lime-coco, paris-brest framboise-café, fleur vanille pacane, macaronade chocolat",
+        "serves": null,
+        "price": null,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": ["noix", "lait", "blé", "oeuf"],
+        "variants": ["taille"],
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2026/03/79d20485-c6ae-4eb2-808a-8f8619047443-960x1265.jpg"
+      },
+      {
+        "slug": "financier",
+        "name": "financier",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/financier/",
+        "description": "financier amandes brutes, noisettes, tartinade choco-noisette",
+        "serves": "4 pers",
+        "price": 28.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": ["lait", "noix", "blé", "oeufs"],
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2021/04/IMG_7957-960x1265.jpeg"
+      },
+      {
+        "slug": "gateau-de-fete",
+        "name": "gâteau de fête",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/gateau-de-fete/",
+        "description": "gâteau banane-sarrasin, crémeux banane – fruit de la passion, crumble café, mousse chocolat au lait",
+        "serves": "8-10 pers",
+        "price": 75.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2024/03/IMG_9018-2-960x1265.jpeg"
+      },
+      {
+        "slug": "gateau-fete-pistache-framboise",
+        "name": "gâteau fête pistache-framboise",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/gateau-fete-pistache-framboise/",
+        "description": "gâteau pistache, chantilly framboise, crème vanille",
+        "serves": null,
+        "price": null,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": ["taille"],
+        "notes": "photo à titre indicatif uniquement",
+        "image": "https://rhubarbe.ca/app/uploads/2023/04/IMG_5179-960x1265.jpeg"
+      },
+      {
+        "slug": "gateau-orange-sanguine-the-jasmin",
+        "name": "gâteau orange sanguine – jasmin – amande",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/gateau-orange-sanguine-the-jasmin/",
+        "description": "gâteau chiffon, gel, crème orange sanguine, ganache montée jasmin, crumble amande",
+        "serves": "8-10 pers",
+        "price": 75.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": "la décoration du gâteau peut varier",
+        "image": "https://rhubarbe.ca/app/uploads/2024/03/1FF83A3F-F684-48A4-A105-E29E38761A84-960x1265.jpeg"
+      },
+      {
+        "slug": "paris-brest-framboise-cafe",
+        "name": "paris-brest framboise-café",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/paris-brest-framboise-cafe/",
+        "description": "pâte à choux, crémeux framboise, croustillant café",
+        "serves": "6-8 pers",
+        "price": 55.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": "photo à titre indicatif",
+        "image": "https://rhubarbe.ca/app/uploads/2026/03/8b5b7584-4498-4c76-8cf5-f71dce9e8c0b-960x1265.jpg"
+      },
+      {
+        "slug": "tarte-mangue-coco-passion",
+        "name": "tarte mangue-coco-passion",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/tarte-mangue-coco-passion/",
+        "description": "pâte à tarte vanille, dacquoise et crémeux noix de coco, mousse mangue, crème fruit de la passion",
+        "serves": "6 pers",
+        "price": 55.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2026/03/5317AB03-276E-409E-9D26-C51E5F521527-960x1265.jpeg"
+      },
+      {
+        "slug": "tarte-pacane-erable",
+        "name": "tarte pacane-érable",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/tarte-pacane-erable/",
+        "description": "pâte à tarte vanille, crémeux érable, pacanes, fleur de sel",
+        "serves": "6 pers",
+        "price": 45.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/04/pacane-960x1265.jpg"
+      },
+      {
+        "slug": "terrazzo",
+        "name": "terrazzo",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/terrazzo/",
+        "description": "gâteau huile d'olive, mousse citron, griottes",
+        "serves": "5-6 pers",
+        "price": 50.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2024/11/67FC50BD-FA8C-46EC-A769-903202BDB265-960x1265.jpg"
+      },
+      {
+        "slug": "tablette-chocolat",
+        "name": "tablette chocolat",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/tablette-chocolat/",
+        "description": "chocolat Manjari 64%, praliné feuilletine pistache maison",
+        "serves": null,
+        "price": 18.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2023/11/Rhub2023-1146-960x1265.jpg"
+      },
+      {
+        "slug": "scones",
+        "name": "scones",
+        "category": ["sucré", "salé"],
+        "url": "https://rhubarbe.ca/commandez-nos-produits/scones/",
+        "description": null,
+        "serves": null,
+        "price": null,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": ["saveurs"],
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_thumb_591b-480x633.jpg"
+      },
+      {
+        "slug": "cake-rhubarbe",
+        "name": "cake",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/cake-rhubarbe/",
+        "description": "cake: à manger dans les 2 jours! sinon il pourra être réchauffé et peut-être mangé avec de la crème glacée…",
+        "serves": null,
+        "price": null,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": ["saveurs"],
+        "notes": "à consommer dans les 2 jours",
+        "image": "https://rhubarbe.ca/app/uploads/2020/10/Rhubarbe_17-960x1265.jpeg"
+      },
+      {
+        "slug": "granola",
+        "name": "granola",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/granola/",
+        "description": "Granola maison, embeurré de miel et sirop d'érable. Avec canneberges et pistaches. Bon au petit matin ou en collation.",
+        "serves": null,
+        "weight": "700g",
+        "price": 25.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": ["noix", "lait", "traces de blé"],
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2020/10/Rhubarbe_05-960x1265.jpeg"
+      },
+      {
+        "slug": "croissants",
+        "name": "viennoiseries",
+        "category": "sucré",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/croissants/",
+        "description": "beurre canadien 84%, farine bio québecoise, chocolat noir valrhona",
+        "serves": null,
+        "price": 37.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": ["saveurs"],
+        "variant_options": ["3 danoises mont-blanc, 3 danoises 'quiche'"],
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2026/03/295bc724-f395-4898-a767-28374960f916-960x1265.jpg"
+      },
+      {
+        "slug": "boulettes-boeuf",
+        "name": "boulettes de porc",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/boulettes-boeuf/",
+        "description": "boulettes de porc, herbes, sauce tomate",
+        "serves": null,
+        "price": 22.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      },
+      {
+        "slug": "brandade",
+        "name": "brandade",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/brandade/",
+        "description": "morue, herbes, pomme de terre",
+        "serves": null,
+        "price": 25.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      },
+      {
+        "slug": "cuisse-canard-confit",
+        "name": "cuisse canard confit",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/cuisse-canard-confit/",
+        "description": "canard du québec, gras, épices",
+        "serves": null,
+        "price": 24.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      },
+      {
+        "slug": "endives-au-jambon",
+        "name": "endives au jambon",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/endives-au-jambon/",
+        "description": "endives, jambon, louis d'or, béchamel",
+        "serves": null,
+        "price": 18.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2026/02/D532ABB2-C26A-4C83-83CD-AA75158AE0EB-960x1265.jpeg"
+      },
+      {
+        "slug": "flan-de-porc-confit",
+        "name": "flan de porc confit",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/flan-de-porc-confit/",
+        "description": "porc, haricots navy à l'érable",
+        "serves": "2 pers",
+        "price": 25.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      },
+      {
+        "slug": "foccacia",
+        "name": "foccacia",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/foccacia/",
+        "description": "foccacia maison au levain, oignons cippolini, gorgonzola, olives",
+        "serves": null,
+        "price": 26.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": ["blé", "lait"],
+        "variants": null,
+        "notes": "photo à titre indicatif",
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/mEfsmIsqRti2kGr2Hd50A_thumb_5f9d-480x633.jpg"
+      },
+      {
+        "slug": "gravlax",
+        "name": "gravlax",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/gravlax/",
+        "description": "saumon, sel, sucre, vodka — servi tranché sous vide",
+        "serves": null,
+        "weight": "150g",
+        "price": 15.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2020/11/Cirkus-noel-2015-0688-960x1265.jpg"
+      },
+      {
+        "slug": "moussaka-epicee",
+        "name": "moussaka épicée",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/moussaka-epicee/",
+        "description": "aubergines, agneau, épices, oignons, tomates",
+        "serves": "2 pers",
+        "price": 26.00,
+        "currency": "CAD",
+        "stock": "En stock",
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2026/01/IMG_1629-960x1268.jpeg"
+      },
+      {
+        "slug": "pate-saumon",
+        "name": "pâté saumon",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/pate-saumon/",
+        "description": "pâte feuilletée, saumon, béchamel, oignons, céleri, carottes, épices",
+        "serves": null,
+        "price": 35.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": "garder congelé, à cuire",
+        "image": "https://rhubarbe.ca/app/uploads/2020/11/Cirkus-noel-2015-0708-960x1265.jpg"
+      },
+      {
+        "slug": "poulet-paprika",
+        "name": "poulet paprika",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/poulet-paprika/",
+        "description": "poulet, crème, carottes, oignons, ail, paprika",
+        "serves": null,
+        "price": 23.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      },
+      {
+        "slug": "quiche",
+        "name": "quiche",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/quiche/",
+        "description": "pâte brisée, appareil oeufs, fromage, légumes, viande",
+        "serves": null,
+        "price": null,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": ["blé", "lait", "oeufs"],
+        "variants": ["saveurs"],
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/IMG_4212-960x1265.jpg"
+      },
+      {
+        "slug": "salade-betterave",
+        "name": "salade betterave",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/salade-betterave/",
+        "description": "betteraves, pommes, canneberges, ricotta, céleri, persil, épices",
+        "serves": null,
+        "price": 18.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      },
+      {
+        "slug": "soupe-carotte-beurre-noisette",
+        "name": "soupe carotte beurre noisette",
+        "category": "salé",
+        "url": "https://rhubarbe.ca/commandez-nos-produits/soupe-carotte-beurre-noisette/",
+        "description": "carottes, oignons, ail, beurre noisette",
+        "serves": null,
+        "price": 13.00,
+        "currency": "CAD",
+        "stock": null,
+        "allergens": null,
+        "variants": null,
+        "notes": null,
+        "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg"
+      }
+    ]
+  },
+  "navigation": {
+    "main": [
+      { "label": "instagram", "url": "http://instagram.com/rhubarbe_mtl", "external": true },
+      { "label": "contact", "url": "https://rhubarbe.ca/contact/" },
+      { "label": "traiteur", "url": "https://rhubarbe.ca/traiteur/" },
+      { "label": "gâteaux signatures", "url": "https://rhubarbe.ca/gateaux-signatures/" },
+      { "label": "commandes en ligne", "url": "https://rhubarbe.ca/commandez-nos-produits/" }
+    ],
+    "shop_filters": ["tout", "21 mars", "salé", "sucré"]
+  },
+  "business": {
+    "model": "pré-commandes uniquement",
+    "pickup": {
+      "day": "samedi",
+      "hours": "9h – 12h",
+      "address": "1320 rue Charlevoix",
+      "neighbourhood": "Pointe Saint-Charles, Montréal"
+    },
+    "order_window_example": "menu disponible du 10 mars 12h au 13 mars 12h pour cueillette 21 mars",
+    "services": ["pré-commandes en ligne", "traiteur", "gâteaux signatures / mariage"]
+  },
+  "sitemap": {
+    "last_generated": "2026-03-17",
+    "urls": [
+      "https://rhubarbe.ca/",
+      "https://rhubarbe.ca/contact/",
+      "https://rhubarbe.ca/commandez-nos-produits/",
+      "https://rhubarbe.ca/a-propos/",
+      "https://rhubarbe.ca/traiteur/",
+      "https://rhubarbe.ca/remboursements_retours/",
+      "https://rhubarbe.ca/gateaux-signatures/"
+    ]
+  }
+}

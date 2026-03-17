@@ -35,7 +35,6 @@ const groups: DashboardGroup[] = [
       { title: 'Stories', description: 'Brand stories and editorial features', href: '/admin/stories', icon: '📖' },
       { title: 'News', description: 'Editorial content and updates', href: '/admin/news', icon: '📰' },
       { title: 'Pages', description: 'Static page content management', href: '/admin/pages', icon: '📄' },
-      { title: 'Games', description: 'Interactive game experiences', href: '/admin/games', icon: '🎮' },
     ],
   },
   {
@@ -56,7 +55,7 @@ export default function AdminDashboard() {
     <div className="space-y-10">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Welcome to Janine CMS</p>
+        <p className="text-sm text-gray-500 mt-1">Welcome to Rhubarbe CMS</p>
       </div>
 
       {visibleGroups.map((group) => (

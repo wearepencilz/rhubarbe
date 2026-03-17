@@ -35,7 +35,6 @@ const sections: NavSectionType[] = [
             { label: 'Stories', href: '/admin/stories', icon: '📖' },
             { label: 'News', href: '/admin/news', icon: '📰' },
             { label: 'Pages', href: '/admin/pages', icon: '📄' },
-            { label: 'Games', href: '/admin/games', icon: '🎮' },
         ],
     },
     {
@@ -66,7 +65,7 @@ export default function AdminSidebar() {
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-gray-200 bg-white">
             <div className="flex h-16 items-center px-6 border-b border-gray-200">
-                <span className="text-lg font-semibold text-gray-900">Janine CMS</span>
+                <span className="text-lg font-semibold text-gray-900">Rhubarbe CMS</span>
             </div>
 
             <div className="flex-1 overflow-y-auto">

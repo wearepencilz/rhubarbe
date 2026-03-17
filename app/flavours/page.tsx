@@ -4,8 +4,8 @@ import SiteFooter from '@/components/home/SiteFooter';
 import { getLaunches, getFlavours, getIngredients, getModifiers } from '@/lib/db';
 
 export const metadata = {
-  title: 'Flavours – Janine',
-  description: 'All Janine flavours, ingredients, and modifiers.',
+  title: 'Flavours – Rhubarbe',
+  description: 'All Rhubarbe flavours, ingredients, and modifiers.',
 };
 
 export default async function FlavoursPage() {
