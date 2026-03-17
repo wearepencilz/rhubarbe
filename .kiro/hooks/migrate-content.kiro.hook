@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "name": "Migrate Content",
+  "description": "Run content migration scripts for taxonomy unification or Redis deployment",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Help the user migrate content. Available migration scripts: 1) 'node scripts/migrate-taxonomy.js' - Unifies taxonomy from projects into settings.json, 2) 'node scripts/migrate-to-redis.js' - Migrates local JSON data to production Redis. Ask which migration they need or run both if requested."
+  },
+  "workspaceFolderName": "Pencilz2026",
+  "shortName": "migrate-content"
+}

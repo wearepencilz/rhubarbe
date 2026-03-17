@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "name": "Test UI Components (Legacy)",
+  "description": "DISABLED — references legacy src/components/ui/__tests__ path that no longer exists.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "echo 'Legacy test path — update to current test location'"
+  }
+}

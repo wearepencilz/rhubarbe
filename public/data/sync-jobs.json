@@ -1,0 +1,13 @@
+[
+  {
+    "id": "job_1773115454259_z3ytrc23l",
+    "flavourId": "1773100536126",
+    "productId": "gid://shopify/Product/8480390086839",
+    "status": "completed",
+    "attempts": 1,
+    "maxAttempts": 3,
+    "createdAt": "2026-03-10T04:04:14.259Z",
+    "processedAt": "2026-03-10T04:04:14.260Z",
+    "completedAt": "2026-03-10T04:04:15.038Z"
+  }
+]

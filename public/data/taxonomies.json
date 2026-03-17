@@ -1,0 +1,965 @@
+{
+  "flavourTypes": [
+    {
+      "id": "gelato",
+      "label": "Gelato",
+      "value": "gelato",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "sorbet",
+      "label": "Sorbet",
+      "value": "sorbet",
+      "sortOrder": 2,
+      "archived": false
+    }
+  ],
+  "keyNotes": [
+    {
+      "id": "sweet",
+      "label": "Sweet",
+      "value": "sweet",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "rich",
+      "label": "Rich",
+      "value": "rich",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "buttery",
+      "label": "Buttery",
+      "value": "buttery",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "caramelized",
+      "label": "Caramelized",
+      "value": "caramelized",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "honeyed",
+      "label": "Honeyed",
+      "value": "honeyed",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "fresh",
+      "label": "Fresh",
+      "value": "fresh",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "refreshing",
+      "label": "Refreshing",
+      "value": "refreshing",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "bright",
+      "label": "Bright",
+      "value": "bright",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "citrusy",
+      "label": "Citrusy",
+      "value": "citrusy",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "fruity",
+      "label": "Fruity",
+      "value": "fruity",
+      "sortOrder": 10,
+      "archived": false
+    },
+    {
+      "id": "floral",
+      "label": "Floral",
+      "value": "floral",
+      "sortOrder": 11,
+      "archived": false
+    },
+    {
+      "id": "jammy",
+      "label": "Jammy",
+      "value": "jammy",
+      "sortOrder": 12,
+      "archived": false
+    },
+    {
+      "id": "savory",
+      "label": "Savory",
+      "value": "savory",
+      "sortOrder": 13,
+      "archived": false
+    },
+    {
+      "id": "earthy",
+      "label": "Earthy",
+      "value": "earthy",
+      "sortOrder": 14,
+      "archived": false
+    },
+    {
+      "id": "herbal",
+      "label": "Herbal",
+      "value": "herbal",
+      "sortOrder": 15,
+      "archived": false
+    },
+    {
+      "id": "green",
+      "label": "Green",
+      "value": "green",
+      "sortOrder": 16,
+      "archived": false
+    },
+    {
+      "id": "nutty",
+      "label": "Nutty",
+      "value": "nutty",
+      "sortOrder": 17,
+      "archived": false
+    },
+    {
+      "id": "toasted",
+      "label": "Toasted",
+      "value": "toasted",
+      "sortOrder": 18,
+      "archived": false
+    },
+    {
+      "id": "smoky",
+      "label": "Smoky",
+      "value": "smoky",
+      "sortOrder": 19,
+      "archived": false
+    },
+    {
+      "id": "spiced",
+      "label": "Spiced",
+      "value": "spiced",
+      "sortOrder": 20,
+      "archived": false
+    },
+    {
+      "id": "creamy",
+      "label": "Creamy",
+      "value": "creamy",
+      "sortOrder": 21,
+      "archived": false
+    },
+    {
+      "id": "light",
+      "label": "Light",
+      "value": "light",
+      "sortOrder": 22,
+      "archived": false
+    }
+  ],
+  "ingredientCategories": [
+    {
+      "id": "dairy-bases",
+      "label": "Dairy & Bases",
+      "value": "dairy-bases",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "fruits-vegetables",
+      "label": "Fruits & Vegetables",
+      "value": "fruits-vegetables",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "nuts-seeds-grains",
+      "label": "Nuts, Seeds & Grains",
+      "value": "nuts-seeds-grains",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "spices-herbs-botanicals",
+      "label": "Spices, Herbs & Botanicals",
+      "value": "spices-herbs-botanicals",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "sweeteners-syrups",
+      "label": "Sweeteners & Syrups",
+      "value": "sweeteners-syrups",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "chocolate-coffee-cacao",
+      "label": "Chocolate, Coffee & Cacao",
+      "value": "chocolate-coffee-cacao",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "floral-aromatic",
+      "label": "Floral & Aromatic",
+      "value": "floral-aromatic",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "funky-fermented-savoury",
+      "label": "Funky, Fermented & Savoury",
+      "value": "funky-fermented-savoury",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "salts-minerals",
+      "label": "Salts & Minerals",
+      "value": "salts-minerals",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "regional-cultural-staples",
+      "label": "Regional or Cultural Staples",
+      "value": "regional-cultural-staples",
+      "sortOrder": 10,
+      "archived": false
+    },
+    {
+      "id": "inclusions-add-ons",
+      "label": "Inclusions & Add-Ons",
+      "value": "inclusions-add-ons",
+      "sortOrder": 11,
+      "archived": false
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "value": "other",
+      "sortOrder": 12,
+      "archived": false
+    }
+  ],
+  "ingredientRoles": [
+    {
+      "id": "primary",
+      "label": "Primary",
+      "value": "primary",
+      "description": "Main ingredient defining the flavour",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "supporting",
+      "label": "Supporting",
+      "value": "supporting",
+      "description": "Enhances or complements the primary flavour",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "accent",
+      "label": "Accent",
+      "value": "accent",
+      "description": "Adds subtle notes or complexity",
+      "sortOrder": 3,
+      "archived": false
+    }
+  ],
+  "tastingNotes": [
+    {
+      "id": "citrus",
+      "label": "Citrus",
+      "value": "citrus",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "floral",
+      "label": "Floral",
+      "value": "floral",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "bittersweet",
+      "label": "Bittersweet",
+      "value": "bittersweet",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "earthy",
+      "label": "Earthy",
+      "value": "earthy",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "herbaceous",
+      "label": "Herbaceous",
+      "value": "herbaceous",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "spicy",
+      "label": "Spicy",
+      "value": "spicy",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "woody",
+      "label": "Woody",
+      "value": "woody",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "tropical",
+      "label": "Tropical",
+      "value": "tropical",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "berry",
+      "label": "Berry",
+      "value": "berry",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "stone-fruit",
+      "label": "Stone Fruit",
+      "value": "stone-fruit",
+      "sortOrder": 10,
+      "archived": false
+    }
+  ],
+  "formatCategories": [
+    {
+      "id": "frozen",
+      "label": "Frozen",
+      "value": "frozen",
+      "description": "Ice cream, sorbet, soft serve",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "food",
+      "label": "Food",
+      "value": "food",
+      "description": "Sandwiches, focaccia",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "experience",
+      "label": "Experience",
+      "value": "experience",
+      "description": "Tastings, events",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "bundle",
+      "label": "Bundle",
+      "value": "bundle",
+      "description": "Multi-item packages",
+      "sortOrder": 4,
+      "archived": false
+    }
+  ],
+  "servingStyles": [
+    {
+      "id": "scoop",
+      "label": "Scoop",
+      "value": "scoop",
+      "description": "Traditional scooped ice cream",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "soft-serve",
+      "label": "Soft Serve",
+      "value": "soft-serve",
+      "description": "Soft-serve machine dispensed",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "packaged",
+      "label": "Packaged",
+      "value": "packaged",
+      "description": "Pre-packaged containers",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "plated",
+      "label": "Plated",
+      "value": "plated",
+      "description": "Plated dessert experience",
+      "sortOrder": 4,
+      "archived": false
+    }
+  ],
+  "modifierTypes": [
+    {
+      "id": "topping",
+      "label": "Topping",
+      "value": "topping",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "sauce",
+      "label": "Sauce",
+      "value": "sauce",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "crunch",
+      "label": "Crunch",
+      "value": "crunch",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "drizzle",
+      "label": "Drizzle",
+      "value": "drizzle",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "premium-addon",
+      "label": "Premium Add-on",
+      "value": "premium-addon",
+      "sortOrder": 5,
+      "archived": false
+    }
+  ],
+  "allergens": [
+    {
+      "id": "dairy",
+      "label": "Dairy",
+      "value": "dairy",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "egg",
+      "label": "Egg",
+      "value": "egg",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "gluten",
+      "label": "Gluten",
+      "value": "gluten",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "tree-nuts",
+      "label": "Tree Nuts",
+      "value": "tree-nuts",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "peanuts",
+      "label": "Peanuts",
+      "value": "peanuts",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "sesame",
+      "label": "Sesame",
+      "value": "sesame",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "soy",
+      "label": "Soy",
+      "value": "soy",
+      "sortOrder": 7,
+      "archived": false
+    }
+  ],
+  "storyCategories": [
+    {
+      "id": "the-lab",
+      "label": "The Lab",
+      "value": "the-lab",
+      "description": "Process, testing, and experimentation",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "flavour-notes",
+      "label": "Flavour Notes",
+      "value": "flavour-notes",
+      "description": "Deep dives into ingredients and flavour",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "core-idea",
+      "label": "Core Idea",
+      "value": "core-idea",
+      "description": "Philosophy, vision, and brand stories",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "people",
+      "label": "People",
+      "value": "people",
+      "description": "Farmers, makers, and collaborators",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "places",
+      "label": "Places",
+      "value": "places",
+      "description": "Markets, farms, and regions",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "seasons",
+      "label": "Seasons",
+      "value": "seasons",
+      "description": "Seasonal moments and ingredients",
+      "sortOrder": 6,
+      "archived": false
+    }
+  ],
+  "storyTags": [
+    {
+      "id": "montreal",
+      "label": "Montréal",
+      "value": "montreal",
+      "sortOrder": 5,
+      "archived": false
+    }
+  ],
+  "contentBlockTypes": [
+    {
+      "id": "hero",
+      "label": "Hero",
+      "value": "hero",
+      "description": "Large hero image/video section",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "text",
+      "label": "Text",
+      "value": "text",
+      "description": "Text content block",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "image-gallery",
+      "label": "Image Gallery",
+      "value": "image-gallery",
+      "description": "Multiple images in a gallery",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "product-showcase",
+      "label": "Product Showcase",
+      "value": "product-showcase",
+      "description": "Featured products section",
+      "sortOrder": 4,
+      "archived": false
+    }
+  ],
+  "ingredientUsedAs": [
+    {
+      "id": "base",
+      "label": "Base",
+      "value": "base",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "accent",
+      "label": "Accent",
+      "value": "accent",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "infusion",
+      "label": "Infusion",
+      "value": "infusion",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "garnish",
+      "label": "Garnish",
+      "value": "garnish",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "swirl",
+      "label": "Swirl",
+      "value": "swirl",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "mix-in",
+      "label": "Mix-in",
+      "value": "mix-in",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "topping",
+      "label": "Topping",
+      "value": "topping",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "coating",
+      "label": "Coating",
+      "value": "coating",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "filling",
+      "label": "Filling",
+      "value": "filling",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "pairing",
+      "label": "Pairing",
+      "value": "pairing",
+      "sortOrder": 10,
+      "archived": false
+    }
+  ],
+  "ingredientAttributes": [
+    {
+      "id": "local",
+      "label": "Local",
+      "value": "local",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "imported",
+      "label": "Imported",
+      "value": "imported",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "seasonal",
+      "label": "Seasonal",
+      "value": "seasonal",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "foraged",
+      "label": "Foraged",
+      "value": "foraged",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "organic",
+      "label": "Organic",
+      "value": "organic",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "biodynamic",
+      "label": "Biodynamic",
+      "value": "biodynamic",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "fair-trade",
+      "label": "Fair Trade",
+      "value": "fair-trade",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "wild",
+      "label": "Wild",
+      "value": "wild",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "heritage-variety",
+      "label": "Heritage Variety",
+      "value": "heritage-variety",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "animal-derived",
+      "label": "Animal-Derived",
+      "value": "animal-derived",
+      "sortOrder": 10,
+      "archived": false
+    },
+    {
+      "id": "vegan",
+      "label": "Vegan",
+      "value": "vegan",
+      "sortOrder": 11,
+      "archived": false
+    },
+    {
+      "id": "vegetarian",
+      "label": "Vegetarian",
+      "value": "vegetarian",
+      "sortOrder": 12,
+      "archived": false
+    }
+  ],
+  "ingredientProcesses": [
+    {
+      "id": "raw",
+      "label": "Raw",
+      "value": "raw",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "roasted",
+      "label": "Roasted",
+      "value": "roasted",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "toasted",
+      "label": "Toasted",
+      "value": "toasted",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "grilled",
+      "label": "Grilled",
+      "value": "grilled",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "infused",
+      "label": "Infused",
+      "value": "infused",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "fermented",
+      "label": "Fermented",
+      "value": "fermented",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "candied",
+      "label": "Candied",
+      "value": "candied",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "caramelized",
+      "label": "Caramelized",
+      "value": "caramelized",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "dried",
+      "label": "Dried",
+      "value": "dried",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "freeze-dried",
+      "label": "Freeze-dried",
+      "value": "freeze-dried",
+      "sortOrder": 10,
+      "archived": false
+    },
+    {
+      "id": "smoked",
+      "label": "Smoked",
+      "value": "smoked",
+      "sortOrder": 11,
+      "archived": false
+    },
+    {
+      "id": "pickled",
+      "label": "Pickled",
+      "value": "pickled",
+      "sortOrder": 12,
+      "archived": false
+    },
+    {
+      "id": "compressed",
+      "label": "Compressed",
+      "value": "compressed",
+      "sortOrder": 13,
+      "archived": false
+    },
+    {
+      "id": "extracted",
+      "label": "Extracted",
+      "value": "extracted",
+      "sortOrder": 14,
+      "archived": false
+    },
+    {
+      "id": "reduced",
+      "label": "Reduced",
+      "value": "reduced",
+      "sortOrder": 15,
+      "archived": false
+    },
+    {
+      "id": "browned",
+      "label": "Browned",
+      "value": "browned",
+      "sortOrder": 16,
+      "archived": false
+    }
+  ],
+  "ingredientTextures": [
+    {
+      "id": "creamy",
+      "label": "Creamy",
+      "value": "creamy",
+      "sortOrder": 1,
+      "archived": false
+    },
+    {
+      "id": "icy",
+      "label": "Icy",
+      "value": "icy",
+      "sortOrder": 2,
+      "archived": false
+    },
+    {
+      "id": "crunchy",
+      "label": "Crunchy",
+      "value": "crunchy",
+      "sortOrder": 3,
+      "archived": false
+    },
+    {
+      "id": "silky",
+      "label": "Silky",
+      "value": "silky",
+      "sortOrder": 4,
+      "archived": false
+    },
+    {
+      "id": "chewy",
+      "label": "Chewy",
+      "value": "chewy",
+      "sortOrder": 5,
+      "archived": false
+    },
+    {
+      "id": "smooth",
+      "label": "Smooth",
+      "value": "smooth",
+      "sortOrder": 6,
+      "archived": false
+    },
+    {
+      "id": "grainy",
+      "label": "Grainy",
+      "value": "grainy",
+      "sortOrder": 7,
+      "archived": false
+    },
+    {
+      "id": "airy",
+      "label": "Airy",
+      "value": "airy",
+      "sortOrder": 8,
+      "archived": false
+    },
+    {
+      "id": "dense",
+      "label": "Dense",
+      "value": "dense",
+      "sortOrder": 9,
+      "archived": false
+    },
+    {
+      "id": "liquid",
+      "label": "Liquid",
+      "value": "liquid",
+      "sortOrder": 10,
+      "archived": false
+    },
+    {
+      "id": "gel",
+      "label": "Gel",
+      "value": "gel",
+      "sortOrder": 11,
+      "archived": false
+    },
+    {
+      "id": "crisp",
+      "label": "Crisp",
+      "value": "crisp",
+      "sortOrder": 12,
+      "archived": false
+    }
+  ]
+}

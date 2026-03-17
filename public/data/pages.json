@@ -1,0 +1,67 @@
+{
+  "home": {
+    "heroImage": "/uploads/1772486721541-Hero.jpg",
+    "heroText": "",
+    "contactHeading": "Lets start a project",
+    "contactButtonText": "",
+    "contactEmail": "",
+    "emailSubject": "",
+    "emailBody": "",
+    "metaTitle": "",
+    "metaDescription": "",
+    "metaKeywords": "",
+    "ogImage": "",
+    "heroButtons": [
+      {
+        "id": "1771983856299",
+        "text": "Shopify builds",
+        "subtext": "",
+        "icon": "",
+        "link": ""
+      },
+      {
+        "id": "1771983985148",
+        "text": "Marketing",
+        "subtext": "Starter packs available",
+        "icon": "",
+        "link": ""
+      },
+      {
+        "id": "1771984002946",
+        "text": "Design Systems",
+        "subtext": "Complete Design Systems",
+        "icon": "",
+        "link": ""
+      },
+      {
+        "id": "1771984003551",
+        "text": "Start-up Support",
+        "subtext": "Custom Apps, no vibe coding.",
+        "icon": "",
+        "link": ""
+      }
+    ]
+  },
+  "about": {
+    "title": "About",
+    "content": "About page content goes here"
+  },
+  "services": {
+    "title": "Services",
+    "content": "Services page content goes here"
+  },
+  "faq": {
+    "title": "FAQ",
+    "content": "<p><strong>Q: I’m interested! What is the first step?</strong></p><p>A: The first step is to enter your email below (or on our contact page). We will send you a brief questionnaire or a link to schedule a discovery call. This 15-minute chat helps us determine if we are the right fit for your goals.</p><p></p><p><strong>Q: Do you offer free audits or consultations?</strong></p><p>A: We offer a complimentary [15 or 30]-minute discovery call to discuss your project. However, detailed audits or strategy sessions are paid services, as they require deep analysis and expert recommendations tailored to your business.</p><p></p><p><strong>Q: How do you structure your pricing?</strong></p><p>A: Because every business is unique, we do not offer \"cookie-cutter\" packages. Our pricing is project-based or retainer-based, depending on your needs. Once we understand your goals during our initial consultation, we provide a custom proposal. Generally, our engagements start at [$ Amount].</p><p></p><p><strong>Q: Who is your ideal client?</strong></p><p>A: We work best with [Target Audience, e.g., ambitious startups, established luxury brands, non-profits] who value clear communication and are ready to invest in high-quality work. We look for clients who view us as strategic partners rather than just order takers.</p><p></p><p><strong>Q: Do you work with clients internationally?</strong></p><p>A: Yes! We are a digital-first agency and work with clients across the globe. We utilize tools like Zoom, Slack, and [Project Management Tool] to ensure seamless collaboration regardless of time zones.</p>",
+    "lastUpdated": "2026-03-03T02:49:14.402Z"
+  },
+  "terms": {
+    "title": "Terms & Conditions",
+    "lastUpdated": "2026-03-02T00:00:00.000Z",
+    "content": "<p><strong>1. Introduction</strong></p><p>Welcome to Pencilz + Friends (\"we,\" \"our,\" or \"us\"). By accessing or using our website located at [Website URL] (the \"Site\"), you agree to be bound by these Terms and Conditions (\"Terms\"). If you do not agree with any part of these Terms, you must not use our Site.</p><p>&nbsp;</p><p><strong>2. Use of the Site</strong></p><p>The primary purpose of our Site is to provide information about our digital agency services and to collect contact information (such as email addresses) from interested parties. You agree to use the Site only for lawful purposes and in a way that does not infringe the rights of, restrict, or inhibit anyone else's use and enjoyment of the Site.</p><p>&nbsp;</p><p><strong>3. Intellectual Property</strong></p><p>All content published and made available on our Site is the property of Pencilz + Friends and the Site's creators. This includes, but is not limited to, images, text, logos, documents, downloadable files, and anything that contributes to the composition of our Site. You may not reproduce, distribute, or use these materials without our written consent.</p><p>&nbsp;</p><p><strong>4. User Data and Privacy</strong></p><p>We collect personal information (specifically email addresses) through forms on our Site. By submitting your email address, you agree to receive communications from us regarding our services.</p><p>Your submission of personal information is governed by our Privacy Policy. Please review our Privacy Policy [Link to Privacy Policy] to understand how we collect, use, and protect your data.</p><p>&nbsp;</p><p><strong>5. Limitation of Liability</strong></p><p>Pencilz + Friends and our directors, officers, agents, employees, subsidiaries, and affiliates will not be liable for any actions, claims, losses, damages, liabilities, and expenses including legal fees from your use of the Site.</p><p>We do not guarantee that the Site will be secure or free from bugs or viruses. You are responsible for configuring your information technology, computer programmes, and platform to access our Site.</p><p>&nbsp;</p><p><strong>6. Third-Party Links</strong></p><p>Our Site may contain links to third-party websites or services that we do not own or control. We are not responsible for the content, policies, or practices of any third-party website or service linked to on our Site. It is your responsibility to read the terms and conditions and privacy policies of these third-party websites before using these sites.</p><p>&nbsp;</p><p><strong>7. Changes to These Terms</strong></p><p>We reserve the right to modify these Terms at any time. We will notify you of any changes by posting the new Terms on this page and updating the \"Last Updated\" date at the top. You are advised to review this page periodically for any changes. Your continued use of the Site after changes are posted constitutes your acceptance of the new Terms.</p><p>&nbsp;</p><p><strong>8. Governing Law</strong></p><p>These Terms are governed by the laws of [Your Country/State/Province]. Any disputes arising out of or in relation to these Terms will be subject to the jurisdiction of the courts of [Your Country/State/Province].</p><p>&nbsp;</p><p><strong>9. Contact Us</strong></p><p>If you have any questions or concerns about these Terms, please contact us at:</p><ul><li><p>Email: hello@pencilz.works</p></li><li><p>Address: Montreal</p></li></ul><p></p>"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "content": "Privacy Policy content goes here"
+  }
+}

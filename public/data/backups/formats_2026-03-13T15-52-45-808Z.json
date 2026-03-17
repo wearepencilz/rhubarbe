@@ -1,0 +1,22 @@
+[
+  {
+    "id": "format-test-1",
+    "name": "Test Scoop",
+    "slug": "test-scoop",
+    "category": "frozen",
+    "servingStyle": "scoop",
+    "description": "Test format",
+    "requiresFlavours": true,
+    "minFlavours": 1,
+    "maxFlavours": 1,
+    "allowMixedTypes": false,
+    "canIncludeAddOns": false,
+    "defaultSizes": [
+      "small",
+      "medium"
+    ],
+    "menuSection": "ice-cream",
+    "createdAt": "2026-03-13T15:52:45.807Z",
+    "updatedAt": "2026-03-13T15:52:45.807Z"
+  }
+]

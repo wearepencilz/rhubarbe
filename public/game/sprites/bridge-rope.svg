@@ -1,0 +1,41 @@
+<svg width="60" height="20" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Bridge: Rope Bridge - For highest platform, wooden planks with rope -->
+  <!-- 60x20px sprite: [left 20px][center 20px][right 20px] -->
+  
+  <!-- Left anchor (0-20px) -->
+  <rect x="0" y="0" width="20" height="20" fill="#8B6F47"/>
+  <!-- Rope posts -->
+  <rect x="2" y="0" width="3" height="16" fill="#6B5639"/>
+  <rect x="15" y="0" width="3" height="16" fill="#6B5639"/>
+  <!-- Rope lines -->
+  <rect x="0" y="2" width="20" height="1.5" fill="#B8956A"/>
+  <rect x="0" y="14" width="20" height="1.5" fill="#B8956A"/>
+  <!-- Planks -->
+  <rect x="4" y="7" width="12" height="3" fill="#8B6F47"/>
+  <rect x="4" y="11" width="12" height="2" fill="#6B5639"/>
+  
+  <!-- Center section (20-40px) - repeatable planks -->
+  <rect x="20" y="0" width="20" height="20" fill="none"/>
+  <!-- Rope lines -->
+  <rect x="20" y="2" width="20" height="1.5" fill="#B8956A"/>
+  <rect x="20" y="14" width="20" height="1.5" fill="#B8956A"/>
+  <!-- Planks with gaps -->
+  <rect x="21" y="7" width="5" height="3" fill="#8B6F47"/>
+  <rect x="27" y="7" width="5" height="3" fill="#8B6F47"/>
+  <rect x="33" y="7" width="5" height="3" fill="#8B6F47"/>
+  <rect x="21" y="11" width="5" height="2" fill="#6B5639"/>
+  <rect x="27" y="11" width="5" height="2" fill="#6B5639"/>
+  <rect x="33" y="11" width="5" height="2" fill="#6B5639"/>
+  
+  <!-- Right anchor (40-60px) -->
+  <rect x="40" y="0" width="20" height="20" fill="#8B6F47"/>
+  <!-- Rope posts -->
+  <rect x="42" y="0" width="3" height="16" fill="#6B5639"/>
+  <rect x="55" y="0" width="3" height="16" fill="#6B5639"/>
+  <!-- Rope lines -->
+  <rect x="40" y="2" width="20" height="1.5" fill="#B8956A"/>
+  <rect x="40" y="14" width="20" height="1.5" fill="#B8956A"/>
+  <!-- Planks -->
+  <rect x="44" y="7" width="12" height="3" fill="#8B6F47"/>
+  <rect x="44" y="11" width="12" height="2" fill="#6B5639"/>
+</svg>

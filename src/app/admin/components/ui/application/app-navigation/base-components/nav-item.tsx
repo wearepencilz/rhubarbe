@@ -1,0 +1,110 @@
+"use client";
+
+import type { FC, HTMLAttributes, MouseEventHandler, ReactNode } from "react";
+import Link from "next/link";
+import { ChevronDown, Share04 } from "@untitledui/icons";
+import { Badge } from "@/src/app/admin/components/ui/base/badges/badges";
+import { cx, sortCx } from "@/src/utils/cx";
+
+const styles = sortCx({
+    root: "group relative flex w-full cursor-pointer items-center rounded-md bg-white outline-none transition duration-100 ease-linear select-none hover:bg-gray-50 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",
+    rootSelected: "bg-gray-100 hover:bg-gray-100",
+});
+
+interface NavItemBaseProps {
+    /** Whether the nav item shows only an icon. */
+    iconOnly?: boolean;
+    /** Whether the collapsible nav item is open. */
+    open?: boolean;
+    /** URL to navigate to when the nav item is clicked. */
+    href?: string;
+    /** Type of the nav item. */
+    type: "link" | "collapsible" | "collapsible-child";
+    /** Icon component to display. */
+    icon?: FC<HTMLAttributes<HTMLOrSVGElement>>;
+    /** Badge to display. */
+    badge?: ReactNode;
+    /** Whether the nav item is currently active. */
+    current?: boolean;
+    /** Whether to truncate the label text. */
+    truncate?: boolean;
+    /** Handler for click events. */
+    onClick?: MouseEventHandler;
+    /** Content to display. */
+    children?: ReactNode;
+}
+
+export const NavItemBase = ({ current, type, badge, href, icon: Icon, children, truncate = true, onClick }: NavItemBaseProps) => {
+    const iconElement = Icon && <Icon aria-hidden="true" className="mr-2 size-5 shrink-0 text-gray-600 transition-inherit-all" />;
+
+    const badgeElement =
+        badge && (typeof badge === "string" || typeof badge === "number") ? (
+            <Badge className="ml-3" color="gray" type="pill-color" size="sm">
+                {badge}
+            </Badge>
+        ) : (
+            badge
+        );
+
+    const labelElement = (
+        <span
+            className={cx(
+                "flex-1 text-md font-semibold text-gray-700 transition-inherit-all group-hover:text-gray-900",
+                truncate && "truncate",
+                current && "text-gray-900",
+            )}
+        >
+            {children}
+        </span>
+    );
+
+    const isExternal = href && href.startsWith("http");
+    const externalIcon = isExternal && <Share04 className="size-4 stroke-[2.5px] text-gray-500" />;
+
+    if (type === "collapsible") {
+        return (
+            <summary className={cx("px-3 py-2", styles.root, current && styles.rootSelected)} onClick={onClick}>
+                {iconElement}
+
+                {labelElement}
+
+                {badgeElement}
+
+                <ChevronDown aria-hidden="true" className="ml-3 size-4 shrink-0 stroke-[2.5px] text-gray-500 in-open:-scale-y-100" />
+            </summary>
+        );
+    }
+
+    if (type === "collapsible-child") {
+        return (
+            <Link
+                href={href!}
+                target={isExternal ? "_blank" : "_self"}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                className={cx("py-2 pr-3 pl-10", styles.root, current && styles.rootSelected)}
+                onClick={onClick}
+                aria-current={current ? "page" : undefined}
+            >
+                {labelElement}
+                {externalIcon}
+                {badgeElement}
+            </Link>
+        );
+    }
+
+    return (
+        <Link
+            href={href!}
+            target={isExternal ? "_blank" : "_self"}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            className={cx("px-3 py-2", styles.root, current && styles.rootSelected)}
+            onClick={onClick}
+            aria-current={current ? "page" : undefined}
+        >
+            {iconElement}
+            {labelElement}
+            {externalIcon}
+            {badgeElement}
+        </Link>
+    );
+};

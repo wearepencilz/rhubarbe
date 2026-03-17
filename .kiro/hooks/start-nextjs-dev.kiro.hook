@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Start Next.js Dev Server",
+  "description": "Starts the Next.js development server when manually triggered",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npm run dev"
+  }
+}

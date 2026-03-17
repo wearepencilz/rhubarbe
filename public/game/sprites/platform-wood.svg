@@ -1,0 +1,30 @@
+<svg width="60" height="20" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Platform 1: Wood - Brown/tan platform with grain texture -->
+  <!-- 60x20px sprite: [left 20px][center 20px][right 20px] -->
+  
+  <!-- Left cap (0-20px) -->
+  <rect x="0" y="0" width="20" height="20" fill="#8B6F47"/>
+  <rect x="0" y="0" width="20" height="4" fill="#A0826D"/>
+  <rect x="0" y="16" width="20" height="4" fill="#6B5639"/>
+  <rect x="0" y="4" width="4" height="12" fill="#6B5639"/>
+  <rect x="4" y="6" width="12" height="2" fill="#6B5639" opacity="0.3"/>
+  <rect x="4" y="10" width="14" height="2" fill="#6B5639" opacity="0.3"/>
+  <rect x="6" y="14" width="10" height="2" fill="#6B5639" opacity="0.3"/>
+  
+  <!-- Center section (20-40px) - repeatable -->
+  <rect x="20" y="0" width="20" height="20" fill="#8B6F47"/>
+  <rect x="20" y="0" width="20" height="4" fill="#A0826D"/>
+  <rect x="20" y="16" width="20" height="4" fill="#6B5639"/>
+  <rect x="22" y="6" width="16" height="2" fill="#6B5639" opacity="0.3"/>
+  <rect x="24" y="10" width="14" height="2" fill="#6B5639" opacity="0.3"/>
+  <rect x="22" y="14" width="16" height="2" fill="#6B5639" opacity="0.3"/>
+  
+  <!-- Right cap (40-60px) -->
+  <rect x="40" y="0" width="20" height="20" fill="#8B6F47"/>
+  <rect x="40" y="0" width="20" height="4" fill="#A0826D"/>
+  <rect x="40" y="16" width="20" height="4" fill="#6B5639"/>
+  <rect x="56" y="4" width="4" height="12" fill="#6B5639"/>
+  <rect x="42" y="6" width="14" height="2" fill="#6B5639" opacity="0.3"/>
+  <rect x="44" y="10" width="12" height="2" fill="#6B5639" opacity="0.3"/>
+  <rect x="44" y="14" width="12" height="2" fill="#6B5639" opacity="0.3"/>
+</svg>

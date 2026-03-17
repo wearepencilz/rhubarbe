@@ -1,0 +1,686 @@
+[
+  {
+    "id": "milk",
+    "name": "Milk",
+    "category": "dairy-bases",
+    "roles": [
+      "Base"
+    ],
+    "descriptors": [
+      "Creamy"
+    ],
+    "origin": "Unknown",
+    "allergens": [
+      "dairy"
+    ],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "description": "Primary dairy base ingredient for gelato.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-16T13:43:56.237Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": true,
+    "vegetarian": false,
+    "taxonomyCategory": "dairy-bases",
+    "latinName": "",
+    "story": "",
+    "supplier": "",
+    "farm": "",
+    "isOrganic": false,
+    "image": ""
+  },
+  {
+    "id": "cream",
+    "name": "Cream",
+    "category": "Dairy",
+    "roles": [
+      "Base"
+    ],
+    "descriptors": [
+      "Creamy"
+    ],
+    "origin": "Unknown",
+    "allergens": [
+      "dairy"
+    ],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "description": "Used to enrich dairy base.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T17:23:01.842Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": true,
+    "vegetarian": true,
+    "taxonomyCategory": "dairy-bases"
+  },
+  {
+    "id": "browned-butter",
+    "name": "Browned Butter",
+    "category": "Fat",
+    "roles": [
+      "Supporting Flavour"
+    ],
+    "descriptors": [
+      "Browned"
+    ],
+    "origin": "Unknown",
+    "allergens": [
+      "dairy"
+    ],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "description": "Butter cooked until nutty and aromatic.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-17T18:35:56.426Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": true,
+    "vegetarian": true,
+    "taxonomyCategory": "dairy-bases",
+    "latinName": "N/A",
+    "story": "Browned butter has its roots in French cuisine, often used to enhance the flavor of pastries and sauces. Artisan producers focus on the careful cooking process to develop its complex flavor profile, making it a prized ingredient in high-quality desserts.",
+    "texture": [
+      "creamy",
+      "smooth"
+    ],
+    "process": [
+      "browned"
+    ],
+    "attributes": [
+      "local",
+      "organic"
+    ],
+    "usedAs": [
+      "Supporting Flavour"
+    ],
+    "sourceName": "",
+    "sourceType": "",
+    "image": ""
+  },
+  {
+    "id": "garden-tomato-mix",
+    "name": "Garden Tomato Mix",
+    "category": "Vegetable",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Seasonal",
+      "Savoury"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "description": "Mixed tomato varieties used for sorbet or savoury-leaning flavour builds.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T17:23:12.512Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": false,
+    "vegetarian": true,
+    "taxonomyCategory": "fruits-vegetables"
+  },
+  {
+    "id": "white-peaches",
+    "name": "White Peaches",
+    "category": "fruit",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Seasonal"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T17:23:15.963Z",
+    "tastingNotes": [],
+    "availableMonths": [
+      7,
+      8
+    ],
+    "imageAlt": "",
+    "animalDerived": false,
+    "vegetarian": true,
+    "taxonomyCategory": "fruits-vegetables"
+  },
+  {
+    "id": "ile-dorleans-strawberries",
+    "name": "L'Île-d'Orléans Strawberries",
+    "category": "Fruit",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Local",
+      "Seasonal",
+      "Fresh"
+    ],
+    "origin": "L'Île-d'Orléans, Québec",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T17:23:20.467Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": false,
+    "vegetarian": true,
+    "taxonomyCategory": "fruits-vegetables"
+  },
+  {
+    "id": "wild-strawberry-quebec",
+    "name": "Wild Strawberry Québec",
+    "category": "Fruit",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Local",
+      "Seasonal"
+    ],
+    "origin": "Québec",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "fruits-vegetables"
+  },
+  {
+    "id": "red-watermelon",
+    "name": "Red Watermelon",
+    "category": "Fruit",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Seasonal"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-17T18:36:11.093Z",
+    "taxonomyCategory": "fruits-vegetables",
+    "latinName": "Citrullus lanatus",
+    "description": "Red watermelon is a juicy, sweet fruit known for its refreshing flavor and vibrant color.",
+    "story": "Watermelon has been cultivated for thousands of years, with origins tracing back to Africa. Today, it is grown in various regions, particularly in the United States, where farmers prioritize sustainable practices to enhance flavor and quality. Its importance in artisan food lies in its ability to evoke summer and provide a natural sweetness in desserts.",
+    "tastingNotes": [
+      "tropical"
+    ],
+    "texture": [
+      "icy",
+      "smooth"
+    ],
+    "process": [
+      "raw",
+      "extracted"
+    ],
+    "attributes": [
+      "local",
+      "seasonal",
+      "organic"
+    ],
+    "usedAs": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "sourceName": "",
+    "sourceType": "",
+    "availableMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "animalDerived": false,
+    "image": "",
+    "imageAlt": ""
+  },
+  {
+    "id": "yellow-watermelon",
+    "name": "Yellow Watermelon",
+    "category": "Fruit",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Seasonal"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-17T18:53:29.750Z",
+    "taxonomyCategory": "fruits-vegetables",
+    "latinName": "Citrullus lanatus",
+    "description": "Yellow watermelon is a sweet and refreshing fruit with a vibrant yellow flesh.",
+    "story": "Yellow watermelon is often grown by small-scale farmers who prioritize sustainable practices. Its unique color and flavor profile make it a sought-after ingredient for artisan ice creams, adding a touch of creativity and seasonal freshness to the menu.",
+    "tastingNotes": [
+      "tropical",
+      "citrus"
+    ],
+    "texture": [
+      "smooth",
+      "icy"
+    ],
+    "process": [
+      "raw"
+    ],
+    "attributes": [
+      "local",
+      "seasonal",
+      "organic"
+    ],
+    "usedAs": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "sourceName": "",
+    "sourceType": "",
+    "availableMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "animalDerived": false,
+    "image": "",
+    "imageAlt": ""
+  },
+  {
+    "id": "lime",
+    "name": "Lime",
+    "category": "Fruit",
+    "roles": [
+      "Supporting Flavour"
+    ],
+    "descriptors": [
+      "Citrus",
+      "Acidic",
+      "Fresh"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-17T18:36:36.248Z",
+    "taxonomyCategory": "fruits-vegetables",
+    "latinName": "Citrus aurantiifolia",
+    "description": "Lime is a small, green citrus fruit known for its tart flavor and aromatic zest.",
+    "story": "Limes are primarily grown in tropical and subtropical regions, with Mexico being one of the largest producers. Their bright acidity enhances a variety of dishes and beverages, making them a staple in artisan culinary creations.",
+    "tastingNotes": [
+      "citrus"
+    ],
+    "texture": [
+      "liquid"
+    ],
+    "process": [
+      "raw",
+      "extracted"
+    ],
+    "attributes": [
+      "local",
+      "seasonal",
+      "organic"
+    ],
+    "usedAs": [
+      "Supporting Flavour"
+    ],
+    "sourceName": "",
+    "sourceType": "",
+    "availableMonths": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "animalDerived": false,
+    "image": "",
+    "imageAlt": ""
+  },
+  {
+    "id": "lemon",
+    "name": "Lemon",
+    "category": "Fruit",
+    "roles": [
+      "Supporting Flavour"
+    ],
+    "descriptors": [
+      "Citrus",
+      "Acidic",
+      "Fresh"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-17T18:53:42.146Z",
+    "taxonomyCategory": "fruits-vegetables",
+    "latinName": "Citrus limon",
+    "description": "Lemon is a bright, tangy citrus fruit known for its refreshing flavor and versatility in both sweet and savory dishes.",
+    "story": "Lemons are primarily grown in sunny regions, with California being a significant producer. Their vibrant flavor and acidity make them a staple in artisan food, enhancing everything from desserts to dressings.",
+    "tastingNotes": [
+      "citrus"
+    ],
+    "texture": [
+      "liquid"
+    ],
+    "process": [
+      "raw",
+      "extracted"
+    ],
+    "attributes": [
+      "organic",
+      "seasonal"
+    ],
+    "usedAs": [
+      "Supporting Flavour"
+    ],
+    "sourceName": "",
+    "sourceType": "",
+    "availableMonths": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "animalDerived": false,
+    "image": "",
+    "imageAlt": ""
+  },
+  {
+    "id": "raspberries",
+    "name": "Raspberries",
+    "category": "Fruit",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Seasonal",
+      "Acidic"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "fruits-vegetables"
+  },
+  {
+    "id": "grilled-corn",
+    "name": "Grilled Corn",
+    "category": "Grain",
+    "roles": [
+      "Base",
+      "Primary Flavour"
+    ],
+    "descriptors": [
+      "Grilled",
+      "Seasonal",
+      "Sweet",
+      "Smoky"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": true,
+    "description": "Operationally classified as grain for consistency, even if used like a vegetable.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "nuts-seeds-grains"
+  },
+  {
+    "id": "thyme",
+    "name": "Thyme",
+    "category": "Herb",
+    "roles": [
+      "Supporting Flavour",
+      "Garnish"
+    ],
+    "descriptors": [
+      "Herbal",
+      "Fresh"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "spices-herbs-botanicals"
+  },
+  {
+    "id": "madagascar-bourbon-vanilla",
+    "name": "Madagascar Bourbon Vanilla",
+    "category": "Aromatic",
+    "roles": [
+      "Primary Flavour",
+      "Supporting Flavour"
+    ],
+    "descriptors": [
+      "Floral",
+      "Sweet"
+    ],
+    "origin": "Madagascar",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "spices-herbs-botanicals"
+  },
+  {
+    "id": "spruce-tip",
+    "name": "Spruce Tip",
+    "category": "Botanical",
+    "roles": [
+      "Primary Flavour",
+      "Supporting Flavour"
+    ],
+    "descriptors": [
+      "Foraged",
+      "Herbal"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "spices-herbs-botanicals"
+  },
+  {
+    "id": "mint",
+    "name": "Mint",
+    "category": "Herb",
+    "roles": [
+      "Primary Flavour",
+      "Supporting Flavour",
+      "Garnish"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Herbal"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "spices-herbs-botanicals"
+  },
+  {
+    "id": "basil",
+    "name": "Basil",
+    "category": "Herb",
+    "roles": [
+      "Primary Flavour",
+      "Supporting Flavour",
+      "Garnish"
+    ],
+    "descriptors": [
+      "Fresh",
+      "Herbal"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "spices-herbs-botanicals"
+  },
+  {
+    "id": "honey",
+    "name": "Honey",
+    "category": "Sweetener",
+    "roles": [
+      "Supporting Flavour"
+    ],
+    "descriptors": [
+      "Sweet",
+      "Floral"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T17:23:44.452Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": true,
+    "vegetarian": true,
+    "isOrganic": true,
+    "taxonomyCategory": "sweeteners-syrups"
+  },
+  {
+    "id": "sun-dried-mole",
+    "name": "Sun-Dried Mole",
+    "category": "Sauce",
+    "roles": [
+      "Topping",
+      "Garnish",
+      "Optional Add-on"
+    ],
+    "descriptors": [
+      "Savoury",
+      "Spicy",
+      "Dried"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "description": "Optional topping component, not a base ingredient.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T17:23:49.470Z",
+    "tastingNotes": [],
+    "availableMonths": [],
+    "imageAlt": "",
+    "animalDerived": false,
+    "vegetarian": true,
+    "taxonomyCategory": "sweeteners-syrups"
+  },
+  {
+    "id": "himalayan-sea-salt",
+    "name": "Himalayan Sea Salt",
+    "category": "Salt",
+    "roles": [
+      "Supporting Flavour",
+      "Garnish"
+    ],
+    "descriptors": [],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "spices-herbs-botanicals"
+  },
+  {
+    "id": "tajin",
+    "name": "Tajín",
+    "category": "Condiment",
+    "roles": [
+      "Topping",
+      "Garnish",
+      "Optional Add-on"
+    ],
+    "descriptors": [
+      "Spicy",
+      "Acidic"
+    ],
+    "origin": "Unknown",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "description": "Seasoning blend used as topping or add-on.",
+    "createdAt": "2026-03-13T02:44:47.109Z",
+    "updatedAt": "2026-03-13T02:44:47.109Z",
+    "taxonomyCategory": "sweeteners-syrups"
+  },
+  {
+    "id": "1773420159139",
+    "name": "Test ingredient",
+    "latinName": "",
+    "category": "new",
+    "origin": "new",
+    "allergens": [],
+    "dietaryFlags": [],
+    "seasonal": false,
+    "image": "",
+    "description": "",
+    "roles": [],
+    "descriptors": [
+      "Local",
+      "Seasonal",
+      "Caramelized"
+    ],
+    "createdAt": "2026-03-13T16:42:39.139Z",
+    "updatedAt": "2026-03-13T16:42:39.139Z"
+  }
+]

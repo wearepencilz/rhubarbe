@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Push Live",
+  "description": "Commit all changes, push to GitHub, and trigger Vercel deployment",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "git add -A && git commit -m \"deploy: set live $(date +%Y-%m-%d_%H:%M:%S)\" && git push origin main",
+    "timeout": 120
+  },
+  "workspaceFolderName": "Pencilz2026",
+  "shortName": "set-live"
+}

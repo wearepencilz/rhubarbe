@@ -1,0 +1,598 @@
+{
+  "logo": "/uploads/1773633391366-logo.svg",
+  "email": "help@janinemtl.com",
+  "phone": "",
+  "companyName": "Janine",
+  "visit": {
+    "message": "<p>THU / FRI / SAT</p><p>13H – 20H, SOMETIMES LATER</p>",
+    "address": "<p>2455 Notre Dame, <br>Montreal, QC, H3J 1N6</p>",
+    "addressUrl": "https://maps.app.goo.gl/3yU5y5Mnq4Bqf8bAA",
+    "photo": "/uploads/1773633761972-come-see-us.jpg"
+  },
+  "footer": {
+    "address": "<p>2455 rue Notre Dame Ouest</p><p>Montreal, H3J 1N6</p>",
+    "addressUrl": "https://maps.app.goo.gl/3yU5y5Mnq4Bqf8bAA",
+    "hours": "<p>THU / FRI / SAT</p><p>13H – 20H – <em>SOMETIMES LATER</em></p>",
+    "instagram": "https://instagram.com/janinemtl",
+    "contact": "<p>bonjour@janinemtl.ca</p><p>514.970.9266</p>"
+  },
+  "about": {
+    "bg": "#948c22",
+    "text": "<p>Handcrafted soft-serve Mediterranean gelato, made with heart and honesty.</p><p>We work with local producers and chase remarkable flavours so that every creation carries a memory. Each swirl is meant to bring back a small moment of happiness, something familiar and comforting in a frozen form.</p>",
+    "image": "/uploads/1773635788718-image-171.jpg"
+  },
+  "home": {
+    "story": {
+      "bg": "#333112",
+      "text": "<p>This is the story of a lost heritage in a southern village, nestled between the azure sea and the singing cicadas. From Marseille to La Spezia.</p><p>A frozen delight for the long summer days.</p><p>A tribute to a grandmother who loves the sea, the warm sand, and the sweetness of a gelato. It is the story of all those little moments of happiness that belong to each of us, told through frozen flavors with simplicity and honesty.</p><p>To Janine,<br>the cicadas will forever sing your name.</p>",
+      "image": "/uploads/1773637015476-image-168.png"
+    },
+    "editorial": [
+      {
+        "text": "<p>Our inspiration begins at the market. Following a tradition our chef learned in the south, we start with perfectly ripe seasonal fruit and build every flavour from there. </p><p>Fruit is always the main character. Each sorbet is paired with a creamy Jersey milk gelato, gently infused with spices or native herbs chosen to complement the fruit. The result is a balance where acidity, sweetness, and aromatics meet in harmony.</p>",
+        "image": "/uploads/1773636969137-frame-127.png"
+      },
+      {
+        "text": "<p>Our gelato base is made with Jersey cow milk from MC Dairy, a cooperative of small farmers committed to responsible agriculture. Their cows spend the summer grazing in open pasture, producing rich milk while maintaining strong standards for animal care. </p><p>Our eggs come from an Ontario producer known for their naturally golden yolks, laid by free-run hens fed a marigold-rich diet that enhances both colour and nutritional value.</p>",
+        "image": "/uploads/1773636975659-frame-128.png"
+      },
+      {
+        "text": "<p>Whenever possible, we source ingredients locally and choose partners who care deeply about the land, their animals, and the quality of what they grow. </p><p>One of our main suppliers is Médiserre, a Montreal-based distributor founded by chefs Andrew and Olivier. They work closely with small Canadian producers to bring exceptional ingredients to kitchens that value seasonality, transparency, and flavour.</p>",
+        "image": "/uploads/1773636982745-frame-129.png"
+      }
+    ],
+    "photos": {
+      "photo1": "/uploads/1773636989891-frame-120.png",
+      "photo2": "/uploads/1773636993465-frame-119.png"
+    }
+  },
+  "formatEligibilityRules": {},
+  "taxonomies": {
+    "flavourTypes": [
+      {
+        "id": "gelato",
+        "label": "Gelato",
+        "value": "gelato",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "sorbet",
+        "label": "Sorbet",
+        "value": "sorbet",
+        "sortOrder": 2,
+        "archived": false
+      }
+    ],
+    "keyNotes": [
+      {
+        "id": "sweet",
+        "label": "Sweet",
+        "value": "sweet",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "rich",
+        "label": "Rich",
+        "value": "rich",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "buttery",
+        "label": "Buttery",
+        "value": "buttery",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "caramelized",
+        "label": "Caramelized",
+        "value": "caramelized",
+        "sortOrder": 4,
+        "archived": false
+      },
+      {
+        "id": "honeyed",
+        "label": "Honeyed",
+        "value": "honeyed",
+        "sortOrder": 5,
+        "archived": false
+      },
+      {
+        "id": "fresh",
+        "label": "Fresh",
+        "value": "fresh",
+        "sortOrder": 6,
+        "archived": false
+      },
+      {
+        "id": "refreshing",
+        "label": "Refreshing",
+        "value": "refreshing",
+        "sortOrder": 7,
+        "archived": false
+      },
+      {
+        "id": "bright",
+        "label": "Bright",
+        "value": "bright",
+        "sortOrder": 8,
+        "archived": false
+      },
+      {
+        "id": "citrusy",
+        "label": "Citrusy",
+        "value": "citrusy",
+        "sortOrder": 9,
+        "archived": false
+      },
+      {
+        "id": "fruity",
+        "label": "Fruity",
+        "value": "fruity",
+        "sortOrder": 10,
+        "archived": false
+      },
+      {
+        "id": "floral",
+        "label": "Floral",
+        "value": "floral",
+        "sortOrder": 11,
+        "archived": false
+      },
+      {
+        "id": "jammy",
+        "label": "Jammy",
+        "value": "jammy",
+        "sortOrder": 12,
+        "archived": false
+      },
+      {
+        "id": "savory",
+        "label": "Savory",
+        "value": "savory",
+        "sortOrder": 13,
+        "archived": false
+      },
+      {
+        "id": "earthy",
+        "label": "Earthy",
+        "value": "earthy",
+        "sortOrder": 14,
+        "archived": false
+      },
+      {
+        "id": "herbal",
+        "label": "Herbal",
+        "value": "herbal",
+        "sortOrder": 15,
+        "archived": false
+      },
+      {
+        "id": "green",
+        "label": "Green",
+        "value": "green",
+        "sortOrder": 16,
+        "archived": false
+      },
+      {
+        "id": "nutty",
+        "label": "Nutty",
+        "value": "nutty",
+        "sortOrder": 17,
+        "archived": false
+      },
+      {
+        "id": "toasted",
+        "label": "Toasted",
+        "value": "toasted",
+        "sortOrder": 18,
+        "archived": false
+      },
+      {
+        "id": "smoky",
+        "label": "Smoky",
+        "value": "smoky",
+        "sortOrder": 19,
+        "archived": false
+      },
+      {
+        "id": "spiced",
+        "label": "Spiced",
+        "value": "spiced",
+        "sortOrder": 20,
+        "archived": false
+      },
+      {
+        "id": "creamy",
+        "label": "Creamy",
+        "value": "creamy",
+        "sortOrder": 21,
+        "archived": false
+      },
+      {
+        "id": "light",
+        "label": "Light",
+        "value": "light",
+        "sortOrder": 22,
+        "archived": false
+      }
+    ],
+    "ingredientCategories": [
+      {
+        "id": "dairy-bases",
+        "label": "Dairy & Bases",
+        "value": "dairy-bases",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "fruits-vegetables",
+        "label": "Fruits & Vegetables",
+        "value": "fruits-vegetables",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "nuts-seeds-grains",
+        "label": "Nuts, Seeds & Grains",
+        "value": "nuts-seeds-grains",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "spices-herbs-botanicals",
+        "label": "Spices, Herbs & Botanicals",
+        "value": "spices-herbs-botanicals",
+        "sortOrder": 4,
+        "archived": false
+      },
+      {
+        "id": "sweeteners-syrups",
+        "label": "Sweeteners & Syrups",
+        "value": "sweeteners-syrups",
+        "sortOrder": 5,
+        "archived": false
+      },
+      {
+        "id": "chocolate-coffee-cacao",
+        "label": "Chocolate, Coffee & Cacao",
+        "value": "chocolate-coffee-cacao",
+        "sortOrder": 6,
+        "archived": false
+      },
+      {
+        "id": "floral-aromatic",
+        "label": "Floral & Aromatic",
+        "value": "floral-aromatic",
+        "sortOrder": 7,
+        "archived": false
+      },
+      {
+        "id": "funky-fermented-savoury",
+        "label": "Funky, Fermented & Savoury",
+        "value": "funky-fermented-savoury",
+        "sortOrder": 8,
+        "archived": false
+      },
+      {
+        "id": "salts-minerals",
+        "label": "Salts & Minerals",
+        "value": "salts-minerals",
+        "sortOrder": 9,
+        "archived": false
+      },
+      {
+        "id": "regional-cultural-staples",
+        "label": "Regional or Cultural Staples",
+        "value": "regional-cultural-staples",
+        "sortOrder": 10,
+        "archived": false
+      },
+      {
+        "id": "inclusions-add-ons",
+        "label": "Inclusions & Add-Ons",
+        "value": "inclusions-add-ons",
+        "sortOrder": 11,
+        "archived": false
+      },
+      {
+        "id": "other",
+        "label": "Other",
+        "value": "other",
+        "sortOrder": 12,
+        "archived": false
+      }
+    ],
+    "ingredientRoles": [
+      {
+        "id": "primary",
+        "label": "Primary",
+        "value": "primary",
+        "description": "Main ingredient defining the flavour",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "supporting",
+        "label": "Supporting",
+        "value": "supporting",
+        "description": "Enhances or complements the primary flavour",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "accent",
+        "label": "Accent",
+        "value": "accent",
+        "description": "Adds subtle notes or complexity",
+        "sortOrder": 3,
+        "archived": false
+      }
+    ],
+    "tastingNotes": [
+      {
+        "id": "citrus",
+        "label": "Citrus",
+        "value": "citrus",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "floral",
+        "label": "Floral",
+        "value": "floral",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "bittersweet",
+        "label": "Bittersweet",
+        "value": "bittersweet",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "earthy",
+        "label": "Earthy",
+        "value": "earthy",
+        "sortOrder": 4,
+        "archived": false
+      },
+      {
+        "id": "herbaceous",
+        "label": "Herbaceous",
+        "value": "herbaceous",
+        "sortOrder": 5,
+        "archived": false
+      },
+      {
+        "id": "spicy",
+        "label": "Spicy",
+        "value": "spicy",
+        "sortOrder": 6,
+        "archived": false
+      },
+      {
+        "id": "woody",
+        "label": "Woody",
+        "value": "woody",
+        "sortOrder": 7,
+        "archived": false
+      },
+      {
+        "id": "tropical",
+        "label": "Tropical",
+        "value": "tropical",
+        "sortOrder": 8,
+        "archived": false
+      },
+      {
+        "id": "berry",
+        "label": "Berry",
+        "value": "berry",
+        "sortOrder": 9,
+        "archived": false
+      },
+      {
+        "id": "stone-fruit",
+        "label": "Stone Fruit",
+        "value": "stone-fruit",
+        "sortOrder": 10,
+        "archived": false
+      }
+    ],
+    "formatCategories": [
+      {
+        "id": "frozen",
+        "label": "Frozen",
+        "value": "frozen",
+        "description": "Ice cream, sorbet, soft serve",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "food",
+        "label": "Food",
+        "value": "food",
+        "description": "Sandwiches, focaccia",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "experience",
+        "label": "Experience",
+        "value": "experience",
+        "description": "Tastings, events",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "bundle",
+        "label": "Bundle",
+        "value": "bundle",
+        "description": "Multi-item packages",
+        "sortOrder": 4,
+        "archived": false
+      }
+    ],
+    "servingStyles": [
+      {
+        "id": "scoop",
+        "label": "Scoop",
+        "value": "scoop",
+        "description": "Traditional scooped ice cream",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "soft-serve",
+        "label": "Soft Serve",
+        "value": "soft-serve",
+        "description": "Soft-serve machine dispensed",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "packaged",
+        "label": "Packaged",
+        "value": "packaged",
+        "description": "Pre-packaged containers",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "plated",
+        "label": "Plated",
+        "value": "plated",
+        "description": "Plated dessert experience",
+        "sortOrder": 4,
+        "archived": false
+      }
+    ],
+    "modifierTypes": [
+      {
+        "id": "topping",
+        "label": "Topping",
+        "value": "topping",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "sauce",
+        "label": "Sauce",
+        "value": "sauce",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "crunch",
+        "label": "Crunch",
+        "value": "crunch",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "drizzle",
+        "label": "Drizzle",
+        "value": "drizzle",
+        "sortOrder": 4,
+        "archived": false
+      },
+      {
+        "id": "premium-addon",
+        "label": "Premium Add-on",
+        "value": "premium-addon",
+        "sortOrder": 5,
+        "archived": false
+      }
+    ],
+    "allergens": [
+      {
+        "id": "dairy",
+        "label": "Dairy",
+        "value": "dairy",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "egg",
+        "label": "Egg",
+        "value": "egg",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "gluten",
+        "label": "Gluten",
+        "value": "gluten",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "tree-nuts",
+        "label": "Tree Nuts",
+        "value": "tree-nuts",
+        "sortOrder": 4,
+        "archived": false
+      },
+      {
+        "id": "peanuts",
+        "label": "Peanuts",
+        "value": "peanuts",
+        "sortOrder": 5,
+        "archived": false
+      },
+      {
+        "id": "sesame",
+        "label": "Sesame",
+        "value": "sesame",
+        "sortOrder": 6,
+        "archived": false
+      },
+      {
+        "id": "soy",
+        "label": "Soy",
+        "value": "soy",
+        "sortOrder": 7,
+        "archived": false
+      }
+    ],
+    "contentBlockTypes": [
+      {
+        "id": "hero",
+        "label": "Hero",
+        "value": "hero",
+        "description": "Large hero image/video section",
+        "sortOrder": 1,
+        "archived": false
+      },
+      {
+        "id": "text",
+        "label": "Text",
+        "value": "text",
+        "description": "Text content block",
+        "sortOrder": 2,
+        "archived": false
+      },
+      {
+        "id": "image-gallery",
+        "label": "Image Gallery",
+        "value": "image-gallery",
+        "description": "Multiple images in a gallery",
+        "sortOrder": 3,
+        "archived": false
+      },
+      {
+        "id": "product-showcase",
+        "label": "Product Showcase",
+        "value": "product-showcase",
+        "description": "Featured products section",
+        "sortOrder": 4,
+        "archived": false
+      }
+    ]
+  }
+}
