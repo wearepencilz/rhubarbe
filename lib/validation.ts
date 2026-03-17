@@ -1,4 +1,4 @@
-import { getTaxonomies, getIngredients, getFlavours, getFormats, getSettings } from './db.js'
+import { getTaxonomies, getIngredients, getFlavours, getSettings } from './db.js'
 
 // Taxonomy Validation Functions
 
@@ -80,16 +80,8 @@ export async function validateTaxonomyDeletion(category: string, id: string): Pr
       }
       break
       
-    case 'formatCategories':
-      const formats = await getFormats()
-      const usedInFormats = formats.filter((fmt: any) => fmt.category === id)
-      if (usedInFormats.length > 0) {
-        usedBy.push(...usedInFormats.map((fmt: any) => ({ type: 'format', id: fmt.id, name: fmt.name })))
-      }
-      break
-      
     case 'modifierTypes':
-      // TODO: Check modifiers when they're implemented
+      // modifiers removed
       break
       
     case 'allergens':

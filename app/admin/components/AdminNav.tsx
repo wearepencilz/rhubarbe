@@ -9,13 +9,8 @@ export default function AdminNav() {
 
   const navItems = [
     { href: '/admin', label: 'Dashboard' },
-    { href: '/admin/launches', label: 'Launches' },
     { href: '/admin/products', label: 'Menu Items' },
-    { href: '/admin/flavours', label: 'Flavours' },
     { href: '/admin/ingredients', label: 'Ingredients' },
-    { href: '/admin/formats', label: 'Formats' },
-    { href: '/admin/modifiers', label: 'Modifiers' },
-    { href: '/admin/batches', label: 'Batches' },
     { href: '/admin/news', label: 'News' },
     { href: '/admin/settings', label: 'Settings' },
   ];

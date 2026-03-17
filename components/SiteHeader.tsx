@@ -38,10 +38,10 @@ export default async function SiteHeader({ theme = 'dark' }: SiteHeaderProps) {
         className="pointer-events-auto flex flex-col items-end gap-[8px] md:gap-[10px] text-[12px] md:text-[14px] tracking-[0.28px] uppercase leading-none"
         style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500, color: textColor }}
       >
-        <Link href="/flavours" className="hover:opacity-60 transition-opacity">Flavours</Link>
-        <Link href="/stories" className="hover:opacity-60 transition-opacity hidden md:block">Stories</Link>
-        <Link href="/visit" className="hover:opacity-60 transition-opacity">Come See Us</Link>
-        <Link href="/archive" className="hover:opacity-60 transition-opacity hidden md:block">Archive</Link>
+        <Link href="/order" className="hover:opacity-60 transition-opacity">Order</Link>
+        <Link href="/traiteur" className="hover:opacity-60 transition-opacity">Catering</Link>
+        <Link href="/gateaux-signatures" className="hover:opacity-60 transition-opacity">Signature Cakes</Link>
+        <Link href="/about" className="hover:opacity-60 transition-opacity">About</Link>
       </nav>
     </header>
   );

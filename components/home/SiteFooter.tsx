@@ -39,7 +39,7 @@ export default async function SiteFooter() {
       </div>
 
       {/* Big logo */}
-      <div className="w-full flex items-end justify-center overflow-hidden">
+      <div className="w-full flex items-end justify-center overflow-hidden px-4 md:px-8">
         {logo ? (
           <img
             src={logo}

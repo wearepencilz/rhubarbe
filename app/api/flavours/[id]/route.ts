@@ -208,3 +208,37 @@ export async function DELETE(
     return { message: 'Flavour deleted successfully' };
   });
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized', timestamp: new Date().toISOString() }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const flavours = await getFlavours() as Flavour[];
+    const index = flavours.findIndex(f => f.id === params.id);
+
+    if (index === -1) {
+      return NextResponse.json({ error: 'Flavour not found', timestamp: new Date().toISOString() }, { status: 404 });
+    }
+
+    // Merge only the provided fields
+    flavours[index] = {
+      ...flavours[index],
+      ...body,
+      id: params.id,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveFlavours(flavours);
+    return NextResponse.json(flavours[index]);
+  } catch (error) {
+    console.error('Error patching flavour:', error);
+    return NextResponse.json({ error: 'Failed to update flavour', timestamp: new Date().toISOString() }, { status: 500 });
+  }
+}

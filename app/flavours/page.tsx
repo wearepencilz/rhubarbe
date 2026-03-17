@@ -1,39 +1,25 @@
-import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
-import { getLaunches, getFlavours, getIngredients, getModifiers } from '@/lib/db';
+import { getFlavours, getIngredients } from '@/lib/db';
 
 export const metadata = {
   title: 'Flavours – Rhubarbe',
-  description: 'All Rhubarbe flavours, ingredients, and modifiers.',
+  description: 'All Rhubarbe flavours and ingredients.',
 };
 
 export default async function FlavoursPage() {
-  const [allLaunches, allFlavours, allIngredients, allModifiers] = await Promise.all([
-    getLaunches().catch(() => []),
+  const [allFlavours, allIngredients] = await Promise.all([
     getFlavours().catch(() => []),
     getIngredients().catch(() => []),
-    getModifiers().catch(() => []),
   ]);
 
   const ingredientMap = Object.fromEntries(
     (allIngredients as any[]).map((i: any) => [i.id, i])
   );
 
-  // Only show active/archived launches with flavours
-  const launches = (allLaunches as any[])
-    .filter((l) => l.status !== 'upcoming' && l.featuredFlavourIds?.length > 0)
-    .sort((a, b) => new Date(b.activeStart || b.createdAt).getTime() - new Date(a.activeStart || a.createdAt).getTime());
-
-  const flavourMap = Object.fromEntries(
-    (allFlavours as any[]).map((f: any) => [f.id, f])
-  );
-
-  // Flavours not tied to any launch
-  const launchFlavourIds = new Set(launches.flatMap((l: any) => l.featuredFlavourIds || []));
-  const standaloneFlavours = (allFlavours as any[]).filter((f) => !launchFlavourIds.has(f.id) && f.status === 'active');
-
-  const activeModifiers = (allModifiers as any[]).filter((m) => m.status === 'active');
+  const activeFlavours = (allFlavours as any[])
+    .filter((f) => f.status !== 'archived')
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <main className="bg-white min-h-screen">
@@ -47,112 +33,12 @@ export default async function FlavoursPage() {
           [FLAVOURS]
         </p>
 
-        {/* Launches + their flavours */}
-        {launches.map((launch: any) => {
-          const flavours = (launch.featuredFlavourIds || [])
-            .map((id: string) => flavourMap[id])
-            .filter(Boolean);
-
-          return (
-            <section key={launch.id} className="mb-20">
-              {/* Launch header */}
-              <div className="flex items-baseline justify-between mb-8 border-b border-[#333112]/10 pb-4">
-                <Link
-                  href={`/launches/${launch.slug}`}
-                  className="text-[#333112] text-[28px] md:text-[36px] leading-none uppercase hover:opacity-60 transition-opacity"
-                  style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 700 }}
-                >
-                  {launch.title}
-                </Link>
-                <span
-                  className="text-[#333112]/40 text-[11px] tracking-[0.22px] uppercase ml-4 shrink-0"
-                  style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
-                >
-                  {launch.status === 'active' ? 'Now' : launch.activeStart
-                    ? new Date(launch.activeStart).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                    : '—'}
-                </span>
-              </div>
-
-              {/* Flavour cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#333112]/10">
-                {flavours.map((flavour: any) => (
-                  <FlavourCard key={flavour.id} flavour={flavour} ingredientMap={ingredientMap} />
-                ))}
-              </div>
-            </section>
-          );
-        })}
-
-        {/* Standalone flavours */}
-        {standaloneFlavours.length > 0 && (
+        {activeFlavours.length > 0 && (
           <section className="mb-20">
-            <p
-              className="text-[#333112]/40 text-[11px] tracking-[0.22px] uppercase mb-8 border-b border-[#333112]/10 pb-4"
-              style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
-            >
-              Other Flavours
-            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#333112]/10">
-              {standaloneFlavours.map((flavour: any) => (
+              {activeFlavours.map((flavour: any) => (
                 <FlavourCard key={flavour.id} flavour={flavour} ingredientMap={ingredientMap} />
               ))}
-            </div>
-          </section>
-        )}
-
-        {/* Modifiers */}
-        {activeModifiers.length > 0 && (
-          <section className="mb-20">
-            <p
-              className="text-[#333112] text-[16px] tracking-[0.32px] mb-8 border-b border-[#333112]/10 pb-4"
-              style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
-            >
-              [MODIFIERS]
-            </p>
-            <div className="flex flex-col">
-              {activeModifiers.map((mod: any, i: number) => (
-                <div key={mod.id}>
-                  <div className="h-px bg-[#333112] opacity-10" />
-                  <div className="flex items-center justify-between py-4 gap-4">
-                    <div className="flex flex-col gap-1">
-                      <p
-                        className="text-[#333112] text-[16px] uppercase leading-none"
-                        style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 600 }}
-                      >
-                        {mod.name}
-                      </p>
-                      {mod.description && (
-                        <p
-                          className="text-[#333112]/50 text-[13px] leading-[1.4]"
-                          style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 400 }}
-                        >
-                          {mod.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0">
-                      {mod.type && (
-                        <span
-                          className="text-[#333112]/40 text-[11px] tracking-[0.22px] uppercase"
-                          style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
-                        >
-                          {mod.type}
-                        </span>
-                      )}
-                      {mod.price > 0 && (
-                        <span
-                          className="text-[#333112] text-[13px] tracking-[0.26px]"
-                          style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
-                        >
-                          +${mod.price.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="h-px bg-[#333112] opacity-10" />
             </div>
           </section>
         )}

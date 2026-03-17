@@ -35,7 +35,6 @@ async function migrateToRedis() {
     'ingredients.json',
     'formats.json',
     'modifiers.json',
-    'launches.json',
     'products.json',
     'taxonomies.json',
     'stories.json',

@@ -8,6 +8,12 @@ const PAGES = [
     href: '/admin/pages/home',
   },
   {
+    key: 'about',
+    label: 'About',
+    description: 'The /about page — story, team, address',
+    href: '/admin/pages/about',
+  },
+  {
     key: 'come-see-us',
     label: 'Come See Us',
     description: 'The /visit page — hours, address, photo',

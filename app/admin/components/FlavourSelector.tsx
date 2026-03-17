@@ -1,119 +1,73 @@
 'use client';
 
-import { Format, Flavour } from '@/types';
+import { Flavour } from '@/types';
 
 interface FlavourSelectorProps {
-  format: Format;
+  format: null | { eligibleFlavourTypes?: string[]; minFlavours?: number; maxFlavours?: number; name?: string };
   flavours: Flavour[];
   selectedFlavourIds: string[];
   onSelect: (flavourIds: string[]) => void;
 }
 
 export default function FlavourSelector({ format, flavours, selectedFlavourIds, onSelect }: FlavourSelectorProps) {
-  // Ensure flavours is an array
   const flavoursArray = Array.isArray(flavours) ? flavours : [];
-  
-  // Filter flavours based on format's eligible flavour types
+
   const eligibleFlavours = flavoursArray.filter(flavour => {
-    // If format has no eligibleFlavourTypes specified, accept all flavour types
-    if (!format.eligibleFlavourTypes || format.eligibleFlavourTypes.length === 0) {
-      return true;
-    }
-    
-    // Otherwise, only show flavours whose type is in the format's eligible list
+    if (!format?.eligibleFlavourTypes || format.eligibleFlavourTypes.length === 0) return true;
     return format.eligibleFlavourTypes.includes(flavour.type);
   });
+
+  const maxFlavours = format?.maxFlavours ?? Infinity;
+  const minFlavours = format?.minFlavours ?? 1;
 
   const handleToggle = (flavourId: string) => {
     if (selectedFlavourIds.includes(flavourId)) {
       onSelect(selectedFlavourIds.filter(id => id !== flavourId));
     } else {
-      // Check if we've reached max flavours
-      if (selectedFlavourIds.length >= format.maxFlavours) {
-        // If single selection, replace
-        if (format.maxFlavours === 1) {
-          onSelect([flavourId]);
-        }
+      if (selectedFlavourIds.length >= maxFlavours) {
+        if (maxFlavours === 1) onSelect([flavourId]);
         return;
       }
       onSelect([...selectedFlavourIds, flavourId]);
     }
   };
 
-  const formatName = format.name.toLowerCase();
-  const isTwist = formatName.includes('twist');
-
   return (
     <div>
       <div className="mb-4">
-        <p className="text-sm text-gray-600">
-          Select {format.minFlavours === format.maxFlavours
-            ? `exactly ${format.minFlavours}`
-            : `${format.minFlavours} to ${format.maxFlavours}`} flavour(s) for this offering
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          {eligibleFlavours.length} eligible flavours available
-        </p>
+        <p className="text-sm text-gray-600">Select flavours for this product</p>
+        <p className="text-xs text-gray-500 mt-1">{eligibleFlavours.length} flavours available</p>
       </div>
 
       {/* Selection Counter */}
       <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-700">
-            Selected: {selectedFlavourIds.length} / {format.maxFlavours}
+            Selected: {selectedFlavourIds.length}{maxFlavours !== Infinity ? ` / ${maxFlavours}` : ''}
           </span>
           {selectedFlavourIds.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onSelect([])}
-              className="text-xs text-fg-brand-primary hover:text-fg-brand-primary-hover"
-            >
+            <button type="button" onClick={() => onSelect([])}
+              className="text-xs text-fg-brand-primary hover:text-fg-brand-primary-hover">
               Clear All
             </button>
           )}
         </div>
-        {selectedFlavourIds.length < format.minFlavours && (
+        {minFlavours > 1 && selectedFlavourIds.length < minFlavours && (
           <p className="text-xs text-orange-600 mt-1">
-            Need {format.minFlavours - selectedFlavourIds.length} more flavour(s)
+            Need {minFlavours - selectedFlavourIds.length} more flavour(s)
           </p>
         )}
       </div>
 
-      {/* Twist Builder */}
-      {isTwist && (
-        <div className="mb-4 p-4 bg-brand-primary border border-brand-primary rounded-lg">
-          <h4 className="text-sm font-semibold text-fg-brand-primary mb-2">Twist Combination</h4>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs text-fg-brand-secondary mb-1">Flavour A</p>
-              <div className="p-2 bg-primary border border-brand-primary rounded text-sm">
-                {selectedFlavourIds[0]
-                  ? flavoursArray.find(f => f.id === selectedFlavourIds[0])?.name
-                  : 'Not selected'}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-fg-brand-secondary mb-1">Flavour B</p>
-              <div className="p-2 bg-primary border border-brand-primary rounded text-sm">
-                {selectedFlavourIds[1]
-                  ? flavoursArray.find(f => f.id === selectedFlavourIds[1])?.name
-                  : 'Not selected'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Flavour Grid */}
       {eligibleFlavours.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
-          <p className="text-gray-500">No eligible flavours found for this format</p>
+          <p className="text-gray-500">No flavours found</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
           {eligibleFlavours.map((flavour) => {
             const isSelected = selectedFlavourIds.includes(flavour.id);
-            const isDisabled = !isSelected && selectedFlavourIds.length >= format.maxFlavours;
+            const isDisabled = !isSelected && selectedFlavourIds.length >= maxFlavours;
 
             return (
               <button

@@ -18,9 +18,6 @@ interface Product {
   publicName: string;
   slug: string;
   status: string;
-  formatId: string;
-  primaryFlavourIds: string[];
-  toppingIds?: string[];
   shortCardCopy?: string;
   image?: string;
   price: number;
@@ -28,9 +25,6 @@ interface Product {
   shopifyProductId?: string;
   shopifyProductHandle?: string;
 }
-
-interface Format { id: string; name: string; }
-interface Launch { id: string; title: string; slug: string; status: string; featuredProductIds: string[]; }
 
 const STATUS_COLOR: Record<string, 'success' | 'gray' | 'blue' | 'warning' | 'error'> = {
   active: 'success',
@@ -44,33 +38,22 @@ export default function ProductsPage() {
   const router = useRouter();
   const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
-  const [formats, setFormats] = useState<Format[]>([]);
-  const [launches, setLaunches] = useState<Launch[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [formatFilter, setFormatFilter] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', name: '' });
 
   useEffect(() => {
     fetchData();
-  }, [statusFilter, formatFilter]);
+  }, [statusFilter]);
 
   async function fetchData() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (formatFilter !== 'all') params.append('formatId', formatFilter);
 
-      const [productsRes, formatsRes, launchesRes] = await Promise.all([
-        fetch(`/api/products?${params}`),
-        fetch('/api/formats'),
-        fetch('/api/launches'),
-      ]);
-
+      const productsRes = await fetch(`/api/products?${params}`);
       if (productsRes.ok) setProducts(await productsRes.json());
-      if (formatsRes.ok) { const d = await formatsRes.json(); setFormats(d.data || d); }
-      if (launchesRes.ok) setLaunches(await launchesRes.json());
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -93,9 +76,6 @@ export default function ProductsPage() {
 
   const getFormatName = (formatId: string) =>
     formats.find((f) => f.id === formatId)?.name || 'Unknown';
-
-  const getProductLaunches = (productId: string) =>
-    launches.filter((l) => l.featuredProductIds?.includes(productId));
 
   return (
     <>
@@ -158,7 +138,6 @@ export default function ProductsPage() {
               <Table.Head label="Flavours" />
               <Table.Head label="Price" />
               <Table.Head label="Status" />
-              <Table.Head label="Launch" />
               <Table.Head label="Shopify" />
               <Table.Head label="" />
             </Table.Header>
@@ -187,10 +166,7 @@ export default function ProductsPage() {
                   </Table.Cell>
                   <Table.Cell>
                     <div>
-                      <span className="text-sm text-secondary">{product.primaryFlavourIds.length}</span>
-                      {product.toppingIds && product.toppingIds.length > 0 && (
-                        <p className="text-xs text-tertiary">+{product.toppingIds.length} modifiers</p>
-                      )}
+                      <span className="text-sm text-secondary">{product.primaryFlavourIds?.length ?? 0}</span>
                     </div>
                   </Table.Cell>
                   <Table.Cell>
@@ -202,24 +178,6 @@ export default function ProductsPage() {
                     <Badge color={STATUS_COLOR[product.status] ?? 'gray'}>
                       {product.status}
                     </Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {getProductLaunches(product.id).length === 0 ? (
-                      <span className="text-sm text-tertiary">—</span>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {getProductLaunches(product.id).map((launch) => (
-                          <Link
-                            key={launch.id}
-                            href={`/admin/launches/${launch.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-brand-600 hover:underline"
-                          >
-                            {launch.title}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
                   </Table.Cell>
                   <Table.Cell>
                     {product.shopifyProductId ? (

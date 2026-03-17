@@ -5,7 +5,7 @@
  * based on format-flavour compatibility rules.
  */
 
-import { Format, GenerationReport } from '@/types';
+import { GenerationReport } from '@/types';
 
 /**
  * Determines if a format is eligible for a specific flavour

@@ -16,7 +16,6 @@ const groups: DashboardGroup[] = [
   {
     label: 'Commerce',
     cards: [
-      { title: 'Launches', description: 'Create and manage product launches', href: '/admin/launches', icon: '🚀' },
       { title: 'Products', description: 'Generated products linked to Shopify', href: '/admin/products', icon: '🎁' },
     ],
   },
@@ -24,8 +23,6 @@ const groups: DashboardGroup[] = [
     label: 'Archive',
     cards: [
       { title: 'Flavours', description: 'Flavour archive and recipe management', href: '/admin/flavours', icon: '🍦' },
-      { title: 'Batches', description: 'Test kitchen batch tracking', href: '/admin/batches', icon: '🧪' },
-      { title: 'Modifiers', description: 'Toppings, sauces, and add-ons', href: '/admin/modifiers', icon: '✨' },
       { title: 'Ingredients', description: 'Ingredient library with provenance', href: '/admin/ingredients', icon: '🌿' },
     ],
   },
@@ -35,13 +32,13 @@ const groups: DashboardGroup[] = [
       { title: 'Stories', description: 'Brand stories and editorial features', href: '/admin/stories', icon: '📖' },
       { title: 'News', description: 'Editorial content and updates', href: '/admin/news', icon: '📰' },
       { title: 'Pages', description: 'Static page content management', href: '/admin/pages', icon: '📄' },
+      { title: 'Requests', description: 'Catering and signature cake enquiries', href: '/admin/requests', icon: '📬' },
     ],
   },
   {
     label: 'System',
     cards: [
       { title: 'Users', description: 'Manage admin users and access', href: '/admin/users', icon: '👤' },
-      { title: 'Formats', description: 'Product format templates', href: '/admin/formats', icon: '📦' },
       { title: 'Taxonomies', description: 'Tags, types, and classification values', href: '/admin/taxonomies', icon: '🏷️' },
       { title: 'Settings', description: 'Global configuration', href: '/admin/settings', icon: '⚙️' },
     ],

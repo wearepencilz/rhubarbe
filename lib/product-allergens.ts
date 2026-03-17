@@ -1,8 +1,8 @@
-import type { Allergen, DietaryClaim, Flavour, Ingredient, Modifier } from '@/types';
+import type { Allergen, DietaryClaim, Flavour, Ingredient } from '@/types';
 
 /**
  * Compute allergens and dietary claims for a complete product.
- * Aggregates data from all flavours (and their ingredients) plus modifiers.
+ * Aggregates data from all flavours and their ingredients.
  */
 export interface ProductAllergenData {
   allergens: Allergen[];
@@ -13,12 +13,11 @@ export interface ProductAllergenData {
 }
 
 /**
- * Compute allergens from flavours and modifiers
+ * Compute allergens from flavours and ingredients
  */
 export function computeProductAllergens(
   flavours: Flavour[],
-  ingredients: Ingredient[],
-  modifiers: Modifier[] = []
+  ingredients: Ingredient[]
 ): ProductAllergenData {
   const allergenSet = new Set<Allergen>();
   let hasAnimalDerived = false;
@@ -38,19 +37,6 @@ export function computeProductAllergens(
     }
     
     if (ingredient.vegetarian === false) {
-      allVegetarian = false;
-    }
-  });
-
-  // Collect allergens from modifiers
-  modifiers.forEach(modifier => {
-    modifier.allergens?.forEach(allergen => allergenSet.add(allergen));
-    
-    if (modifier.animalDerived) {
-      hasAnimalDerived = true;
-    }
-    
-    if (modifier.vegetarian === false) {
       allVegetarian = false;
     }
   });

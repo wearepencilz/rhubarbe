@@ -1,4 +1,4 @@
-# Pencilz Website
+# Rhubarbe Website
 
 A React-based website with a simple CMS for managing projects.
 
@@ -20,8 +20,8 @@ npm run dev
 ```
 
 4. Access the site:
-- Website: `http://localhost:5173`
-- CMS Login: `http://localhost:5173/cms/login`
+- Website: `http://localhost:3002`
+- CMS Login: `http://localhost:3002/admin/login`
 - Default credentials: `admin` / `admin123`
 
 ## Important: Running Both Servers
@@ -51,7 +51,7 @@ npm test -- --coverage
 
 ## Design System
 
-The CMS uses Ark UI components with an Attio-inspired design:
+The CMS uses Ark UI components with an UntitledUI-inspired design:
 - Clean, modern interface with thoughtful field grouping
 - Accessible components with keyboard navigation
 - Collapsible sections for reduced cognitive load

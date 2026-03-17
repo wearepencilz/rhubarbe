@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getProducts, saveProducts, getFormats, getFlavours, getModifiers, getLaunches } from '@/lib/db.js'
+import { getProducts, saveProducts, getFormats, getFlavours } from '@/lib/db.js'
 import { validateProductComposition } from '@/lib/validation'
 
 // GET /api/products/[id] - Get a single product with expanded relationships
@@ -25,7 +25,6 @@ export async function GET(
     if (expand === 'true') {
       const formats = await getFormats()
       const flavours = await getFlavours()
-      const modifiers = await getModifiers()
       
       const expandedProduct = {
         ...product,
@@ -33,7 +32,6 @@ export async function GET(
         primaryFlavours: flavours.filter((f: any) => product.primaryFlavourIds?.includes(f.id)),
         secondaryFlavours: flavours.filter((f: any) => product.secondaryFlavourIds?.includes(f.id)),
         components: flavours.filter((f: any) => product.componentIds?.includes(f.id)),
-        toppings: modifiers.filter((m: any) => product.toppingIds?.includes(m.id))
       }
       
       return NextResponse.json(expandedProduct)
@@ -137,22 +135,6 @@ export async function DELETE(
         { status: 404 }
       )
     }
-    
-    // Remove this product from any launches that reference it
-    const launches = await getLaunches()
-    const updatedLaunches = launches.map((launch: any) => {
-      if (launch.featuredProductIds && launch.featuredProductIds.includes(params.id)) {
-        return {
-          ...launch,
-          featuredProductIds: launch.featuredProductIds.filter((id: string) => id !== params.id)
-        }
-      }
-      return launch
-    })
-    
-    // Save updated launches if any were modified
-    const { saveLaunches } = await import('@/lib/db.js')
-    await saveLaunches(updatedLaunches)
     
     // Delete the product
     products.splice(index, 1)

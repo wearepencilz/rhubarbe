@@ -261,53 +261,6 @@ export interface Flavour {
 }
 
 // ============================================================================
-// Format Types (Three-Layer Architecture)
-// ============================================================================
-
-export type FormatCategory = 
-  | 'frozen'      // Ice cream, sorbet, soft serve
-  | 'food'        // Sandwiches, focaccia
-  | 'experience'  // Tastings, pairings
-  | 'bundle';     // Combos, multi-item
-
-export type ServingStyle = 
-  | 'scoop'       // Hand-scooped
-  | 'soft-serve'  // Soft serve machine
-  | 'packaged'    // Pints, take-home
-  | 'plated';     // Plated experience
-
-export interface Format {
-  id: string;                    // UUID
-  name: string;                  // Display name (e.g., "Soft Serve", "Twist")
-  slug: string;                  // URL-friendly identifier
-  category: FormatCategory;      // Classification
-  description: string;           // Admin description
-  
-  // Flavour requirements
-  requiresFlavours: boolean;     // Does this format need flavours?
-  minFlavours: number;           // Minimum flavour count (0 if not required)
-  maxFlavours: number;           // Maximum flavour count
-  allowMixedTypes: boolean;      // Can mix gelato + sorbet?
-  
-  // Eligibility rules
-  eligibleFlavourTypes?: string[]; // Array of flavourType taxonomy IDs this format accepts
-                                   // Empty or undefined = accepts all flavour types
-  
-  // Configuration
-  canIncludeAddOns: boolean;     // Supports toppings/add-ons?
-  defaultSizes: string[];        // e.g., ["small", "medium", "large"]
-  servingStyles: ServingStyle[];  // How it's served (multi-select)
-  
-  // Display
-  image?: string;                // Format image URL
-  icon?: string;                 // Icon for admin UI
-  
-  // Metadata
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ============================================================================
 // Offering Types (Three-Layer Architecture)
 // ============================================================================
 
@@ -335,6 +288,9 @@ export interface Offering {
   description: string;           // Full description
   shortCardCopy: string;         // Brief card text
   image?: string;                // Offering-specific image (overrides flavour image)
+  keyNotes?: string[];           // Tasting tags (e.g. "smoky", "floral")
+  tastingNotes?: string;         // Optional prose tasting notes
+  ingredients?: FlavourIngredient[]; // Ordered ingredient list
   
   // Pricing
   price: number;                 // Base price in cents
@@ -362,7 +318,6 @@ export interface Offering {
   // Inventory (for packaged products like pints)
   inventoryTracked: boolean;     // Track inventory?
   inventoryQuantity?: number;    // Current stock
-  batchCode?: string;            // Batch identifier
   restockDate?: string;          // Expected restock date
   shelfLifeNotes?: string;       // Storage/shelf life info
   
@@ -456,37 +411,6 @@ export interface Component {
   
   // Availability
   status: Status;                // Current availability status
-  
-  // Metadata
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ============================================================================
-// Modifier Types
-// ============================================================================
-
-export interface Modifier {
-  id: string;                    // UUID
-  name: string;                  // Modifier name
-  slug: string;                  // URL-friendly identifier
-  type: string;                  // Modifier type (from taxonomy)
-  description?: string;          // Description
-  
-  // Allergens & Dietary (same model as ingredients)
-  allergens: Allergen[];         // Allergen flags (source of truth)
-  animalDerived?: boolean;       // Contains animal products
-  vegetarian?: boolean;          // Suitable for vegetarians
-  
-  // Pricing
-  price: number;                 // Price in cents
-  
-  // Display
-  image?: string;                // Modifier image
-  
-  // Availability
-  availableForFormatIds: string[]; // Format IDs this modifier is available for
-  status: 'active' | 'archived'; // Current availability status
   
   // Metadata
   createdAt: string;
@@ -626,7 +550,6 @@ export interface FlavourWithSyncStatus extends Flavour {
 
 // Three-Layer Architecture Helper Types
 export interface OfferingFull extends Offering {
-  format: Format;
   primaryFlavours: Flavour[];
   secondaryFlavours?: Flavour[];
   components?: Component[];
@@ -637,14 +560,8 @@ export interface FlavourWithUsage extends Flavour {
   usedInOfferings: {
     id: string;
     name: string;
-    formatName: string;
     status: OfferingStatus;
   }[];
-}
-
-export interface FormatWithUsage extends Format {
-  usageCount: number;
-  activeOfferingsCount: number;
 }
 
 export interface CollectionFull extends SeasonalCollection {

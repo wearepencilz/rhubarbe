@@ -7,10 +7,8 @@
 import { NextResponse } from 'next/server';
 import { createBackup } from './data-protection';
 import {
-  checkFormatDeletion,
   checkFlavourDeletion,
   checkIngredientDeletion,
-  checkModifierDeletion,
   checkProductDeletion,
   cleanupOrphanedReferences,
   type ReferenceCheck
@@ -20,7 +18,7 @@ import {
  * Wrap a DELETE operation with referential integrity checks and backups
  */
 export async function withDeleteProtection(
-  entityType: 'format' | 'flavour' | 'ingredient' | 'modifier' | 'product' | 'launch',
+  entityType: 'flavour' | 'ingredient' | 'product',
   entityId: string,
   deleteOperation: () => Promise<any>
 ): Promise<NextResponse> {
@@ -29,17 +27,11 @@ export async function withDeleteProtection(
     let check: ReferenceCheck;
     
     switch (entityType) {
-      case 'format':
-        check = await checkFormatDeletion(entityId);
-        break;
       case 'flavour':
         check = await checkFlavourDeletion(entityId);
         break;
       case 'ingredient':
         check = await checkIngredientDeletion(entityId);
-        break;
-      case 'modifier':
-        check = await checkModifierDeletion(entityId);
         break;
       case 'product':
         check = await checkProductDeletion(entityId);
@@ -106,13 +98,9 @@ export async function withUpdateProtection(
  */
 function getDataFileForEntity(entityType: string): string {
   const mapping: Record<string, string> = {
-    format: 'formats.json',
     flavour: 'flavours.json',
     ingredient: 'ingredients.json',
-    modifier: 'modifiers.json',
     product: 'products.json',
-    launch: 'launches.json',
-    batch: 'batches.json',
     story: 'stories.json',
   };
 

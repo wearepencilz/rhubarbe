@@ -16,16 +16,7 @@ const sections: NavSectionType[] = [
     {
         label: 'Commerce',
         items: [
-            { label: 'Launches', href: '/admin/launches', icon: '🚀' },
             { label: 'Products', href: '/admin/products', icon: '🎁' },
-        ],
-    },
-    {
-        label: 'Archive',
-        items: [
-            { label: 'Flavours', href: '/admin/flavours', icon: '🍦' },
-            { label: 'Batches', href: '/admin/batches', icon: '🧪' },
-            { label: 'Modifiers', href: '/admin/modifiers', icon: '✨' },
             { label: 'Ingredients', href: '/admin/ingredients', icon: '🌿' },
         ],
     },
@@ -35,13 +26,13 @@ const sections: NavSectionType[] = [
             { label: 'Stories', href: '/admin/stories', icon: '📖' },
             { label: 'News', href: '/admin/news', icon: '📰' },
             { label: 'Pages', href: '/admin/pages', icon: '📄' },
+            { label: 'Requests', href: '/admin/requests', icon: '📬' },
         ],
     },
     {
         label: 'System',
         items: [
             { label: 'Users', href: '/admin/users', icon: '👤' },
-            { label: 'Formats', href: '/admin/formats', icon: '📦' },
             { label: 'Taxonomies', href: '/admin/taxonomies', icon: '🏷️' },
             { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
         ],

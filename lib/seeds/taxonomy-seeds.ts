@@ -95,15 +95,6 @@ export const servingStylesSeed = [
   { value: "plated", label: "Plated", description: "Plated dessert experience" }
 ];
 
-// Modifier Types
-export const modifierTypesSeed = [
-  { value: "topping", label: "Topping" },
-  { value: "sauce", label: "Sauce" },
-  { value: "crunch", label: "Crunch" },
-  { value: "drizzle", label: "Drizzle" },
-  { value: "premium-addon", label: "Premium Add-on" }
-];
-
 // Allergens
 export const allergensSeed = [
   { value: "dairy", label: "Dairy" },

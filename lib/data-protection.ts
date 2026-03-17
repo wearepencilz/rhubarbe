@@ -61,10 +61,7 @@ export function createFullBackup(): string[] {
     'products.json',
     'flavours.json',
     'ingredients.json',
-    'modifiers.json',
-    'launches.json',
     'settings.json',
-    'batches.json',
     'stories.json',
   ];
 
@@ -119,10 +116,7 @@ export function cleanupOldBackups(keepCount: number = 10) {
     'products',
     'flavours',
     'ingredients',
-    'modifiers',
-    'launches',
     'settings',
-    'batches',
     'stories',
   ];
 

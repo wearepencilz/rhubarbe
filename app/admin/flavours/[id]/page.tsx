@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import FlavourIngredientSelector from '@/app/admin/components/FlavourIngredientSelector';
 import FlavourUsagePanel from '@/app/admin/components/FlavourUsagePanel';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
-import TaxonomyTagSelect from '@/app/admin/components/TaxonomyTagSelect';
-import TaxonomyTagPicker from '@/app/admin/components/TaxonomyTagPicker';
 import EditPageLayout from '@/app/admin/components/EditPageLayout';
-import type { Flavour, FlavourIngredient, FlavourType, BaseStyle, Status } from '@/types';
+import type { Flavour, FlavourType, BaseStyle, Status } from '@/types';
 import { Input } from '@/app/admin/components/ui/input';
 import { Textarea } from '@/app/admin/components/ui/textarea';
 import { Select } from '@/app/admin/components/ui/select';
@@ -155,43 +152,9 @@ export default function EditFlavourPage() {
               </div>
             </div>
 
-            {/* Tasting notes */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-sm font-semibold text-gray-900">Tasting notes</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Flavour tags and optional prose notes.</p>
-              </div>
-              <div className="px-6 py-6 space-y-5">
-                <TaxonomyTagPicker
-                  category="keyNotes"
-                  values={formData.keyNotes || []}
-                  onChange={(values) => setFormData({ ...formData, keyNotes: values })}
-                  label="Tags"
-                  description="e.g. smoky, sweet, floral, summer"
-                />
-                <Textarea
-                  label="Notes"
-                  rows={3}
-                  value={formData.tastingNotes || ''}
-                  onChange={(v) => setFormData({ ...formData, tastingNotes: v })}
-                  placeholder="Optional prose — e.g. Sweet and creamy with a long caramel finish..."
-                />
-              </div>
-            </div>
+            {/* Tasting notes — moved to Products */}
 
-            {/* Ingredients */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 rounded-t-lg">
-                <h2 className="text-sm font-semibold text-gray-900">Ingredients</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Components and allergen sources for this flavour.</p>
-              </div>
-              <div className="px-6 py-6">
-                <FlavourIngredientSelector
-                  selectedIngredients={formData.ingredients || []}
-                  onChange={(ingredients: FlavourIngredient[]) => setFormData({ ...formData, ingredients })}
-                />
-              </div>
-            </div>
+            {/* Ingredients — moved to Products */}
 
           </div>
 
