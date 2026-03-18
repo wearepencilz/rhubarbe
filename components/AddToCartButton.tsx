@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
-import { getT } from '@/lib/i18n';
-
-const T = getT('fr');
+import { useT } from '@/lib/i18n/useT';
 
 interface AddToCartButtonProps {
   variantId: string;
@@ -15,6 +13,7 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ variantId, availability, disabled, showQuantity = false }: AddToCartButtonProps) {
   const { addToCart, isLoading } = useCart();
+  const { T } = useT();
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
 

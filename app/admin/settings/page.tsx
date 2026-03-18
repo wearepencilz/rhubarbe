@@ -5,13 +5,23 @@ import { Button } from '@/app/admin/components/ui/button';
 import { Input } from '@/app/admin/components/ui/input';
 import RichTextEditor from '@/app/admin/components/RichTextEditor';
 import { useToast } from '@/app/admin/components/ToastContainer';
+import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
+
+interface FooterLocale {
+  address?: string;
+  hours?: string;
+  contact?: string;
+}
 
 interface FooterSettings {
-  address: string;
-  addressUrl: string;
-  hours: string;
-  instagram: string;
-  contact: string;
+  addressUrl?: string;
+  instagram?: string;
+  en?: FooterLocale;
+  fr?: FooterLocale;
+  // legacy flat fields (migrated on load)
+  address?: string;
+  hours?: string;
+  contact?: string;
 }
 
 interface Settings {
@@ -24,11 +34,10 @@ interface Settings {
 }
 
 const defaultFooter: FooterSettings = {
-  address: '<p>2455 rue Notre Dame Ouest</p><p>Montreal, H3J 1N6</p>',
-  addressUrl: 'https://maps.app.goo.gl/3yU5y5Mnq4Bqf8bAA',
-  hours: '<p>THU / FRI / SAT</p><p>13H – 20H – <em>SOMETIMES LATER</em></p>',
-  instagram: 'https://instagram.com/janinemtl',
-  contact: '<p>bonjour@janinemtl.ca</p><p>514.970.9266</p>',
+  addressUrl: '',
+  instagram: '',
+  en: { address: '', hours: '', contact: '' },
+  fr: { address: '', hours: '', contact: '' },
 };
 
 export default function SettingsPage() {
@@ -49,12 +58,20 @@ export default function SettingsPage() {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((data) => {
+        const raw = data.footer ?? {};
+        // Migrate legacy flat footer → { en, fr }
+        let footer: FooterSettings;
+        if (raw.en || raw.fr) {
+          footer = { addressUrl: raw.addressUrl ?? '', instagram: raw.instagram ?? '', en: raw.en ?? {}, fr: raw.fr ?? {} };
+        } else {
+          footer = { addressUrl: raw.addressUrl ?? '', instagram: raw.instagram ?? '', en: { address: raw.address ?? '', hours: raw.hours ?? '', contact: raw.contact ?? '' }, fr: {} };
+        }
         setFormData({
           logo: data.logo || '',
           email: data.email || '',
           phone: data.phone || '',
           companyName: data.companyName || '',
-          footer: { ...defaultFooter, ...data.footer },
+          footer,
           formatEligibilityRules: data.formatEligibilityRules || {},
         });
       })
@@ -62,8 +79,11 @@ export default function SettingsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const setFooter = (patch: Partial<FooterSettings>) =>
-    setFormData((p) => ({ ...p, footer: { ...p.footer, ...patch } }));
+  const setFooterEn = (k: keyof FooterLocale, v: string) =>
+    setFormData((p) => ({ ...p, footer: { ...p.footer, en: { ...p.footer.en, [k]: v } } }));
+
+  const setFooterFr = (k: keyof FooterLocale, v: string) =>
+    setFormData((p) => ({ ...p, footer: { ...p.footer, fr: { ...p.footer.fr, [k]: v } } }));
 
   const uploadFile = async (
     file: File,
@@ -142,9 +162,9 @@ export default function SettingsPage() {
           </div>
         )}
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* General */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 max-w-2xl">
           <h2 className="text-lg font-semibold text-gray-900">General</h2>
           <Input
             label="Company Name"
@@ -187,43 +207,139 @@ export default function SettingsPage() {
         </div>
 
         {/* Footer */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">Footer</h2>
-          <RichTextEditor
-            label="Address"
-            value={formData.footer.address}
-            onChange={(v) => setFooter({ address: v })}
-            placeholder="2455 rue Notre Dame Ouest…"
-          />
-          <Input
-            label="Maps Link"
-            type="url"
-            value={formData.footer.addressUrl}
-            onChange={(v) => setFooter({ addressUrl: v })}
-            placeholder="https://maps.app.goo.gl/…"
-          />
-          <RichTextEditor
-            label="Hours"
-            value={formData.footer.hours}
-            onChange={(v) => setFooter({ hours: v })}
-            placeholder="THU / FRI / SAT…"
-          />
-          <Input
-            label="Instagram URL"
-            type="url"
-            value={formData.footer.instagram}
-            onChange={(v) => setFooter({ instagram: v })}
-            placeholder="https://instagram.com/…"
-          />
-          <RichTextEditor
-            label="Contact"
-            value={formData.footer.contact}
-            onChange={(v) => setFooter({ contact: v })}
-            placeholder="email, phone…"
-          />
+        <div className="space-y-3 max-w-5xl">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Footer</h2>
+            <p className="text-gray-600 text-sm mt-0.5">Translatable content and links. Leave blank to hide.</p>
+          </div>
+
+          {/* Shared (non-translatable) */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4 max-w-2xl">
+            <Input
+              label="Maps Link"
+              type="url"
+              value={formData.footer.addressUrl ?? ''}
+              onChange={(v) => setFormData((p) => ({ ...p, footer: { ...p.footer, addressUrl: v } }))}
+              placeholder="https://maps.app.goo.gl/…"
+            />
+            <Input
+              label="Instagram URL"
+              type="url"
+              value={formData.footer.instagram ?? ''}
+              onChange={(v) => setFormData((p) => ({ ...p, footer: { ...p.footer, instagram: v } }))}
+              placeholder="https://instagram.com/…"
+            />
+          </div>
+
+          {/* FR / EN side-by-side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* French */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                <span className="text-base">🇫🇷</span>
+                <h3 className="text-sm font-semibold text-gray-900">Français</h3>
+                <span className="text-xs text-gray-400">Affiché par défaut</span>
+                <div className="ml-auto">
+                  <AiTranslateButton
+                    targetLocale="en"
+                    fields={{
+                      address: formData.footer.fr?.address ?? '',
+                      hours: formData.footer.fr?.hours ?? '',
+                      contact: formData.footer.fr?.contact ?? '',
+                    }}
+                    onResult={(t) =>
+                      setFormData((p) => ({
+                        ...p,
+                        footer: {
+                          ...p.footer,
+                          en: {
+                            address: t.address || p.footer.en?.address,
+                            hours: t.hours || p.footer.en?.hours,
+                            contact: t.contact || p.footer.en?.contact,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-6 space-y-4">
+                <RichTextEditor
+                  label="Adresse"
+                  value={formData.footer.fr?.address ?? ''}
+                  onChange={(v) => setFooterFr('address', v)}
+                  placeholder={formData.footer.en?.address || '1320 rue Charlevoix…'}
+                />
+                <RichTextEditor
+                  label="Heures"
+                  value={formData.footer.fr?.hours ?? ''}
+                  onChange={(v) => setFooterFr('hours', v)}
+                  placeholder={formData.footer.en?.hours || 'SAM 9H–12H…'}
+                />
+                <RichTextEditor
+                  label="Contact"
+                  value={formData.footer.fr?.contact ?? ''}
+                  onChange={(v) => setFooterFr('contact', v)}
+                  placeholder={formData.footer.en?.contact || 'courriel, téléphone…'}
+                />
+              </div>
+            </div>
+
+            {/* English */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                <span className="text-base">🇬🇧</span>
+                <h3 className="text-sm font-semibold text-gray-900">English</h3>
+                <div className="ml-auto">
+                  <AiTranslateButton
+                    targetLocale="fr"
+                    fields={{
+                      address: formData.footer.en?.address ?? '',
+                      hours: formData.footer.en?.hours ?? '',
+                      contact: formData.footer.en?.contact ?? '',
+                    }}
+                    onResult={(t) =>
+                      setFormData((p) => ({
+                        ...p,
+                        footer: {
+                          ...p.footer,
+                          fr: {
+                            address: t.address || p.footer.fr?.address,
+                            hours: t.hours || p.footer.fr?.hours,
+                            contact: t.contact || p.footer.fr?.contact,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-6 space-y-4">
+                <RichTextEditor
+                  label="Address"
+                  value={formData.footer.en?.address ?? ''}
+                  onChange={(v) => setFooterEn('address', v)}
+                  placeholder="1320 rue Charlevoix…"
+                />
+                <RichTextEditor
+                  label="Hours"
+                  value={formData.footer.en?.hours ?? ''}
+                  onChange={(v) => setFooterEn('hours', v)}
+                  placeholder="SAT 9AM–12PM…"
+                />
+                <RichTextEditor
+                  label="Contact"
+                  value={formData.footer.en?.contact ?? ''}
+                  onChange={(v) => setFooterEn('contact', v)}
+                  placeholder="email, phone…"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 max-w-2xl">
           <Button type="submit" variant="primary" isLoading={saving} isDisabled={saving}>
             Save Settings
           </Button>

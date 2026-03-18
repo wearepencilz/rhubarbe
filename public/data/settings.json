@@ -10,11 +10,18 @@
     "photo": "/uploads/1773633761972-come-see-us.jpg"
   },
   "footer": {
-    "address": "<p>cueillettes des commandes</p><p>1320 rue Charlevoix</p>",
     "addressUrl": "https://maps.app.goo.gl/qcGUwYiQJKtGz2iEA",
-    "hours": "<p>Samedi entre 9h et 12h</p>",
     "instagram": "https://instagram.com/janinemtl",
-    "contact": "<p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"mailto:info@rhubarbe.ca\">info@rhubarbe.ca</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"tel:+15143162935\">514&nbsp;316-2935</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/rhubarbe_mtl/\" title=\"Instagram\">@rhubarbe_mtl</a></p><p></p><p>informations GÂTEAUX / MARIAGES</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://rhubarbe.ca/traiteur/\">informations TRAITEUR</a></p>"
+    "en": {
+      "address": "<p>order pickups</p><p>1320 Charlevoix Street</p>",
+      "hours": "<p>Saturday between 9 AM and 12 PM</p>",
+      "contact": "<p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"mailto:info@rhubarbe.ca\">info@rhubarbe.ca</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"tel:+15143162935\">514&nbsp;316-2935</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/rhubarbe_mtl/\" title=\"Instagram\">@rhubarbe_mtl</a></p><p></p><p>CAKE / WEDDING information</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://rhubarbe.ca/traiteur/\">CATERING information</a></p>"
+    },
+    "fr": {
+      "address": "<p>cueillettes des commandes</p><p>1320 rue Charlevoix</p>",
+      "hours": "<p>Samedi entre 9h et 12h</p>",
+      "contact": "<p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"mailto:info@rhubarbe.ca\">info@rhubarbe.ca</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"tel:+15143162935\">514&nbsp;316-2935</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/rhubarbe_mtl/\" title=\"Instagram\">@rhubarbe_mtl</a></p><p></p><p>informations GÂTEAUX / MARIAGES</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://rhubarbe.ca/traiteur/\">informations TRAITEUR</a></p>"
+    }
   },
   "about": {
     "en": {

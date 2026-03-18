@@ -248,12 +248,18 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               {/* French translations */}
               <div className="border border-blue-100 rounded-lg p-4 bg-blue-50/40">
                 <TranslationFields
+                  base={{
+                    title: formData.title,
+                    description: formData.description,
+                    shortCardCopy: formData.shortCardCopy,
+                  }}
                   translations={formData.translations}
                   onChange={(tr) => setFormData({ ...formData, translations: tr })}
+                  onBaseChange={(field, value) => setFormData({ ...formData, [field]: value })}
                   fields={[
-                    { key: 'title', label: 'Titre (FR)' },
-                    { key: 'description', label: 'Description (FR)', type: 'textarea', rows: 4 },
-                    { key: 'shortCardCopy', label: 'Texte carte (FR)' },
+                    { key: 'title', label: 'Title' },
+                    { key: 'description', label: 'Description', type: 'textarea', rows: 4 },
+                    { key: 'shortCardCopy', label: 'Short card copy' },
                   ]}
                 />
               </div>

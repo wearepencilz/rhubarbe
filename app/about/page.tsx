@@ -1,5 +1,5 @@
 import { getSettings } from '@/lib/db';
-import { getLocale } from '@/lib/i18n/server';
+import AboutPageClient from './AboutPageClient';
 
 export const metadata = {
   title: 'About – Rhubarbe',
@@ -18,14 +18,9 @@ const EN_DEFAULTS = {
 };
 
 export default async function AboutPage() {
-  const [settings, locale] = await Promise.all([
-    getSettings().catch(() => ({})),
-    getLocale(),
-  ]);
-
+  const settings = await getSettings().catch(() => ({}));
   const raw = (settings as any)?.about ?? {};
 
-  // Support both new { en, fr } format and legacy flat format
   let en: Record<string, string>;
   let fr: Record<string, string>;
 
@@ -38,30 +33,5 @@ export default async function AboutPage() {
     fr = {};
   }
 
-  // Resolve: prefer locale-specific value, fall back to EN
-  const resolve = (field: string): string =>
-    (locale === 'fr' ? fr[field] : undefined) ?? en[field] ?? '';
-
-  const heading = resolve('heading');
-  const intro = resolve('intro');
-  const body = resolve('body');
-  const address = resolve('address');
-  const signoff = resolve('signoff');
-
-  return (
-    <main className="max-w-xl mx-auto px-6 py-24 space-y-8">
-      <h1 className="text-2xl font-semibold">{heading}</h1>
-
-      <p className="text-gray-700 leading-relaxed">{intro}</p>
-
-      <div
-        className="prose prose-sm text-gray-600 space-y-4"
-        dangerouslySetInnerHTML={{ __html: body }}
-      />
-
-      <p className="text-gray-700">{address}</p>
-
-      <p className="text-sm text-gray-400">{signoff}</p>
-    </main>
-  );
+  return <AboutPageClient en={en} fr={fr} />;
 }

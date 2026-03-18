@@ -79,10 +79,6 @@ export default function AdminSidebar() {
             </div>
 
             <div className="border-t border-gray-200 p-3">
-                <AdminLocaleSwitcher />
-            </div>
-
-            <div className="border-t border-gray-200 p-3">
                 {user && (
                     <NavUserBlock
                         name={user.name ?? 'Admin'}

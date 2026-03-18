@@ -1,12 +1,11 @@
 'use client';
 
 import { useCart } from '@/contexts/CartContext';
-import { getT } from '@/lib/i18n';
-
-const T = getT('fr');
+import { useT } from '@/lib/i18n/useT';
 
 export default function CartButton({ color }: { color?: string }) {
   const { openCart, cart } = useCart();
+  const { T } = useT();
 
   const itemCount = cart?.lines.edges.reduce((sum, e) => sum + e.node.quantity, 0) ?? 0;
 
