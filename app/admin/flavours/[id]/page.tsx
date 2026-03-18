@@ -152,13 +152,20 @@ export default function EditFlavourPage() {
                 {/* French translations */}
                 <div className="border border-blue-100 rounded-lg p-4 bg-blue-50/40">
                   <TranslationFields
+                    base={{
+                      name: formData?.name || '',
+                      shortDescription: (formData as any)?.shortDescription || '',
+                      description: formData?.description || '',
+                      story: (formData as any)?.story || '',
+                    }}
                     translations={formData.translations}
                     onChange={(tr) => setFormData({ ...formData, translations: tr })}
+                    onBaseChange={(field, value) => setFormData({ ...formData, [field]: value } as Flavour)}
                     fields={[
-                      { key: 'name', label: 'Nom (FR)' },
-                      { key: 'shortDescription', label: 'Notes courtes (FR)' },
-                      { key: 'description', label: 'Description (FR)', type: 'textarea', rows: 4 },
-                      { key: 'story', label: 'Note d\'archive (FR)', type: 'textarea', rows: 3 },
+                      { key: 'name', label: 'Name' },
+                      { key: 'shortDescription', label: 'Short description' },
+                      { key: 'description', label: 'Description', type: 'textarea', rows: 4 },
+                      { key: 'story', label: 'Archive note', type: 'textarea', rows: 3 },
                     ]}
                   />
                 </div>
