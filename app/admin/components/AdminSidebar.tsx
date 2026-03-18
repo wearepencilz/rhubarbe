@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { NavSections } from './ui/nav/nav-sections';
@@ -44,6 +46,7 @@ export default function AdminSidebar() {
     const { data: session } = useSession();
     const user = session?.user;
     const role = ((user as any)?.role ?? 'super_admin') as string;
+    const [logoError, setLogoError] = useState(false);
 
     const activeUrl = pathname === '/admin'
         ? '/admin'
@@ -56,7 +59,18 @@ export default function AdminSidebar() {
     return (
         <aside className="fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-gray-200 bg-white">
             <div className="flex h-16 items-center px-6 border-b border-gray-200">
-                <span className="text-lg font-semibold text-gray-900">Rhubarbe CMS</span>
+                {logoError ? (
+                    <span className="text-lg font-semibold text-gray-900">Rhubarbe CMS</span>
+                ) : (
+                    <Image
+                        src="/uploads/1773788582982-logo.svg"
+                        alt="Rhubarbe CMS"
+                        width={120}
+                        height={32}
+                        className="h-8 w-auto object-contain"
+                        onError={() => setLogoError(true)}
+                    />
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto">

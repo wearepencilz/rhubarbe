@@ -1,4 +1,3 @@
-import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
 import { getFlavours, getIngredients } from '@/lib/db';
 
@@ -23,7 +22,6 @@ export default async function FlavoursPage() {
 
   return (
     <main className="bg-white min-h-screen">
-      <SiteHeader />
 
       <div className="px-4 md:px-8 pt-[100px] md:pt-[120px] pb-24">
         <p
@@ -111,7 +109,6 @@ export default async function FlavoursPage() {
         )}
       </div>
 
-      <SiteFooter />
     </main>
   );
 }

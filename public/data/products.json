@@ -6,11 +6,21 @@
     "category": "sweet",
     "description": "Brioche, pistachio cream and crunch, orange blossom, oranges",
     "serves": "6",
-    "price": 50,
+    "price": 2000,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2026/03/A9E88F29-AF50-4526-B3EF-C2A3AA4B9E00-960x1265.jpeg",
-    "status": "active"
+    "status": "active",
+    "title": "Tropezienne pistachio-orange",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "updatedAt": "2026-03-18T12:31:53.165Z"
   },
   {
     "id": "4-patisseries",
@@ -21,7 +31,12 @@
     "serves": null,
     "price": null,
     "currency": "CAD",
-    "allergens": ["nuts", "dairy", "wheat", "egg"],
+    "allergens": [
+      "nuts",
+      "dairy",
+      "wheat",
+      "egg"
+    ],
     "image": "https://rhubarbe.ca/app/uploads/2026/03/79d20485-c6ae-4eb2-808a-8f8619047443-960x1265.jpg",
     "status": "active"
   },
@@ -34,7 +49,12 @@
     "serves": "4",
     "price": 28,
     "currency": "CAD",
-    "allergens": ["dairy", "nuts", "wheat", "egg"],
+    "allergens": [
+      "dairy",
+      "nuts",
+      "wheat",
+      "egg"
+    ],
     "image": "https://rhubarbe.ca/app/uploads/2021/04/IMG_7957-960x1265.jpeg",
     "status": "active"
   },
@@ -177,7 +197,11 @@
     "serves": null,
     "price": 25,
     "currency": "CAD",
-    "allergens": ["nuts", "dairy", "wheat traces"],
+    "allergens": [
+      "nuts",
+      "dairy",
+      "wheat traces"
+    ],
     "image": "https://rhubarbe.ca/app/uploads/2020/10/Rhubarbe_05-960x1265.jpeg",
     "status": "active"
   },
@@ -268,7 +292,10 @@
     "serves": null,
     "price": 26,
     "currency": "CAD",
-    "allergens": ["wheat", "dairy"],
+    "allergens": [
+      "wheat",
+      "dairy"
+    ],
     "image": "https://rhubarbe.ca/app/uploads/2025/08/mEfsmIsqRti2kGr2Hd50A_thumb_5f9d-480x633.jpg",
     "status": "active"
   },
@@ -333,7 +360,11 @@
     "serves": null,
     "price": null,
     "currency": "CAD",
-    "allergens": ["wheat", "dairy", "egg"],
+    "allergens": [
+      "wheat",
+      "dairy",
+      "egg"
+    ],
     "image": "https://rhubarbe.ca/app/uploads/2025/08/IMG_4212-960x1265.jpg",
     "status": "active"
   },

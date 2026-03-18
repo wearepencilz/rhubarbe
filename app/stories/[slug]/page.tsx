@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
 import { getStories as getStoriesFromDB } from '@/lib/db';
 import type { StoryBlock } from '@/app/admin/components/StoryBlockBuilder';
@@ -200,7 +199,6 @@ export default async function StoryPage({ params }: { params: { slug: string } }
 
   return (
     <main className="bg-white min-h-screen">
-      <SiteHeader theme="light" />
 
       {/* Full-bleed cover */}
       <div className="relative w-full overflow-hidden" style={{ height: 'clamp(520px, 80vh, 920px)' }}>
@@ -398,7 +396,6 @@ export default async function StoryPage({ params }: { params: { slug: string } }
         </section>
       )}
 
-      <SiteFooter />
     </main>
   );
 }

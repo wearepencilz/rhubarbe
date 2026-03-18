@@ -31,8 +31,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const toast = useToast();
 
   const [formData, setFormData] = useState({
-    internalName: '',
-    publicName: '',
+    title: '',
+    slug: '',
     description: '',
     shortCardCopy: '',
     price: '',
@@ -65,8 +65,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         setOffering(offeringData);
         setIngredients(ingredientsData.data || ingredientsData);
         setFormData({
-          internalName: offeringData.internalName || '',
-          publicName: offeringData.publicName || '',
+          title: offeringData.title || offeringData.publicName || offeringData.internalName || offeringData.name || '',
+          slug: offeringData.slug || '',
           description: offeringData.description || '',
           shortCardCopy: offeringData.shortCardCopy || '',
           price: offeringData.price ? (offeringData.price / 100).toFixed(2) : '',
@@ -100,8 +100,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       const price = formData.price ? Math.round(parseFloat(formData.price) * 100) : 0;
       const compareAtPrice = formData.compareAtPrice ? Math.round(parseFloat(formData.compareAtPrice) * 100) : undefined;
       const payload = {
-        internalName: formData.internalName,
-        publicName: formData.publicName,
+        title: formData.title,
+        slug: formData.slug,
         description: formData.description,
         shortCardCopy: formData.shortCardCopy,
         price,
@@ -236,8 +236,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </div>
             <div className="px-6 py-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Internal Name" value={formData.internalName} onChange={(v) => setFormData({ ...formData, internalName: v })} isRequired />
-                <Input label="Public Name" value={formData.publicName} onChange={(v) => setFormData({ ...formData, publicName: v })} isRequired />
+                <Input label="Title" value={formData.title} onChange={(v) => setFormData({ ...formData, title: v })} isRequired />
+                <Input label="Slug" value={formData.slug} onChange={(v) => setFormData({ ...formData, slug: v })} isRequired />
               </div>
               <Textarea label="Description" value={formData.description} onChange={(v) => setFormData({ ...formData, description: v })} rows={4} isRequired />
               <Input label="Short card copy" value={formData.shortCardCopy} onChange={(v) => setFormData({ ...formData, shortCardCopy: v })} />

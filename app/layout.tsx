@@ -3,8 +3,11 @@ import { Inter } from 'next/font/google';
 import '../src/styles/globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { Providers } from './providers';
-import ConditionalHeader from '@/components/ConditionalHeader';
 import MobileDevLinkHeader from '@/components/MobileDevLinkHeader';
+import CartModal from '@/components/CartModal';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/home/SiteFooter';
+import PublicLayout from '@/components/PublicLayout';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -42,8 +45,10 @@ export default function RootLayout({
         <Providers>
           <CartProvider>
             <MobileDevLinkHeader />
-            <ConditionalHeader />
-            {children}
+            <PublicLayout header={<SiteHeader />} footer={<SiteFooter />}>
+              {children}
+            </PublicLayout>
+            <CartModal />
           </CartProvider>
         </Providers>
       </body>

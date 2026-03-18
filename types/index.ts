@@ -273,9 +273,8 @@ export type OfferingStatus =
 
 export interface Offering {
   id: string;                    // UUID
-  internalName: string;          // Admin reference name
-  publicName: string;            // Customer-facing name
-  slug: string;                  // URL-friendly identifier
+  title: string;                 // Product title (maps to Shopify title)
+  slug: string;                  // URL-friendly identifier (maps to Shopify handle)
   status: OfferingStatus;        // Publication status
   
   // Relationships

@@ -26,7 +26,7 @@ export default function NewModifierPage() {
     type: 'topping',
     description: '',
     image: '',
-    price: 0,
+    price: '',
     allergens: [] as string[],
     dietaryFlags: [] as string[],
     availableForFormatIds: [] as string[],
@@ -58,7 +58,10 @@ export default function NewModifierPage() {
       const response = await fetch('/api/modifiers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          price: formData.price ? Math.round(parseFloat(formData.price) * 100) : 0,
+        }),
       });
 
       if (response.ok) {
@@ -163,13 +166,13 @@ export default function NewModifierPage() {
 
           <div>
             <Input
-              label="Price (in cents) *"
+              label="Price ($)"
               type="number"
               name="price"
               isRequired
               value={String(formData.price)}
-              onChange={(value) => setFormData(prev => ({ ...prev, price: parseFloat(value) || 0 }))}
-              helperText="Enter price in cents (e.g., 150 for $1.50)"
+              onChange={(value) => setFormData(prev => ({ ...prev, price: value }))}
+              placeholder="0.00"
             />
           </div>
 

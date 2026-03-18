@@ -18,6 +18,7 @@ interface Modifier {
   description?: string;
   image?: string;
   price: number;
+  priceDisplay: string; // dollars for input
   allergens: string[];
   dietaryFlags: string[];
   availableForFormatIds: string[];
@@ -57,7 +58,8 @@ export default function EditModifierPage({ params }: { params: { id: string } })
         fetch('/api/formats'),
       ]);
       if (modifierRes.ok) {
-        setModifier(await modifierRes.json());
+        const data = await modifierRes.json();
+        setModifier({ ...data, priceDisplay: data.price ? (data.price / 100).toFixed(2) : '' });
       } else {
         setError('Modifier not found');
       }
@@ -81,7 +83,10 @@ export default function EditModifierPage({ params }: { params: { id: string } })
       const response = await fetch(`/api/modifiers/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(modifier),
+        body: JSON.stringify({
+          ...modifier,
+          price: modifier.priceDisplay ? Math.round(parseFloat(modifier.priceDisplay) * 100) : 0,
+        }),
       });
       if (response.ok) {
         toast.success('Modifier saved', `"${modifier.name}" has been updated`);
@@ -265,15 +270,13 @@ export default function EditModifierPage({ params }: { params: { id: string } })
               </div>
               <div className="px-6 py-5 space-y-2">
                 <Input
-                  label="Price (cents)"
+                  label="Price ($)"
                   type="number"
                   isRequired
-                  value={String(modifier.price)}
-                  onChange={(v) => setModifier({ ...modifier, price: parseFloat(v) || 0 })}
+                  value={modifier.priceDisplay}
+                  onChange={(v) => setModifier({ ...modifier, priceDisplay: v })}
+                  placeholder="0.00"
                 />
-                <p className="text-xs text-gray-500">
-                  Display price: ${(modifier.price / 100).toFixed(2)}
-                </p>
               </div>
             </div>
 

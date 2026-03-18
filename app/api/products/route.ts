@@ -100,8 +100,7 @@ export async function POST(request: NextRequest) {
     
     const newProduct = {
       id,
-      internalName: body.internalName || names.internalName,
-      publicName: body.publicName || names.publicName,
+      title: body.title || names.publicName,
       slug,
       status: body.status || 'draft',
       formatId: body.formatId,

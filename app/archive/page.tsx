@@ -1,4 +1,3 @@
-import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
 
 export const metadata = {
@@ -9,7 +8,6 @@ export const metadata = {
 export default function ArchivePage() {
   return (
     <main className="bg-white min-h-screen">
-      <SiteHeader />
       <div className="px-4 md:px-8 pt-[100px] md:pt-[120px] pb-24">
         <p
           className="text-[#333112] text-[16px] tracking-[0.32px]"
@@ -18,7 +16,6 @@ export default function ArchivePage() {
           [ARCHIVE]
         </p>
       </div>
-      <SiteFooter />
     </main>
   );
 }

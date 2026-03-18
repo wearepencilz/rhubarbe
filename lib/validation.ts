@@ -118,37 +118,30 @@ export async function checkTaxonomyValueInUse(category: string, value: string): 
 }
 
 // Product Name Generation
-export function generateProductName(product: any, format: any, flavours: any[]): { internalName: string; publicName: string } {
+export function generateProductName(product: any, format: any, flavours: any[]): { title: string } {
   if (!format || !flavours || flavours.length === 0) {
-    return { internalName: 'Untitled Product', publicName: 'Untitled Product' }
+    return { title: 'Untitled Product' }
   }
-  
+
   const formatName = format.name
   const primaryFlavour = flavours[0]
-  
+
   // Handle twist format (two flavours)
   if (format.category === 'twist' && flavours.length === 2) {
-    const internalName = `${formatName} - ${flavours[0].name} + ${flavours[1].name}`
-    const publicName = `${flavours[0].name} + ${flavours[1].name} ${formatName}`
-    return { internalName, publicName }
+    return { title: `${flavours[0].name} + ${flavours[1].name} ${formatName}` }
   }
-  
+
   // Handle sandwich format
   if (format.category === 'sandwich') {
     const filling = flavours.find((f: any) => f.type === 'gelato' || f.type === 'sorbet')
     const cookie = flavours.find((f: any) => f.type === 'cookie')
     if (filling && cookie) {
-      const internalName = `${formatName} - ${filling.name} ${cookie.name}`
-      const publicName = `${filling.name} ${cookie.name} ${formatName}`
-      return { internalName, publicName }
+      return { title: `${filling.name} ${cookie.name} ${formatName}` }
     }
   }
-  
+
   // Standard format (single flavour)
-  const internalName = `${formatName} - ${primaryFlavour.name}`
-  const publicName = `${primaryFlavour.name} ${formatName}`
-  
-  return { internalName, publicName }
+  return { title: `${primaryFlavour.name} ${formatName}` }
 }
 
 // Format Eligibility

@@ -80,13 +80,13 @@ export async function POST(
       );
     }
 
-    // Build product title
+    // Build product title — use CMS title directly, fall back to flavour+format combo
     const flavourNames = primaryFlavours.map((f: any) => f.name).join(' & ');
-    const productTitle = `${flavourNames} - ${format.name}`;
+    const productTitle = product.title || `${flavourNames} - ${format.name}`;
 
     // Build description HTML
     const descriptionParts = [
-      `<h2>${product.publicName || product.internalName}</h2>`,
+      `<h2>${product.title || ''}</h2>`,
       `<p>${product.description || ''}</p>`,
     ];
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getSettings } from '@/lib/db';
+import CartButton from '@/components/CartButton';
 
 interface SiteHeaderProps {
   theme?: 'dark' | 'light';
@@ -42,6 +43,7 @@ export default async function SiteHeader({ theme = 'dark' }: SiteHeaderProps) {
         <Link href="/traiteur" className="hover:opacity-60 transition-opacity">Catering</Link>
         <Link href="/gateaux-signatures" className="hover:opacity-60 transition-opacity">Signature Cakes</Link>
         <Link href="/about" className="hover:opacity-60 transition-opacity">About</Link>
+        <CartButton color={textColor} />
       </nav>
     </header>
   );

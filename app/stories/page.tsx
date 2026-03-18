@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
 import { getStories as getStoriesFromDB } from '@/lib/db';
 
@@ -27,7 +26,6 @@ export default async function StoriesPage() {
 
   return (
     <main className="bg-white min-h-screen">
-      <SiteHeader />
 
       {/* Full-bleed hero */}
       {hero ? (
@@ -139,7 +137,6 @@ export default async function StoriesPage() {
         ) : null}
       </div>
 
-      <SiteFooter />
     </main>
   );
 }

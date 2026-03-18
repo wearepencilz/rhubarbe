@@ -14,8 +14,7 @@ import { Edit01, Trash01 } from '@untitledui/icons';
 
 interface Product {
   id: string;
-  internalName: string;
-  publicName: string;
+  title: string;
   slug: string;
   status: string;
   shortCardCopy?: string;
@@ -74,8 +73,7 @@ export default function ProductsPage() {
     }
   };
 
-  const getFormatName = (formatId: string) =>
-    formats.find((f) => f.id === formatId)?.name || 'Unknown';
+  const getFormatName = (formatId: string) => formatId || '—';
 
   return (
     <>
@@ -83,7 +81,7 @@ export default function ProductsPage() {
         <TableCard.Header
           title="Products"
           badge={products.length}
-          description="Manage sellable products combining formats with flavours and modifiers"
+          description="Manage sellable menu items"
           contentTrailing={
             <div className="flex items-center gap-3">
               <Select
@@ -97,17 +95,6 @@ export default function ProductsPage() {
                   { id: 'scheduled', label: 'Scheduled' },
                   { id: 'sold-out', label: 'Sold out' },
                   { id: 'archived', label: 'Archived' },
-                ]}
-              >
-                {(item) => <Select.Item id={item.id} label={item.label} />}
-              </Select>
-              <Select
-                placeholder="All formats"
-                selectedKey={formatFilter}
-                onSelectionChange={(key) => setFormatFilter(key as string)}
-                items={[
-                  { id: 'all', label: 'All formats' },
-                  ...formats.map((f) => ({ id: f.id, label: f.name })),
                 ]}
               >
                 {(item) => <Select.Item id={item.id} label={item.label} />}
@@ -134,8 +121,6 @@ export default function ProductsPage() {
           <Table aria-label="Products">
             <Table.Header>
               <Table.Head isRowHeader label="Product" />
-              <Table.Head label="Format" />
-              <Table.Head label="Flavours" />
               <Table.Head label="Price" />
               <Table.Head label="Status" />
               <Table.Head label="Shopify" />
@@ -154,19 +139,11 @@ export default function ProductsPage() {
                         <img src={product.image} alt={product.publicName} className="h-10 w-10 rounded-lg object-cover" />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-primary">{product.publicName}</p>
+                        <p className="text-sm font-medium text-primary">{product.title || (product as any).name}</p>
                         {product.shortCardCopy && (
                           <p className="text-xs text-tertiary truncate max-w-xs">{product.shortCardCopy}</p>
                         )}
                       </div>
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className="text-sm text-secondary">{getFormatName(product.formatId)}</span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div>
-                      <span className="text-sm text-secondary">{product.primaryFlavourIds?.length ?? 0}</span>
                     </div>
                   </Table.Cell>
                   <Table.Cell>
@@ -209,7 +186,7 @@ export default function ProductsPage() {
                       <button
                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded"
                         title="Delete"
-                        onClick={() => setDeleteConfirm({ show: true, id: product.id, name: product.publicName })}
+                        onClick={() => setDeleteConfirm({ show: true, id: product.id, name: product.title || (product as any).name })}
                       >
                         <Trash01 className="w-4 h-4" />
                       </button>
