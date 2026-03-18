@@ -84,7 +84,10 @@ export async function POST(
     const flavourNames = primaryFlavours.map((f: any) => f.name).join(' & ');
     const productTitle = product.title || `${flavourNames} - ${format.name}`;
 
-    // Build description HTML
+    // French title — use translation if available, fall back to English
+    const productTitleFr = product.translations?.fr?.title || productTitle;
+
+    // Build description HTML (English)
     const descriptionParts = [
       `<h2>${product.title || ''}</h2>`,
       `<p>${product.description || ''}</p>`,
@@ -150,7 +153,21 @@ export async function POST(
           key: 'flavour_ids',
           value: JSON.stringify(product.primaryFlavourIds),
           type: 'json'
-        }
+        },
+        // French translations stored as metafields for Shopify Translate & Adapt app
+        // or for use with the Shopify Translations API
+        {
+          namespace: 'translations',
+          key: 'title_fr',
+          value: productTitleFr,
+          type: 'single_line_text_field'
+        },
+        {
+          namespace: 'translations',
+          key: 'description_fr',
+          value: product.translations?.fr?.description || product.description || '',
+          type: 'multi_line_text_field'
+        },
       ]
     };
 

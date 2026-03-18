@@ -1,6 +1,9 @@
 'use client';
 
 import { useCart } from '@/contexts/CartContext';
+import { getT } from '@/lib/i18n';
+
+const T = getT('fr');
 
 export default function CartButton({ color }: { color?: string }) {
   const { openCart, cart } = useCart();
@@ -11,12 +14,12 @@ export default function CartButton({ color }: { color?: string }) {
     <button
       onClick={openCart}
       className="relative hover:opacity-60 transition-opacity pointer-events-auto"
-      aria-label={`Open cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
+      aria-label={itemCount > 0 ? T.cart.openWithItems(itemCount) : T.cart.open}
       style={{ color }}
     >
       <span className="text-[12px] md:text-[14px] tracking-[0.28px] uppercase leading-none font-[500]"
         style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-        Cart{itemCount > 0 ? ` (${itemCount})` : ''}
+        {itemCount > 0 ? T.nav.cartCount(itemCount) : T.nav.cart}
       </span>
     </button>
   );

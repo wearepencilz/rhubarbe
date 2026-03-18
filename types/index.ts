@@ -1,6 +1,35 @@
 // Core type definitions for Janine CMS
 
 // ============================================================================
+// i18n / Translation Types
+// ============================================================================
+
+export type Locale = 'en' | 'fr';
+
+/**
+ * Translatable content fields for a given record type.
+ * The CMS stores English as the base; French translations live here.
+ * When syncing to Shopify, both locales are pushed via the Translations API.
+ */
+export interface ContentTranslations {
+  fr?: {
+    name?: string;
+    title?: string;
+    description?: string;
+    shortDescription?: string;
+    shortCardCopy?: string;
+    story?: string;
+    tastingNotes?: string;
+    // Ingredient-specific
+    latinName?: string;
+    // Story-specific
+    intro?: string;
+    // Generic catch-all for any other translatable field
+    [key: string]: string | undefined;
+  };
+}
+
+// ============================================================================
 // Ingredient Types
 // ============================================================================
 
@@ -152,7 +181,7 @@ export type DietaryFlag = DietaryClaim;
 
 export interface Ingredient {
   id: string;                       // UUID
-  name: string;                     // Display name (unique)
+  name: string;                     // Display name (unique) — English base
   latinName?: string;               // Scientific name (optional)
   category: IngredientCategory;     // Primary category (single select)
   roles: IngredientRole[];          // Usage roles (multi-select)
@@ -172,6 +201,7 @@ export interface Ingredient {
   farm?: string;                    // Farm name
   isOrganic?: boolean;              // Organic certification
   status?: 'active' | 'archived';   // Status
+  translations?: ContentTranslations; // French translations
   createdAt: string;                // ISO 8601 timestamp
   updatedAt: string;                // ISO 8601 timestamp
 }
@@ -254,6 +284,7 @@ export interface Flavour {
   // Admin
   sortOrder: number;             // Display order
   featured: boolean;             // Highlight in admin
+  translations?: ContentTranslations; // French translations
   
   // Timestamps
   createdAt: string;
@@ -323,6 +354,7 @@ export interface Offering {
   // Ordering
   onlineOrderable: boolean;      // Available for online orders?
   pickupOnly: boolean;           // Pickup only (no delivery)?
+  translations?: ContentTranslations; // French translations
   
   // Metadata
   createdAt: string;

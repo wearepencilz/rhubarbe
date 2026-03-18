@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { getT } from '@/lib/i18n';
+
+const T = getT('fr');
 
 interface AddToCartButtonProps {
   variantId: string;
@@ -34,7 +37,7 @@ export default function AddToCartButton({ variantId, availability, disabled, sho
     <div className="space-y-3">
       {showQuantity && !isSoldOut && (
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">Quantity</span>
+          <span className="text-sm font-medium">{T.product.quantity}</span>
           <div className="flex items-center border rounded-lg overflow-hidden">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -68,12 +71,12 @@ export default function AddToCartButton({ variantId, availability, disabled, sho
         }`}
       >
         {isAdding
-          ? 'Adding...'
+          ? T.product.adding
           : isSoldOut
-          ? 'Sold Out'
+          ? T.product.soldOut
           : availability === 'preorder'
-          ? 'Pre-order Now'
-          : 'Add to Cart'}
+          ? T.product.preorder
+          : T.product.addToCart}
       </button>
     </div>
   );

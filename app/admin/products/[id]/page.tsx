@@ -16,7 +16,8 @@ import { useToast } from '@/app/admin/components/ToastContainer';
 import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import FlavourIngredientSelector from '@/app/admin/components/FlavourIngredientSelector';
 import ImageUploader from '@/app/admin/components/ImageUploader';
-import type { FlavourIngredient } from '@/types';
+import TranslationFields from '@/app/admin/components/TranslationFields';
+import type { FlavourIngredient, ContentTranslations } from '@/types';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     keyNotes: [] as string[],
     tastingNotes: '',
     ingredients: [] as FlavourIngredient[],
+    translations: undefined as ContentTranslations | undefined,
   });
 
   useEffect(() => { fetchData(); }, [params.id]);
@@ -83,6 +85,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           keyNotes: offeringData.keyNotes || [],
           tastingNotes: offeringData.tastingNotes || '',
           ingredients: offeringData.ingredients || [],
+          translations: offeringData.translations || undefined,
         });
       }
     } catch (error) {
@@ -118,6 +121,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         keyNotes: formData.keyNotes,
         tastingNotes: formData.tastingNotes,
         ingredients: formData.ingredients,
+        translations: formData.translations || undefined,
       };
       const response = await fetch(`/api/products/${params.id}`, {
         method: 'PUT',
@@ -241,6 +245,18 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               </div>
               <Textarea label="Description" value={formData.description} onChange={(v) => setFormData({ ...formData, description: v })} rows={4} isRequired />
               <Input label="Short card copy" value={formData.shortCardCopy} onChange={(v) => setFormData({ ...formData, shortCardCopy: v })} />
+              {/* French translations */}
+              <div className="border border-blue-100 rounded-lg p-4 bg-blue-50/40">
+                <TranslationFields
+                  translations={formData.translations}
+                  onChange={(tr) => setFormData({ ...formData, translations: tr })}
+                  fields={[
+                    { key: 'title', label: 'Titre (FR)' },
+                    { key: 'description', label: 'Description (FR)', type: 'textarea', rows: 4 },
+                    { key: 'shortCardCopy', label: 'Texte carte (FR)' },
+                  ]}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Price ($)" type="number" value={formData.price} onChange={(v) => setFormData({ ...formData, price: v })} />
                 <Input label="Compare at price ($)" type="number" value={formData.compareAtPrice} onChange={(v) => setFormData({ ...formData, compareAtPrice: v })} />
@@ -258,8 +274,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 ]}
               />
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
-              <div className="flex items-center gap-6 pt-1">
-                <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
+              <div className="flex items-center gap-6 pt-1">                <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
                 <Checkbox isSelected={formData.onlineOrderable} onChange={(v) => setFormData({ ...formData, onlineOrderable: v })} label="Online orderable" />
                 <Checkbox isSelected={formData.pickupOnly} onChange={(v) => setFormData({ ...formData, pickupOnly: v })} label="Pickup only" />
               </div>

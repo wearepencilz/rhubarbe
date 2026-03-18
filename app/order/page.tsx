@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { getProducts } from '@/lib/db';
+import { getT, t } from '@/lib/i18n';
+
+const T = getT('fr');
 
 export const metadata = {
-  title: 'Order - Rhubarbe',
-  description: 'Order sweet and savory items from Rhubarbe.',
+  title: 'Commander - Rhubarbe',
+  description: 'Commandez des articles sucrés et salés de Rhubarbe.',
 };
 
 interface Product {
@@ -22,7 +25,8 @@ interface Product {
 }
 
 function ProductCard({ product }: { product: Product }) {
-  const displayName = product.title || product.name || '';
+  const displayName = t(product, 'title', 'fr') || product.name || '';
+  const description = t(product, 'description', 'fr');
   const handle = product.shopifyProductHandle || product.slug || product.id;
 
   const inner = (
@@ -44,11 +48,11 @@ function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         {product.description && (
-          <p className="text-xs text-gray-500 leading-relaxed">{product.description}</p>
+          <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
         )}
         <div className="flex items-center gap-3 mt-1">
           {product.serves && (
-            <span className="text-xs text-gray-400">Serves {product.serves}</span>
+            <span className="text-xs text-gray-400">{T.product.serves(product.serves)}</span>
           )}
           {product.allergens && product.allergens.length > 0 && (
             <span className="text-xs text-gray-400">{product.allergens.join(', ')}</span>
@@ -77,20 +81,20 @@ export default async function OrderPage() {
       <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-xl mx-auto">
         <div className="mb-16">
           <p className="text-xs uppercase tracking-widest text-gray-400 mb-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-            Pre-orders only
+            {T.order.preordersOnly}
           </p>
           <h1 className="text-2xl md:text-3xl uppercase tracking-widest" style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
-            Order
+            {T.order.title}
           </h1>
           <p className="mt-4 text-sm text-gray-500 max-w-lg leading-relaxed">
-            Pickup every Saturday between 9am and 12pm at 1320 rue Charlevoix, Pointe Saint-Charles.
+            {T.order.pickup}
           </p>
         </div>
 
         {sweet.length > 0 && (
           <section className="mb-20">
             <h2 className="text-xs uppercase tracking-widest text-gray-400 mb-8 pb-3 border-b border-gray-200" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              Sweet
+              {T.order.sweet}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
               {sweet.map((p) => <ProductCard key={p.id} product={p} />)}
@@ -101,7 +105,7 @@ export default async function OrderPage() {
         {savory.length > 0 && (
           <section className="mb-20">
             <h2 className="text-xs uppercase tracking-widest text-gray-400 mb-8 pb-3 border-b border-gray-200" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              Savory
+              {T.order.savory}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
               {savory.map((p) => <ProductCard key={p.id} product={p} />)}
@@ -112,7 +116,7 @@ export default async function OrderPage() {
         {other.length > 0 && (
           <section>
             <h2 className="text-xs uppercase tracking-widest text-gray-400 mb-8 pb-3 border-b border-gray-200" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              Other
+              {T.order.other}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
               {other.map((p) => <ProductCard key={p.id} product={p} />)}

@@ -1,9 +1,12 @@
 import SiteFooter from '@/components/home/SiteFooter';
 import { getFlavours, getIngredients } from '@/lib/db';
+import { getT, t } from '@/lib/i18n';
+
+const T = getT('fr');
 
 export const metadata = {
-  title: 'Flavours – Rhubarbe',
-  description: 'All Rhubarbe flavours and ingredients.',
+  title: 'Saveurs – Rhubarbe',
+  description: 'Toutes les saveurs et ingrédients de Rhubarbe.',
 };
 
 export default async function FlavoursPage() {
@@ -28,7 +31,7 @@ export default async function FlavoursPage() {
           className="text-[#333112] text-[16px] tracking-[0.32px] mb-16"
           style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
         >
-          [FLAVOURS]
+          {T.flavours.title}
         </p>
 
         {activeFlavours.length > 0 && (
@@ -48,7 +51,7 @@ export default async function FlavoursPage() {
               className="text-[#333112] text-[16px] tracking-[0.32px] mb-8 border-b border-[#333112]/10 pb-4"
               style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
             >
-              [INGREDIENTS]
+              {T.flavours.ingredients}
             </p>
             <div className="flex flex-col">
               {(allIngredients as any[])
@@ -78,7 +81,7 @@ export default async function FlavoursPage() {
                             className="text-[#333112]/50 text-[13px] leading-[1.4] max-w-lg"
                             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 400 }}
                           >
-                            {ing.description}
+                            {t(ing, 'description', 'fr')}
                           </p>
                         )}
                       </div>
@@ -118,6 +121,8 @@ function FlavourCard({ flavour, ingredientMap }: { flavour: any; ingredientMap: 
     .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
     .map((i: any) => ingredientMap[i.ingredientId] || { name: i.ingredientId.replace(/-/g, ' ') });
 
+  const description = t(flavour, 'description', 'fr');
+
   return (
     <div className="bg-white p-6 md:p-8">
       {/* Colour + name */}
@@ -142,12 +147,12 @@ function FlavourCard({ flavour, ingredientMap }: { flavour: any; ingredientMap: 
         </div>
       </div>
 
-      {flavour.description && (
+      {description && (
         <p
           className="text-[#333112]/70 text-[14px] leading-[1.6] mb-5"
           style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 400 }}
         >
-          {flavour.description}
+          {description}
         </p>
       )}
 
@@ -173,7 +178,7 @@ function FlavourCard({ flavour, ingredientMap }: { flavour: any; ingredientMap: 
             className="text-[#333112]/30 text-[10px] tracking-[0.2px] uppercase mb-2"
             style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
           >
-            Ingredients
+            {T.flavours.ingredientsLabel}
           </p>
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {resolvedIngredients.map((ing: any, idx: number) => (

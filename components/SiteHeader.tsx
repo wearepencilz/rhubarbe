@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSettings } from '@/lib/db';
 import CartButton from '@/components/CartButton';
+import { getT } from '@/lib/i18n';
 
 interface SiteHeaderProps {
   theme?: 'dark' | 'light';
@@ -10,6 +11,7 @@ export default async function SiteHeader({ theme = 'dark' }: SiteHeaderProps) {
   const settings = await getSettings().catch(() => ({}));
   const logo: string = settings?.logo || '';
   const companyName: string = settings?.companyName || 'Janine';
+  const T = getT('fr');
 
   const textColor = theme === 'light' ? '#ffffff' : '#333112';
 
@@ -39,10 +41,10 @@ export default async function SiteHeader({ theme = 'dark' }: SiteHeaderProps) {
         className="pointer-events-auto flex flex-col items-end gap-[8px] md:gap-[10px] text-[12px] md:text-[14px] tracking-[0.28px] uppercase leading-none"
         style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500, color: textColor }}
       >
-        <Link href="/order" className="hover:opacity-60 transition-opacity">Order</Link>
-        <Link href="/traiteur" className="hover:opacity-60 transition-opacity">Catering</Link>
-        <Link href="/gateaux-signatures" className="hover:opacity-60 transition-opacity">Signature Cakes</Link>
-        <Link href="/about" className="hover:opacity-60 transition-opacity">About</Link>
+        <Link href="/order" className="hover:opacity-60 transition-opacity">{T.nav.order}</Link>
+        <Link href="/traiteur" className="hover:opacity-60 transition-opacity">{T.nav.catering}</Link>
+        <Link href="/gateaux-signatures" className="hover:opacity-60 transition-opacity">{T.nav.signatureCakes}</Link>
+        <Link href="/about" className="hover:opacity-60 transition-opacity">{T.nav.about}</Link>
         <CartButton color={textColor} />
       </nav>
     </header>

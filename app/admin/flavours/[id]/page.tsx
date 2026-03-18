@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import FlavourUsagePanel from '@/app/admin/components/FlavourUsagePanel';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
 import EditPageLayout from '@/app/admin/components/EditPageLayout';
+import TranslationFields from '@/app/admin/components/TranslationFields';
 import type { Flavour, FlavourType, BaseStyle, Status } from '@/types';
 import { Input } from '@/app/admin/components/ui/input';
 import { Textarea } from '@/app/admin/components/ui/textarea';
@@ -148,6 +149,19 @@ export default function EditFlavourPage() {
                   onChange={(v) => setFormData({ ...formData, description: v })}
                   placeholder="Longer editorial description..."
                 />
+                {/* French translations */}
+                <div className="border border-blue-100 rounded-lg p-4 bg-blue-50/40">
+                  <TranslationFields
+                    translations={formData.translations}
+                    onChange={(tr) => setFormData({ ...formData, translations: tr })}
+                    fields={[
+                      { key: 'name', label: 'Nom (FR)' },
+                      { key: 'shortDescription', label: 'Notes courtes (FR)' },
+                      { key: 'description', label: 'Description (FR)', type: 'textarea', rows: 4 },
+                      { key: 'story', label: 'Note d\'archive (FR)', type: 'textarea', rows: 3 },
+                    ]}
+                  />
+                </div>
 
               </div>
             </div>

@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import SiteFooter from '@/components/home/SiteFooter';
 import { getStories as getStoriesFromDB } from '@/lib/db';
+import { getT, t } from '@/lib/i18n';
+
+const T = getT('fr');
 
 export const metadata = {
-  title: 'Stories – Rhubarbe',
-  description: 'A seasonal archive of moments, ingredients, and people.',
+  title: 'Récits – Rhubarbe',
+  description: 'Une archive saisonnière de moments, d\'ingrédients et de personnes.',
 };
 
 async function getStories() {
@@ -23,6 +26,10 @@ export default async function StoriesPage() {
   );
 
   const [hero, ...rest] = sorted;
+
+  // Resolve translated fields for hero
+  const heroTitle = hero ? t(hero, 'title', 'fr') : '';
+  const heroIntro = hero ? t(hero, 'intro', 'fr') : '';
 
   return (
     <main className="bg-white min-h-screen">
@@ -80,21 +87,21 @@ export default async function StoriesPage() {
               className="text-white text-[clamp(32px,6vw,80px)] leading-[0.95] uppercase tracking-tight max-w-3xl"
               style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 700 }}
             >
-              {hero.title}
+              {heroTitle}
             </h1>
-            {hero.intro && (
+            {heroIntro && (
               <p
                 className="mt-4 text-white/70 text-[15px] md:text-[17px] leading-[1.6] max-w-md"
                 style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 400 }}
               >
-                {hero.intro}
+                {heroIntro}
               </p>
             )}
             <p
               className="mt-5 text-white/50 text-[11px] tracking-[0.22px] uppercase"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
-              Read →
+              {T.stories.read}
             </p>
           </div>
         </Link>
@@ -114,7 +121,7 @@ export default async function StoriesPage() {
       <div className="px-4 md:px-8 pt-16 pb-24">
         {sorted.length === 0 ? (
           <p className="text-[#333112]/40 text-[14px]" style={{ fontFamily: 'var(--font-neue-montreal)' }}>
-            Nothing here yet.
+            {T.stories.nothingYet}
           </p>
         ) : rest.length > 0 ? (
           <>
@@ -123,7 +130,7 @@ export default async function StoriesPage() {
                 className="text-[#333112]/40 text-[11px] tracking-[0.22px] uppercase"
                 style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}
               >
-                More stories
+                {T.stories.moreStories}
               </p>
               <div className="h-px flex-1 bg-[#333112]/10 mx-6" />
             </div>
@@ -142,6 +149,9 @@ export default async function StoriesPage() {
 }
 
 function StoryCard({ story, featured }: { story: any; featured?: boolean }) {
+  const title = t(story, 'title', 'fr');
+  const intro = t(story, 'intro', 'fr');
+
   return (
     <Link
       href={`/stories/${story.slug}`}
@@ -151,7 +161,7 @@ function StoryCard({ story, featured }: { story: any; featured?: boolean }) {
         <div className="overflow-hidden mb-5">
           <img
             src={story.coverImage}
-            alt={story.coverImageAlt || story.title}
+            alt={story.coverImageAlt || title}
             className={`w-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ${featured ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}
           />
         </div>
@@ -171,14 +181,14 @@ function StoryCard({ story, featured }: { story: any; featured?: boolean }) {
             className={`text-[#333112] leading-[1.05] uppercase mb-3 ${featured ? 'text-[28px] md:text-[36px]' : 'text-[20px] md:text-[22px]'}`}
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 700 }}
           >
-            {story.title}
+            {title}
           </h2>
-          {story.intro && (
+          {intro && (
             <p
               className="text-[#333112]/55 text-[14px] leading-[1.65] line-clamp-2"
               style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 400 }}
             >
-              {story.intro}
+              {intro}
             </p>
           )}
         </div>
@@ -203,7 +213,7 @@ function StoryCard({ story, featured }: { story: any; featured?: boolean }) {
           className="mt-3 text-[#333112]/30 text-[10px] tracking-[0.2px] uppercase"
           style={{ fontFamily: 'var(--font-diatype-mono)' }}
         >
-          Word by {story.wordBy}
+          {T.stories.wordBy(story.wordBy)}
         </p>
       )}
     </Link>
