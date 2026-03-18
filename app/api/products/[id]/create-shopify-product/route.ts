@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getProducts, saveProducts, getFormats, getFlavours } from '@/lib/db';
+import { getProducts, saveProducts } from '@/lib/db';
 import { createProduct, type CreateProductInput } from '@/lib/shopify/admin';
 
 export async function POST(
@@ -50,72 +50,21 @@ export async function POST(
       );
     }
 
-    // Get format and flavours for product details
-    const formats = await getFormats();
-    const flavours = await getFlavours();
-    
-    const format = formats.find((f: any) => f.id === product.formatId);
-    
-    if (!format) {
-      return NextResponse.json(
-        { 
-          error: 'Format not found for this product',
-          details: { formatId: product.formatId }
-        },
-        { status: 400 }
-      );
-    }
-    
-    const primaryFlavours = flavours.filter((f: any) => 
-      product.primaryFlavourIds?.includes(f.id)
-    );
-
-    if (primaryFlavours.length === 0) {
-      return NextResponse.json(
-        { 
-          error: 'No flavours found for this product',
-          details: { primaryFlavourIds: product.primaryFlavourIds }
-        },
-        { status: 400 }
-      );
-    }
-
-    // Build product title — use CMS title directly, fall back to flavour+format combo
-    const flavourNames = primaryFlavours.map((f: any) => f.name).join(' & ');
-    const productTitle = product.title || `${flavourNames} - ${format.name}`;
-
-    // French title — use translation if available, fall back to English
+    // Build product title from CMS data directly
+    const productTitle = product.title || product.slug || product.id;
     const productTitleFr = product.translations?.fr?.title || productTitle;
+    const descriptionHtml = [
+      product.title ? `<h2>${product.title}</h2>` : '',
+      product.description ? `<p>${product.description}</p>` : '',
+    ].filter(Boolean).join('\n');
 
-    // Build description HTML (English)
-    const descriptionParts = [
-      `<h2>${product.title || ''}</h2>`,
-      `<p>${product.description || ''}</p>`,
-    ];
-
-    if (primaryFlavours.length > 0) {
-      descriptionParts.push('<h3>Flavours</h3>');
-      descriptionParts.push('<ul>');
-      primaryFlavours.forEach((f: any) => {
-        descriptionParts.push(`<li><strong>${f.name}</strong>${f.shortDescription ? `: ${f.shortDescription}` : ''}</li>`);
-      });
-      descriptionParts.push('</ul>');
-    }
-
-    const descriptionHtml = descriptionParts.join('\n');
-
-    // Build tags
-    const tags = [
-      ...(product.tags || []),
-      format.name,
-      ...primaryFlavours.map((f: any) => f.type),
-    ].filter(Boolean);
+    const tags = [...(product.tags || [])].filter(Boolean);
 
     // Prepare Shopify product input
     const shopifyInput: CreateProductInput = {
       title: productTitle,
       descriptionHtml,
-      productType: format.category || format.name,
+      productType: 'Product',
       vendor: 'Janine',
       tags,
       status: product.status === 'active' ? 'ACTIVE' : 'DRAFT',
@@ -130,10 +79,7 @@ export async function POST(
         } : {})
       }],
       ...(product.image ? {
-        images: [{
-          src: product.image,
-          altText: productTitle
-        }]
+        images: [{ src: product.image, altText: productTitle }]
       } : {}),
       metafields: [
         {
@@ -142,20 +88,6 @@ export async function POST(
           value: product.id,
           type: 'single_line_text_field'
         },
-        {
-          namespace: 'janine',
-          key: 'format_id',
-          value: product.formatId,
-          type: 'single_line_text_field'
-        },
-        {
-          namespace: 'janine',
-          key: 'flavour_ids',
-          value: JSON.stringify(product.primaryFlavourIds),
-          type: 'json'
-        },
-        // French translations stored as metafields for Shopify Translate & Adapt app
-        // or for use with the Shopify Translations API
         {
           namespace: 'translations',
           key: 'title_fr',

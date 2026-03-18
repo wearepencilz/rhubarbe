@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getIngredients, saveIngredients, getFlavours } from '@/lib/db';
-import type { Ingredient, Flavour, ErrorResponse } from '@/types';
+import { getIngredients, saveIngredients } from '@/lib/db';
+import type { Ingredient, ErrorResponse } from '@/types';
 
 export async function GET(
   request: NextRequest,
@@ -111,24 +111,7 @@ export async function DELETE(
   }
 
   try {
-    // Check if ingredient is used in any flavours
-    const flavours = await getFlavours() as Flavour[];
-    const usedInFlavours = flavours.filter(f => 
-      f.ingredients?.some(ing => ing.ingredientId === params.id)
-    );
-    
-    if (usedInFlavours.length > 0) {
-      const errorResponse: ErrorResponse = {
-        error: 'Cannot delete ingredient',
-        code: 'RESOURCE_IN_USE',
-        details: {
-          message: `This ingredient is used in ${usedInFlavours.length} flavour(s)`,
-          flavours: usedInFlavours.map(f => ({ id: f.id, name: f.name }))
-        },
-        timestamp: new Date().toISOString()
-      };
-      return NextResponse.json(errorResponse, { status: 409 });
-    }
+    // Flavours removed — no usage check needed
     
     const ingredients = await getIngredients() as Ingredient[];
     const filtered = ingredients.filter(i => i.id !== params.id);

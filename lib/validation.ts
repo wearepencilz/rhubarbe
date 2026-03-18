@@ -1,4 +1,4 @@
-import { getTaxonomies, getIngredients, getFlavours, getSettings } from './db.js'
+import { getTaxonomies, getIngredients, getSettings } from './db.js'
 
 // Taxonomy Validation Functions
 
@@ -73,11 +73,7 @@ export async function validateTaxonomyDeletion(category: string, id: string): Pr
       break
       
     case 'flavourTypes':
-      const flavours = await getFlavours()
-      const usedInFlavours = flavours.filter((flav: any) => flav.type === id)
-      if (usedInFlavours.length > 0) {
-        usedBy.push(...usedInFlavours.map((flav: any) => ({ type: 'flavour', id: flav.id, name: flav.name })))
-      }
+      // flavours removed
       break
       
     case 'modifierTypes':
@@ -85,23 +81,12 @@ export async function validateTaxonomyDeletion(category: string, id: string): Pr
       break
       
     case 'allergens':
-      // These are used in arrays, so we need to check all ingredients and flavours
       const allIngredients = await getIngredients()
-      const allFlavours = await getFlavours()
-      
-      const ingredientsWithValue = allIngredients.filter((ing: any) => 
+      const ingredientsWithValue = allIngredients.filter((ing: any) =>
         ing.allergens?.includes(id)
       )
-      
-      const flavoursWithValue = allFlavours.filter((flav: any) => 
-        flav.allergens?.includes(id)
-      )
-      
       if (ingredientsWithValue.length > 0) {
         usedBy.push(...ingredientsWithValue.map((ing: any) => ({ type: 'ingredient', id: ing.id, name: ing.name })))
-      }
-      if (flavoursWithValue.length > 0) {
-        usedBy.push(...flavoursWithValue.map((flav: any) => ({ type: 'flavour', id: flav.id, name: flav.name })))
       }
       break
   }

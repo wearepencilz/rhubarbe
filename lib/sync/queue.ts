@@ -1,6 +1,6 @@
 // Sync queue processor for Shopify metafield synchronization
 
-import { getFlavours, saveFlavours, getIngredients, getSyncJobs, saveSyncJobs, getSyncLogs, saveSyncLogs } from '@/lib/db';
+import { getIngredients, getSyncJobs, saveSyncJobs, getSyncLogs, saveSyncLogs } from '@/lib/db';
 import { updateProductMetafields, type ProductMetafieldInput } from '@/lib/shopify/admin';
 import { computeDietaryClaims } from '@/lib/dietary-claims';
 import type { Flavour, Ingredient, SyncJob, SyncLog, Allergen } from '@/types';
@@ -109,9 +109,9 @@ export async function processSyncJob(jobId: string): Promise<void> {
   const startTime = Date.now();
   
   try {
-    // Get flavour and ingredients
-    const flavours = await getFlavours() as Flavour[];
-    const flavour = flavours.find(f => f.id === job.flavourId);
+    // Get flavour and ingredients — queue now operates on products
+    const flavours = [] as any[];
+    const flavour = undefined;
     
     if (!flavour) {
       throw new Error(`Flavour ${job.flavourId} not found`);
@@ -131,14 +131,7 @@ export async function processSyncJob(jobId: string): Promise<void> {
     delete job.error;
     await saveSyncJobs(jobs);
     
-    // Update flavour sync status
-    const flavourIndex = flavours.findIndex(f => f.id === job.flavourId);
-    if (flavourIndex !== -1) {
-      flavours[flavourIndex].syncStatus = 'synced';
-      flavours[flavourIndex].lastSyncedAt = new Date().toISOString();
-      delete flavours[flavourIndex].syncError;
-      await saveFlavours(flavours);
-    }
+    // Update flavour sync status (no-op: flavours removed)
     
     // Log success
     await logSync(job.flavourId, job.productId, 'update', 'success', Date.now() - startTime);
@@ -155,14 +148,7 @@ export async function processSyncJob(jobId: string): Promise<void> {
     } else {
       job.status = 'failed'; // Max retries reached
       
-      // Update flavour sync status to failed
-      const flavours = await getFlavours() as Flavour[];
-      const flavourIndex = flavours.findIndex(f => f.id === job.flavourId);
-      if (flavourIndex !== -1) {
-        flavours[flavourIndex].syncStatus = 'failed';
-        flavours[flavourIndex].syncError = error.message;
-        await saveFlavours(flavours);
-      }
+      // Update flavour sync status to failed (no-op: flavours removed)
     }
     
     await saveSyncJobs(jobs);

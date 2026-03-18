@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFlavours } from '@/lib/db';
-import type { Flavour, ErrorResponse } from '@/types';
+import type { ErrorResponse } from '@/types';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return NextResponse.json({
+    ingredientId: params.id,
+    usageCount: 0,
+    flavours: [],
+  });
+}
 
 export async function GET(
   request: NextRequest,
