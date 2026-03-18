@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { getSettings } from '@/lib/db';
-import { getT } from '@/lib/i18n';
+import { getLocale, getT } from '@/lib/i18n';
 
 export default async function SiteFooter() {
   const settings = await getSettings().catch(() => ({}));
   const companyName: string = settings?.companyName || 'Janine';
-  const T = getT('fr');
+  const locale = await getLocale();
+  const T = getT(locale);
 
   return (
     <footer className="border-t border-gray-200 px-4 md:px-8 py-10">

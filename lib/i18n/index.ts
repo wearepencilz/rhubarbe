@@ -1,5 +1,6 @@
 import fr from './locales/fr';
 import en from './locales/en';
+import { cookies } from 'next/headers';
 
 export type Locale = 'fr' | 'en';
 
@@ -8,6 +9,21 @@ export const locales = { fr, en };
 /** Get the translation dictionary for a locale */
 export function getT(locale: Locale = 'fr') {
   return locales[locale];
+}
+
+/**
+ * Read the current locale from the request cookie (server components).
+ * Defaults to 'fr'.
+ */
+export async function getLocale(): Promise<Locale> {
+  try {
+    const cookieStore = await cookies();
+    const value = cookieStore.get('locale')?.value;
+    if (value === 'en' || value === 'fr') return value;
+  } catch {
+    // cookies() throws outside of a request context (e.g. static generation)
+  }
+  return 'fr';
 }
 
 /**
