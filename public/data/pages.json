@@ -63,5 +63,33 @@
   "privacy": {
     "title": "Privacy Policy",
     "content": "Privacy Policy content goes here"
+  },
+  "traiteur": {
+    "fr": {
+      "heading": "Traiteur",
+      "intro": "Rhubarbe propose un service de traiteur pour tous types d'événements — réunions d'affaires, retrouvailles familiales, et même un service à domicile.",
+      "menuNote": "télécharger le menu (bientôt disponible)",
+      "contactNote": "contactez-nous via le formulaire ci-dessous"
+    },
+    "en": {
+      "heading": "Catering",
+      "intro": "Rhubarbe offers a catering service for all types of events — business meetings, family gatherings, and even in-home service.",
+      "menuNote": "download menu (coming soon)",
+      "contactNote": "contact us via the form below"
+    }
+  },
+  "gateaux": {
+    "fr": {
+      "heading": "Gâteaux Signature",
+      "intro": "Rhubarbe propose également un service de gâteaux signature pour les mariages et les occasions spéciales.",
+      "menuNote": "télécharger le menu (bientôt disponible)",
+      "contactNote": "contactez-nous via le formulaire ci-dessous"
+    },
+    "en": {
+      "heading": "Signature Cakes",
+      "contactNote": "contact us via the form below",
+      "intro": "Rhubarbe also offers a signature cake service for weddings and special occasions.",
+      "menuNote": "download menu (coming soon)"
+    }
   }
 }

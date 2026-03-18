@@ -6,6 +6,7 @@ import { Button } from '@/app/admin/components/ui/button';
 import { Input } from '@/app/admin/components/ui/input';
 import { Textarea } from '@/app/admin/components/ui/textarea';
 import { useToast } from '@/app/admin/components/ToastContainer';
+import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 
 interface FormPageContent {
   heading?: string;
@@ -87,7 +88,29 @@ export default function FormPageEditor({ pageKey, label, defaults }: FormPageEdi
           <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
             <span className="text-base">🇫🇷</span>
             <h2 className="text-sm font-semibold text-gray-900">Français</h2>
-            <span className="ml-auto text-xs text-gray-400">Affiché par défaut</span>
+            <span className="text-xs text-gray-400">Affiché par défaut</span>
+            <div className="ml-auto">
+              <AiTranslateButton
+                targetLocale="en"
+                fields={{
+                  heading: content.fr?.heading ?? defaults.heading,
+                  intro: content.fr?.intro ?? defaults.intro,
+                  menuNote: content.fr?.menuNote ?? defaults.menuNote,
+                  contactNote: content.fr?.contactNote ?? defaults.contactNote,
+                }}
+                onResult={(t) =>
+                  setContent((c) => ({
+                    ...c,
+                    en: {
+                      heading: t.heading || c.en?.heading,
+                      intro: t.intro || c.en?.intro,
+                      menuNote: t.menuNote || c.en?.menuNote,
+                      contactNote: t.contactNote || c.en?.contactNote,
+                    },
+                  }))
+                }
+              />
+            </div>
           </div>
           <div className="px-6 py-6 space-y-4">
             <Input
@@ -123,6 +146,28 @@ export default function FormPageEditor({ pageKey, label, defaults }: FormPageEdi
           <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
             <span className="text-base">🇬🇧</span>
             <h2 className="text-sm font-semibold text-gray-900">English</h2>
+            <div className="ml-auto">
+              <AiTranslateButton
+                targetLocale="fr"
+                fields={{
+                  heading: content.en?.heading ?? defaults.heading,
+                  intro: content.en?.intro ?? defaults.intro,
+                  menuNote: content.en?.menuNote ?? defaults.menuNote,
+                  contactNote: content.en?.contactNote ?? defaults.contactNote,
+                }}
+                onResult={(t) =>
+                  setContent((c) => ({
+                    ...c,
+                    fr: {
+                      heading: t.heading || c.fr?.heading,
+                      intro: t.intro || c.fr?.intro,
+                      menuNote: t.menuNote || c.fr?.menuNote,
+                      contactNote: t.contactNote || c.fr?.contactNote,
+                    },
+                  }))
+                }
+              />
+            </div>
           </div>
           <div className="px-6 py-6 space-y-4">
             <Input

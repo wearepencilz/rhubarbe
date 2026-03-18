@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { NavSections } from './ui/nav/nav-sections';
 import { NavUserBlock } from './ui/nav/nav-user-block';
+import AdminLocaleSwitcher from './AdminLocaleSwitcher';
 import type { NavSectionType } from './ui/nav/nav-sections';
 
 const sections: NavSectionType[] = [
@@ -75,6 +76,10 @@ export default function AdminSidebar() {
 
             <div className="flex-1 overflow-y-auto">
                 <NavSections items={sections} activeUrl={activeUrl} />
+            </div>
+
+            <div className="border-t border-gray-200 p-3">
+                <AdminLocaleSwitcher />
             </div>
 
             <div className="border-t border-gray-200 p-3">

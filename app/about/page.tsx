@@ -1,11 +1,12 @@
 import { getSettings } from '@/lib/db';
+import { getLocale } from '@/lib/i18n/server';
 
 export const metadata = {
   title: 'About – Rhubarbe',
   description: 'The story of Patisserie Rhubarbe, Montreal.',
 };
 
-const defaults = {
+const EN_DEFAULTS = {
   heading: 'about us',
   intro: 'Pâtisserie Rhubarbe opened modestly in October 2010.',
   body: `<p>Stéphanie Labelle believed there was a gap in Montreal for a boutique pastry shop where you could find fresh products every day, made with good seasonal ingredients. She decided to go for it and open in a charming space on rue De Lanaudière, after 8 years of experience in boutique pastry and restaurant work.</p>
@@ -17,23 +18,50 @@ const defaults = {
 };
 
 export default async function AboutPage() {
-  const settings = await getSettings().catch(() => ({}));
-  const about = { ...defaults, ...(settings as any)?.about };
+  const [settings, locale] = await Promise.all([
+    getSettings().catch(() => ({})),
+    getLocale(),
+  ]);
+
+  const raw = (settings as any)?.about ?? {};
+
+  // Support both new { en, fr } format and legacy flat format
+  let en: Record<string, string>;
+  let fr: Record<string, string>;
+
+  if (raw.en || raw.fr) {
+    en = { ...EN_DEFAULTS, ...raw.en };
+    fr = raw.fr ?? {};
+  } else {
+    // Legacy flat format — treat as EN
+    en = { ...EN_DEFAULTS, ...raw };
+    fr = {};
+  }
+
+  // Resolve: prefer locale-specific value, fall back to EN
+  const resolve = (field: string): string =>
+    (locale === 'fr' ? fr[field] : undefined) ?? en[field] ?? '';
+
+  const heading = resolve('heading');
+  const intro = resolve('intro');
+  const body = resolve('body');
+  const address = resolve('address');
+  const signoff = resolve('signoff');
 
   return (
     <main className="max-w-xl mx-auto px-6 py-24 space-y-8">
-      <h1 className="text-2xl font-semibold">{about.heading}</h1>
+      <h1 className="text-2xl font-semibold">{heading}</h1>
 
-      <p className="text-gray-700 leading-relaxed">{about.intro}</p>
+      <p className="text-gray-700 leading-relaxed">{intro}</p>
 
       <div
         className="prose prose-sm text-gray-600 space-y-4"
-        dangerouslySetInnerHTML={{ __html: about.body }}
+        dangerouslySetInnerHTML={{ __html: body }}
       />
 
-      <p className="text-gray-700">{about.address}</p>
+      <p className="text-gray-700">{address}</p>
 
-      <p className="text-sm text-gray-400">{about.signoff}</p>
+      <p className="text-sm text-gray-400">{signoff}</p>
     </main>
   );
 }

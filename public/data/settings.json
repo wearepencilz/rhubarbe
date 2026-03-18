@@ -17,9 +17,23 @@
     "contact": "<p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"mailto:info@rhubarbe.ca\">info@rhubarbe.ca</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"tel:+15143162935\">514&nbsp;316-2935</a></p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/rhubarbe_mtl/\" title=\"Instagram\">@rhubarbe_mtl</a></p><p></p><p>informations GÂTEAUX / MARIAGES</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://rhubarbe.ca/traiteur/\">informations TRAITEUR</a></p>"
   },
   "about": {
-    "bg": "#948c22",
-    "text": "<p>Handcrafted soft-serve Mediterranean gelato, made with heart and honesty.</p><p>We work with local producers and chase remarkable flavours so that every creation carries a memory. Each swirl is meant to bring back a small moment of happiness, something familiar and comforting in a frozen form.</p>",
-    "image": "/uploads/1773635788718-image-171.jpg"
+    "en": {
+      "bg": "#948c22",
+      "text": "<p>Handcrafted soft-serve Mediterranean gelato, made with heart and honesty.</p><p>We work with local producers and chase remarkable flavours so that every creation carries a memory. Each swirl is meant to bring back a small moment of happiness, something familiar and comforting in a frozen form.</p>",
+      "image": "/uploads/1773635788718-image-171.jpg",
+      "heading": "About us",
+      "intro": "Pâtisserie Rhubarbe opened modestly in October 2010.",
+      "body": "<p>Stéphanie Labelle believed there was a gap in Montreal for a boutique pastry shop where you could find fresh products every day, made with good seasonal ingredients. She decided to go for it and open in a charming space on rue De Lanaudière, after 8 years of experience in boutique pastry and restaurant work.</p><p>Julien Joré, a chef with over 20 years of experience, has been helping Stéphanie since the bakery opened. He has been part of the story from the very beginning, but officially became a partner during the expansion. The move to avenue Laurier in May 2017 allowed Comptoir Rhubarbe to open alongside the shop.</p><p>Since then, the rhubarbe boutique has changed its model and moved on July 13, 2025.</p><p>Find us at our new location on Saturdays between 9am and 12pm to pick up orders placed in advance on our website.</p>",
+      "address": "1320 rue Charlevoix, Pointe Saint-Charles, Montreal",
+      "signoff": "team rhubarbe x"
+    },
+    "fr": {
+      "heading": "À propos de nous",
+      "intro": "La pâtisserie Rhubarbe a ouvert modestement en octobre 2010.",
+      "body": "<p>Stéphanie Labelle a cru qu'il y avait un besoin à Montréal pour une boutique de pâtisserie où l'on pourrait trouver des produits frais chaque jour, réalisés avec de bons ingrédients de saison. Elle a décidé de se lancer et d'ouvrir dans un charmant espace sur la rue De Lanaudière, après 8 ans d'expérience dans le domaine de la pâtisserie et de la restauration.</p><p>Julien Joré, un chef avec plus de 20 ans d'expérience, aide Stéphanie depuis l'ouverture de la boulangerie. Il fait partie de l'histoire depuis le tout début, mais est devenu officiellement partenaire lors de l'expansion. Le déménagement sur l'avenue Laurier en mai 2017 a permis l'ouverture du Comptoir Rhubarbe aux côtés de la boutique.</p><p>Depuis, la boutique Rhubarbe a changé de modèle et a déménagé le 13 juillet 2025.</p><p>Trouvez-nous à notre nouvel emplacement les samedis entre 9h et 12h pour récupérer les commandes passées à l'avance sur notre site web.</p>",
+      "address": "1320 rue Charlevoix, Pointe Saint-Charles, Montréal",
+      "signoff": "équipe rhubarbe x"
+    }
   },
   "home": {
     "story": {
