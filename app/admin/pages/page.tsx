@@ -19,6 +19,18 @@ const PAGES = [
     description: 'The /visit page — hours, address, photo',
     href: '/admin/pages/come-see-us',
   },
+  {
+    key: 'traiteur',
+    label: 'Traiteur / Catering',
+    description: 'The /traiteur page — heading, intro, form labels (FR & EN)',
+    href: '/admin/pages/traiteur',
+  },
+  {
+    key: 'gateaux',
+    label: 'Gâteaux signatures / Signature Cakes',
+    description: 'The /gateaux-signatures page — heading, intro, form labels (FR & EN)',
+    href: '/admin/pages/gateaux',
+  },
 ];
 
 export default function PagesIndex() {

@@ -53,6 +53,39 @@ const en: Translations = {
   footer: {
     copyright: (year: number, name: string) => `© ${year} ${name}`,
   },
+  form: {
+    traiteur: {
+      heading: 'Catering',
+      intro: 'Rhubarbe offers a catering service for all types of events — business meetings, family gatherings, and even in-home service.',
+      menuNote: 'download menu (coming soon)',
+      contactNote: 'contact us via the form below',
+    },
+    gateaux: {
+      heading: 'Signature Cakes',
+      intro: 'Rhubarbe also offers a signature cake service for weddings and special occasions.',
+      menuNote: 'download menu (coming soon)',
+      contactNote: 'contact us via the form below',
+    },
+    fields: {
+      name: 'Full name',
+      email: 'Email',
+      phone: 'Phone',
+      date: 'Date',
+      time: 'Time',
+      guests: 'Number of guests',
+      eventType: 'Event type',
+      delivery: 'Delivery?',
+      deliveryAddress: 'Delivery address',
+      notes: 'Additional information',
+      yes: 'yes',
+      no: 'no',
+      select: '— select —',
+      submit: 'send',
+      sending: 'sending...',
+      success: 'Thank you! We will be in touch shortly.',
+      error: 'Something went wrong. Please try again.',
+    },
+  },
 };
 
 export default en;

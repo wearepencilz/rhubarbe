@@ -10,6 +10,7 @@ import { Trash01 } from '@untitledui/icons';
 interface Request {
   id: number;
   type: 'traiteur' | 'gateaux';
+  locale?: 'fr' | 'en';
   name: string;
   email: string;
   phone: string;
@@ -105,7 +106,14 @@ export default function RequestsPage() {
                         </div>
                       </Table.Cell>
                       <Table.Cell>
-                        <span className="text-xs text-secondary capitalize">{item.type}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-secondary capitalize">{item.type}</span>
+                          {item.locale && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase font-mono">
+                              {item.locale}
+                            </span>
+                          )}
+                        </div>
                       </Table.Cell>
                       <Table.Cell>
                         <span className="text-sm text-secondary">{item.date || '—'}</span>
@@ -139,7 +147,14 @@ export default function RequestsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-semibold text-gray-900">{selected.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{selected.type}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-gray-500 capitalize">{selected.type}</p>
+                  {selected.locale && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase font-mono">
+                      {selected.locale}
+                    </span>
+                  )}
+                </div>
               </div>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
             </div>
