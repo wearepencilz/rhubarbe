@@ -1,4 +1,4 @@
-import { getFlavours, getIngredients } from '@/lib/db';
+import { getIngredients } from '@/lib/db';
 import FlavoursPageClient from './FlavoursPageClient';
 
 export const metadata = {
@@ -7,10 +7,6 @@ export const metadata = {
 };
 
 export default async function FlavoursPage() {
-  const [flavours, ingredients] = await Promise.all([
-    getFlavours().catch(() => []),
-    getIngredients().catch(() => []),
-  ]);
-
-  return <FlavoursPageClient flavours={flavours as any[]} ingredients={ingredients as any[]} />;
+  const ingredients = await getIngredients().catch(() => []);
+  return <FlavoursPageClient flavours={[]} ingredients={ingredients as any[]} />;
 }

@@ -136,7 +136,7 @@ export default function ProductsPage() {
                   <Table.Cell>
                     <div className="flex items-center gap-3">
                       {product.image && (
-                        <img src={product.image} alt={product.publicName} className="h-10 w-10 rounded-lg object-cover" />
+                        <img src={product.image} alt={product.title} className="h-10 w-10 rounded-lg object-cover" />
                       )}
                       <div>
                         <p className="text-sm font-medium text-primary">{product.title || (product as any).name}</p>
