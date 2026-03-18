@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSettings } from '@/lib/db';
-import { getLocale, getT } from '@/lib/i18n';
+import { getLocale } from '@/lib/i18n/server';
+import { getT } from '@/lib/i18n';
 
 export default async function SiteFooter() {
   const settings = await getSettings().catch(() => ({}));

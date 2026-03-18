@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getSettings } from '@/lib/db';
 import SiteNav from '@/components/SiteNav';
-import { getLocale } from '@/lib/i18n';
+import { getLocale } from '@/lib/i18n/server';
 
 interface SiteHeaderProps {
   theme?: 'dark' | 'light';
