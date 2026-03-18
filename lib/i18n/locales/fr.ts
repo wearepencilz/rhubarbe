@@ -84,7 +84,22 @@ const fr = {
       error: 'Une erreur s\'est produite. Veuillez réessayer.',
     },
   },
-} as const;
+} satisfies Record<string, any>;
 
 export default fr;
-export type Translations = typeof fr;
+
+export type Translations = {
+  nav: { order: string; catering: string; signatureCakes: string; about: string; cart: string; cartCount: (n: number) => string };
+  cart: { open: string; openWithItems: (n: number) => string };
+  product: { addToCart: string; adding: string; soldOut: string; preorder: string; quantity: string; inStock: string; noImage: string; orderComingSoon: string; serves: (n: string) => string };
+  order: { title: string; preordersOnly: string; pickup: string; sweet: string; savory: string; other: string };
+  flavours: { title: string; ingredients: string; ingredientsLabel: string };
+  stories: { read: string; moreStories: string; nothingYet: string; wordBy: (name: string) => string };
+  availability: { inStock: string; preorder: string; soldOut: string; ships: (date: string) => string };
+  footer: { copyright: (year: number, name: string) => string };
+  form: {
+    traiteur: { heading: string; intro: string; menuNote: string; contactNote: string };
+    gateaux: { heading: string; intro: string; menuNote: string; contactNote: string };
+    fields: { name: string; email: string; phone: string; date: string; time: string; guests: string; eventType: string; delivery: string; deliveryAddress: string; notes: string; yes: string; no: string; select: string; submit: string; sending: string; success: string; error: string };
+  };
+};
