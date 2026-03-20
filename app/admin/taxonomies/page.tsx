@@ -32,6 +32,7 @@ const TAXONOMY_CATEGORIES: TaxonomyCategory[] = [
   { key: 'ingredientUsedAs', label: 'Used As', description: 'How an ingredient is used in a recipe', group: 'Ingredients' },
   { key: 'allergens', label: 'Allergens', description: 'Common allergen tags', group: 'Ingredients' },
   // Products
+  { key: 'productCategories', label: 'Categories', description: 'Product categories for menu grouping (e.g. Gelato, Sorbet, Pastry)', group: 'Products' },
   { key: 'tastingNotes', label: 'Tasting Notes', description: 'Common tasting note descriptors', group: 'Products' },
   // Stories
   { key: 'storyCategories', label: 'Categories', description: 'Story sections — The Lab, Flavour Notes, Core Idea, etc.', group: 'Stories' },

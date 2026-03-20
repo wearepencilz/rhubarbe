@@ -961,5 +961,22 @@
       "sortOrder": 12,
       "archived": false
     }
+  ],
+  "productCategories": [
+    {
+      "id": "snack",
+      "label": "Salty",
+      "value": "snack",
+      "sortOrder": 5,
+      "archived": false,
+      "description": ""
+    },
+    {
+      "id": "sweet",
+      "label": "Sweet",
+      "value": "sweet",
+      "sortOrder": 6,
+      "archived": false
+    }
   ]
 }

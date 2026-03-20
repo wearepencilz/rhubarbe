@@ -3,6 +3,7 @@
 import { useT } from '@/lib/i18n/useT';
 import { t } from '@/lib/i18n';
 import AddToCartButton from '@/components/AddToCartButton';
+import ProductAvailabilityDisplay from '@/components/ProductAvailabilityDisplay';
 
 export function ShopifyProductView({ product }: { product: any }) {
   const { T } = useT();
@@ -123,6 +124,10 @@ export function DbProductView({ product }: { product: any }) {
             </div>
 
             <p className="text-sm text-gray-500 italic">{T.product.orderComingSoon}</p>
+            
+            {product.id && product.availabilityMode && product.availabilityMode !== 'always_available' && (
+              <ProductAvailabilityDisplay productId={product.id} />
+            )}
           </div>
         </div>
       </div>

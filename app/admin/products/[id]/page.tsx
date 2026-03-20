@@ -15,8 +15,11 @@ import { Checkbox } from '@/app/admin/components/ui/checkbox';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import FlavourIngredientSelector from '@/app/admin/components/FlavourIngredientSelector';
+import TagPicker from '@/app/admin/components/TagPicker';
 import ImageUploader from '@/app/admin/components/ImageUploader';
-import TranslationFields from '@/app/admin/components/TranslationFields';
+import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
+import ProductAvailabilityTab from '@/app/admin/components/ProductAvailabilityTab';
+import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
 import type { FlavourIngredient, ContentTranslations } from '@/types';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
@@ -36,6 +39,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     slug: '',
     description: '',
     shortCardCopy: '',
+    category: '',
     price: '',
     compareAtPrice: '',
     status: 'draft',
@@ -50,7 +54,21 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     keyNotes: [] as string[],
     tastingNotes: '',
     ingredients: [] as FlavourIngredient[],
-    translations: undefined as ContentTranslations | undefined,
+    titleFr: '',
+    descriptionFr: '',
+    shortCardCopyFr: '',
+    // Availability fields
+    availabilityMode: 'always_available',
+    assignedAvailabilityPattern: '',
+    defaultMinQuantity: 1,
+    defaultQuantityStep: 1,
+    defaultMaxQuantity: '',
+    inventoryMode: '',
+    capMode: '',
+    defaultPickupRequired: false,
+    defaultLocationRestriction: '',
+    dateSelectionType: 'none',
+    slotSelectionType: 'none',
   });
 
   useEffect(() => { fetchData(); }, [params.id]);
@@ -71,6 +89,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           slug: offeringData.slug || '',
           description: offeringData.description || '',
           shortCardCopy: offeringData.shortCardCopy || '',
+          category: offeringData.category || '',
           price: offeringData.price ? (offeringData.price / 100).toFixed(2) : '',
           compareAtPrice: offeringData.compareAtPrice ? (offeringData.compareAtPrice / 100).toFixed(2) : '',
           status: offeringData.status || 'draft',
@@ -85,7 +104,20 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           keyNotes: offeringData.keyNotes || [],
           tastingNotes: offeringData.tastingNotes || '',
           ingredients: offeringData.ingredients || [],
-          translations: offeringData.translations || undefined,
+          titleFr: offeringData.translations?.fr?.title || '',
+          descriptionFr: offeringData.translations?.fr?.description || '',
+          shortCardCopyFr: offeringData.translations?.fr?.shortCardCopy || '',
+          availabilityMode: offeringData.availabilityMode || 'always_available',
+          assignedAvailabilityPattern: offeringData.assignedAvailabilityPattern || '',
+          defaultMinQuantity: offeringData.defaultMinQuantity ?? 1,
+          defaultQuantityStep: offeringData.defaultQuantityStep ?? 1,
+          defaultMaxQuantity: offeringData.defaultMaxQuantity != null ? String(offeringData.defaultMaxQuantity) : '',
+          inventoryMode: offeringData.inventoryMode || '',
+          capMode: offeringData.capMode || '',
+          defaultPickupRequired: offeringData.defaultPickupRequired ?? false,
+          defaultLocationRestriction: (offeringData.defaultLocationRestriction || []).join(', '),
+          dateSelectionType: offeringData.dateSelectionType || 'none',
+          slotSelectionType: offeringData.slotSelectionType || 'none',
         });
       }
     } catch (error) {
@@ -107,6 +139,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         slug: formData.slug,
         description: formData.description,
         shortCardCopy: formData.shortCardCopy,
+        category: formData.category || undefined,
         price,
         compareAtPrice,
         status: formData.status,
@@ -121,7 +154,23 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         keyNotes: formData.keyNotes,
         tastingNotes: formData.tastingNotes,
         ingredients: formData.ingredients,
-        translations: formData.translations || undefined,
+        translations: (formData.titleFr || formData.descriptionFr || formData.shortCardCopyFr)
+          ? { fr: { title: formData.titleFr || undefined, description: formData.descriptionFr || undefined, shortCardCopy: formData.shortCardCopyFr || undefined } }
+          : undefined,
+        // Availability fields
+        availabilityMode: formData.availabilityMode,
+        assignedAvailabilityPattern: formData.assignedAvailabilityPattern || undefined,
+        defaultMinQuantity: formData.defaultMinQuantity,
+        defaultQuantityStep: formData.defaultQuantityStep,
+        defaultMaxQuantity: formData.defaultMaxQuantity ? parseInt(formData.defaultMaxQuantity) : undefined,
+        inventoryMode: formData.inventoryMode || undefined,
+        capMode: formData.capMode || undefined,
+        defaultPickupRequired: formData.defaultPickupRequired,
+        defaultLocationRestriction: formData.defaultLocationRestriction
+          ? formData.defaultLocationRestriction.split(',').map(s => s.trim()).filter(Boolean)
+          : undefined,
+        dateSelectionType: formData.dateSelectionType,
+        slotSelectionType: formData.slotSelectionType,
       };
       const response = await fetch(`/api/products/${params.id}`, {
         method: 'PUT',
@@ -232,55 +281,121 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         {/* Left column */}
         <div className="col-span-2 space-y-6">
 
-          {/* Product details */}
+          {/* Product details — side-by-side translations */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* French */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                <span className="text-base">🇫🇷</span>
+                <h2 className="text-sm font-semibold text-gray-900">Français</h2>
+                <span className="text-xs text-gray-400">Affiché par défaut</span>
+                <div className="ml-auto">
+                  <AiTranslateButton
+                    targetLocale="en"
+                    fields={{
+                      title: formData.titleFr,
+                      description: formData.descriptionFr,
+                      shortCardCopy: formData.shortCardCopyFr,
+                    }}
+                    onResult={(t) => setFormData((prev) => ({
+                      ...prev,
+                      title: t.title || prev.title,
+                      description: t.description || prev.description,
+                      shortCardCopy: t.shortCardCopy || prev.shortCardCopy,
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-6 space-y-4">
+                <Input
+                  label="Titre"
+                  value={formData.titleFr}
+                  onChange={(v) => setFormData({ ...formData, titleFr: v })}
+                  placeholder={formData.title || 'Titre du produit'}
+                />
+                <Textarea
+                  label="Description"
+                  value={formData.descriptionFr}
+                  onChange={(v) => setFormData({ ...formData, descriptionFr: v })}
+                  rows={4}
+                  placeholder={formData.description || 'Description en français'}
+                />
+                <Input
+                  label="Texte carte"
+                  value={formData.shortCardCopyFr}
+                  onChange={(v) => setFormData({ ...formData, shortCardCopyFr: v })}
+                  placeholder={formData.shortCardCopy || 'Texte court'}
+                />
+              </div>
+            </div>
+
+            {/* English */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                <span className="text-base">🇬🇧</span>
+                <h2 className="text-sm font-semibold text-gray-900">English</h2>
+                <div className="ml-auto">
+                  <AiTranslateButton
+                    targetLocale="fr"
+                    fields={{
+                      title: formData.title,
+                      description: formData.description,
+                      shortCardCopy: formData.shortCardCopy,
+                    }}
+                    onResult={(t) => setFormData((prev) => ({
+                      ...prev,
+                      titleFr: t.title || prev.titleFr,
+                      descriptionFr: t.description || prev.descriptionFr,
+                      shortCardCopyFr: t.shortCardCopy || prev.shortCardCopyFr,
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-6 space-y-4">
+                <Input label="Title" value={formData.title} onChange={(v) => setFormData({ ...formData, title: v })} isRequired />
+                <Textarea label="Description" value={formData.description} onChange={(v) => setFormData({ ...formData, description: v })} rows={4} isRequired />
+                <Input label="Short card copy" value={formData.shortCardCopy} onChange={(v) => setFormData({ ...formData, shortCardCopy: v })} />
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing, status & options */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Product details</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Name, description, pricing and availability.</p>
+              <h2 className="text-sm font-semibold text-gray-900">Pricing & options</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Pricing, status, and availability settings.</p>
             </div>
             <div className="px-6 py-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Title" value={formData.title} onChange={(v) => setFormData({ ...formData, title: v })} isRequired />
                 <Input label="Slug" value={formData.slug} onChange={(v) => setFormData({ ...formData, slug: v })} isRequired />
-              </div>
-              <Textarea label="Description" value={formData.description} onChange={(v) => setFormData({ ...formData, description: v })} rows={4} isRequired />
-              <Input label="Short card copy" value={formData.shortCardCopy} onChange={(v) => setFormData({ ...formData, shortCardCopy: v })} />
-              {/* French translations */}
-              <div className="border border-blue-100 rounded-lg p-4 bg-blue-50/40">
-                <TranslationFields
-                  base={{
-                    title: formData.title,
-                    description: formData.description,
-                    shortCardCopy: formData.shortCardCopy,
-                  }}
-                  translations={formData.translations}
-                  onChange={(tr) => setFormData({ ...formData, translations: tr })}
-                  onBaseChange={(field, value) => setFormData({ ...formData, [field]: value })}
-                  fields={[
-                    { key: 'title', label: 'Title' },
-                    { key: 'description', label: 'Description', type: 'textarea', rows: 4 },
-                    { key: 'shortCardCopy', label: 'Short card copy' },
+                <Select
+                  label="Status"
+                  value={formData.status}
+                  onChange={(v) => setFormData({ ...formData, status: v })}
+                  options={[
+                    { id: 'draft', label: 'Draft' },
+                    { id: 'scheduled', label: 'Scheduled' },
+                    { id: 'active', label: 'Active' },
+                    { id: 'sold-out', label: 'Sold Out' },
+                    { id: 'archived', label: 'Archived' },
                   ]}
                 />
               </div>
+              <TaxonomySelect
+                category="productCategories"
+                value={formData.category}
+                onChange={(v) => setFormData({ ...formData, category: v })}
+                label="Category"
+                description="Used to group products on the order page"
+                placeholder="Select a category"
+              />
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Price ($)" type="number" value={formData.price} onChange={(v) => setFormData({ ...formData, price: v })} />
                 <Input label="Compare at price ($)" type="number" value={formData.compareAtPrice} onChange={(v) => setFormData({ ...formData, compareAtPrice: v })} />
               </div>
-              <Select
-                label="Status"
-                value={formData.status}
-                onChange={(v) => setFormData({ ...formData, status: v })}
-                options={[
-                  { id: 'draft', label: 'Draft' },
-                  { id: 'scheduled', label: 'Scheduled' },
-                  { id: 'active', label: 'Active' },
-                  { id: 'sold-out', label: 'Sold Out' },
-                  { id: 'archived', label: 'Archived' },
-                ]}
-              />
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
-              <div className="flex items-center gap-6 pt-1">                <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
+              <div className="flex items-center gap-6 pt-1">
+                <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
                 <Checkbox isSelected={formData.onlineOrderable} onChange={(v) => setFormData({ ...formData, onlineOrderable: v })} label="Online orderable" />
                 <Checkbox isSelected={formData.pickupOnly} onChange={(v) => setFormData({ ...formData, pickupOnly: v })} label="Pickup only" />
               </div>
@@ -291,7 +406,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           </div>
 
           {/* Tasting notes */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-sm font-semibold text-gray-900">Tasting notes</h2>
               <p className="text-sm text-gray-500 mt-0.5">Flavour tags and optional prose notes.</p>
@@ -299,13 +414,11 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             <div className="px-6 py-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-                <p className="text-xs text-gray-500 mb-2">e.g. smoky, sweet, floral, summer</p>
-                <input
-                  type="text"
-                  value={formData.keyNotes.join(', ')}
-                  onChange={(e) => setFormData({ ...formData, keyNotes: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="smoky, sweet, floral"
+                <TagPicker
+                  selected={formData.keyNotes}
+                  onChange={(tags) => setFormData({ ...formData, keyNotes: tags })}
+                  taxonomyCategory="keyNotes"
+                  placeholder="Search tags…"
                 />
               </div>
               <Textarea
@@ -328,6 +441,37 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               <FlavourIngredientSelector
                 selectedIngredients={formData.ingredients}
                 onChange={(ing: FlavourIngredient[]) => setFormData({ ...formData, ingredients: ing })}
+              />
+            </div>
+          </div>
+
+          {/* Availability */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Availability</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Selling mode, order rules, pickup configuration, and scheduling windows.</p>
+            </div>
+            <div className="px-6 py-6">
+              <ProductAvailabilityTab
+                productId={params.id}
+                data={{
+                  defaultMinQuantity: formData.defaultMinQuantity,
+                  defaultQuantityStep: formData.defaultQuantityStep,
+                  defaultMaxQuantity: formData.defaultMaxQuantity ? parseInt(formData.defaultMaxQuantity) : null,
+                  defaultPickupRequired: formData.defaultPickupRequired,
+                  onlineOrderable: formData.onlineOrderable,
+                  pickupOnly: formData.pickupOnly,
+                }}
+                onChange={(avail) => {
+                  const { defaultMaxQuantity, ...rest } = avail as any;
+                  setFormData({
+                    ...formData,
+                    ...rest,
+                    ...(defaultMaxQuantity !== undefined
+                      ? { defaultMaxQuantity: defaultMaxQuantity != null ? String(defaultMaxQuantity) : '' }
+                      : {}),
+                  });
+                }}
               />
             </div>
           </div>

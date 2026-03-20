@@ -69,7 +69,7 @@ export default function IngredientsPage() {
   const fetchData = async () => {
     try {
       const [ingredientsRes, settingsRes] = await Promise.all([
-        fetch('/api/ingredients'),
+        fetch('/api/ingredients?pageSize=500'),
         fetch('/api/settings'),
       ]);
       if (ingredientsRes.ok) {

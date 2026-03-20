@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/app/admin/components/ui/nav/badges';
-import { XClose, Plus } from '@untitledui/icons';
-import type { Ingredient, FlavourIngredient, Allergen, DietaryClaim, IngredientCategory } from '@/types';
+import { XClose } from '@untitledui/icons';
+import { useToast } from '@/app/admin/components/ToastContainer';
+import type { Ingredient, FlavourIngredient, Allergen, DietaryClaim } from '@/types';
 
 interface Props {
   selectedIngredients: FlavourIngredient[];
@@ -33,6 +34,7 @@ export default function FlavourIngredientSelector({ selectedIngredients, onChang
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [dietary, setDietary] = useState<DietaryClaim[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,14 +81,52 @@ export default function FlavourIngredientSelector({ selectedIngredients, onChang
     setDietary(claims);
   };
 
+  // Close on outside click
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   const add = (ingredient: Ingredient) => {
     const maxOrder = selectedIngredients.length > 0
       ? Math.max(...selectedIngredients.map(si => si.displayOrder))
       : -1;
     onChange([...selectedIngredients, { ingredientId: ingredient.id, displayOrder: maxOrder + 1, quantity: '', notes: '' }]);
-    setSearch('');
-    setOpen(false);
-    inputRef.current?.focus();
+  };
+
+  const toast = useToast();
+
+  const quickCreate = async () => {
+    const name = search.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch('/api/ingredients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, origin: '', category: 'base', allergens: [] }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error('Create failed', err.error || 'Could not create ingredient');
+        return;
+      }
+      const created: Ingredient = await res.json();
+      setAllIngredients(prev => [...prev, created]);
+      add(created);
+      setSearch('');
+      toast.success('Ingredient created', `"${created.name}" created and added`);
+    } catch {
+      toast.error('Create failed', 'An unexpected error occurred');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const remove = (id: string) => {
@@ -130,50 +170,62 @@ export default function FlavourIngredientSelector({ selectedIngredients, onChang
       )}
 
       {/* Search / add input */}
-      <div className="relative">
+      <div className="relative" ref={wrapperRef}>
         <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 bg-white">
-          <Plus size={16} className="text-gray-400 shrink-0" />
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
           <input
             ref={inputRef}
             type="text"
-            placeholder={loading ? 'Loading ingredients…' : 'Search and add ingredients…'}
+            placeholder={loading ? 'Loading ingredients…' : `Search ingredients… (${filtered.length} available)`}
             value={search}
             onChange={e => { setSearch(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
             className="flex-1 text-sm outline-none bg-transparent placeholder-gray-400"
+            aria-label="Search ingredients to add"
           />
           {search && (
-            <button type="button" onClick={() => { setSearch(''); setOpen(false); }} className="text-gray-400 hover:text-gray-600">
+            <button type="button" onClick={() => { setSearch(''); }} className="text-gray-400 hover:text-gray-600">
               <XClose size={14} />
             </button>
           )}
         </div>
 
-        {open && search.length > 0 && (
-          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
-            {filtered.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-gray-500">No ingredients found for "{search}"</p>
-            ) : (
-              filtered.slice(0, 20).map(ing => (
+        {open && filtered.length > 0 && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+            {filtered.slice(0, 30).map(ing => (
                 <button
                   key={ing.id}
                   type="button"
                   onClick={() => add(ing)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-brand-50 hover:text-brand-700 transition-colors"
                 >
                   <div>
                     <span className="text-sm font-medium text-gray-900">{ing.name}</span>
                     {ing.origin && <span className="text-xs text-gray-500 ml-2">{ing.origin}</span>}
                   </div>
                   <div className="flex items-center gap-1 ml-3 shrink-0">
-                    <Badge color="gray" size="sm">{ing.category}</Badge>
-                    {ing.allergens.slice(0, 2).map(a => (
-                      <Badge key={a} color={ALLERGEN_COLOR[a] ?? 'error'} size="sm">{a}</Badge>
-                    ))}
+                    <span className="text-xs text-gray-400">+ Add</span>
                   </div>
                 </button>
-              ))
-            )}
+              ))}
+          </div>
+        )}
+
+        {open && search && filtered.length === 0 && (
+          <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-2">
+            <button
+              type="button"
+              onClick={quickCreate}
+              disabled={creating}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md text-left hover:bg-brand-50 transition-colors disabled:opacity-50"
+            >
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold shrink-0">+</span>
+              <span className="text-sm text-gray-700">
+                {creating ? 'Creating…' : <>Create <span className="font-medium text-gray-900">&ldquo;{search}&rdquo;</span> as a new ingredient</>}
+              </span>
+            </button>
           </div>
         )}
       </div>

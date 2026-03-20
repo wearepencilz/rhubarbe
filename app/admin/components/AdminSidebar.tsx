@@ -17,10 +17,18 @@ const sections: NavSectionType[] = [
         ],
     },
     {
-        label: 'Commerce',
+        label: 'Products',
         items: [
             { label: 'Products', href: '/admin/products', icon: '🎁' },
             { label: 'Ingredients', href: '/admin/ingredients', icon: '🌿' },
+        ],
+    },
+    {
+        label: 'Ordering',
+        items: [
+            { label: 'Menus', href: '/admin/menus', icon: '📅' },
+            { label: 'Orders', href: '/admin/orders', icon: '🧾' },
+            { label: 'Pickup Locations', href: '/admin/pickup-locations', icon: '📍' },
         ],
     },
     {

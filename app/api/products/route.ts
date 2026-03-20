@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getProducts, saveProducts } from '@/lib/db.js'
+import { availabilityCache } from '@/lib/cache/availability-cache'
+
+const PRODUCT_LIST_TTL = 120; // 120 seconds
 
 // GET /api/products - Get all products with optional filtering
 export async function GET(request: NextRequest) {
@@ -8,6 +11,15 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const formatId = searchParams.get('formatId')
     const onlineOrderable = searchParams.get('onlineOrderable')
+
+    // Build cache key from filters
+    const cacheKey = `products:orderable:${status || 'all'}:${formatId || 'all'}:${onlineOrderable || 'all'}`;
+    
+    // Check cache
+    const cached = availabilityCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
 
     let products = await getProducts()
 
@@ -20,6 +32,9 @@ export async function GET(request: NextRequest) {
     if (onlineOrderable === 'true') {
       products = products.filter((p: any) => p.onlineOrderable === true)
     }
+
+    // Cache the result
+    availabilityCache.set(cacheKey, products, PRODUCT_LIST_TTL);
 
     return NextResponse.json(products)
   } catch (error) {

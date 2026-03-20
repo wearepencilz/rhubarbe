@@ -1,4 +1,3 @@
-import { getProducts } from '@/lib/db';
 import OrderPageClient from './OrderPageClient';
 
 export const metadata = {
@@ -6,7 +5,6 @@ export const metadata = {
   description: 'Commandez des articles sucrés et salés de Rhubarbe.',
 };
 
-export default async function OrderPage() {
-  const products = await getProducts().catch(() => []);
-  return <OrderPageClient products={products} />;
+export default function OrderPage() {
+  return <OrderPageClient />;
 }

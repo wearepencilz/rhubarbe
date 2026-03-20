@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Select } from '@/app/admin/components/ui/select';
 import { Checkbox } from '@/app/admin/components/ui/checkbox';
+import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
 
 export default function CreateProductPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function CreateProductPage() {
     publicName: '',
     description: '',
     shortCardCopy: '',
+    category: '',
     price: '',
     compareAtPrice: '',
     status: 'draft',
@@ -48,6 +50,7 @@ export default function CreateProductPage() {
           publicName: formData.publicName,
           description: formData.description,
           shortCardCopy: formData.shortCardCopy,
+          category: formData.category || undefined,
           price,
           compareAtPrice,
           status: formData.status,
@@ -118,6 +121,14 @@ export default function CreateProductPage() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Brief card text" />
         </div>
+        <TaxonomySelect
+          category="productCategories"
+          value={formData.category}
+          onChange={(v) => setFormData({ ...formData, category: v })}
+          label="Category"
+          description="Used to group products on the order page"
+          placeholder="Select a category"
+        />
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>

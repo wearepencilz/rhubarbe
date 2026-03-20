@@ -14,6 +14,7 @@ export type TaxonomyCategory =
   | 'ingredientProcesses'
   | 'ingredientAttributes'
   | 'ingredientUsedAs'
+  | 'productCategories'
   | 'formatCategories'
   | 'servingStyles'
   | 'modifierTypes'

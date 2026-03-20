@@ -682,5 +682,41 @@
     ],
     "createdAt": "2026-03-13T16:42:39.139Z",
     "updatedAt": "2026-03-13T16:42:39.139Z"
+  },
+  {
+    "id": "1774038983725",
+    "name": "sugar",
+    "category": "base",
+    "origin": "",
+    "allergens": [],
+    "animalDerived": false,
+    "vegetarian": true,
+    "seasonal": false,
+    "availableMonths": [],
+    "tastingNotes": [],
+    "isOrganic": false,
+    "roles": [],
+    "descriptors": [],
+    "status": "active",
+    "createdAt": "2026-03-20T20:36:23.725Z",
+    "updatedAt": "2026-03-20T20:36:23.725Z"
+  },
+  {
+    "id": "1774039323453",
+    "name": "Celery",
+    "category": "base",
+    "origin": "",
+    "allergens": [],
+    "animalDerived": false,
+    "vegetarian": true,
+    "seasonal": false,
+    "availableMonths": [],
+    "tastingNotes": [],
+    "isOrganic": false,
+    "roles": [],
+    "descriptors": [],
+    "status": "active",
+    "createdAt": "2026-03-20T20:42:03.453Z",
+    "updatedAt": "2026-03-20T20:42:03.453Z"
   }
 ]

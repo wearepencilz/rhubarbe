@@ -1,4 +1,20 @@
-# Seed Import Script
+# Scripts Directory
+
+This directory contains utility scripts for database operations, migrations, and data management.
+
+## Available Scripts
+
+### migrate-existing-products.ts
+
+Migration script that adds availability fields to existing products for the preorder operations feature.
+
+See [README-migrate-existing-products.md](./README-migrate-existing-products.md) for detailed documentation.
+
+```bash
+npx tsx scripts/migrate-existing-products.ts
+```
+
+### seed-import.ts
 
 This script adapts legacy seed data to the current CMS schema without modifying the UI or existing fields.
 

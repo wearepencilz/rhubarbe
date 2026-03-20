@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getProducts, saveProducts } from '@/lib/db.js'
+import { availabilityCache } from '@/lib/cache/availability-cache'
 
 // GET /api/products/[id]
 export async function GET(
@@ -35,6 +36,25 @@ export async function PUT(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
+    // Validate availability_mode if provided
+    if (body.availabilityMode !== undefined) {
+      const validModes = ['always_available', 'scheduled', 'pattern_based', 'hidden']
+      if (!validModes.includes(body.availabilityMode)) {
+        return NextResponse.json(
+          { error: `Invalid availability_mode. Must be one of: ${validModes.join(', ')}` },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Validate quantity rules if provided
+    if (body.defaultMinQuantity !== undefined && body.defaultMinQuantity < 1) {
+      return NextResponse.json({ error: 'default_min_quantity must be at least 1' }, { status: 400 })
+    }
+    if (body.defaultQuantityStep !== undefined && body.defaultQuantityStep < 1) {
+      return NextResponse.json({ error: 'default_quantity_step must be at least 1' }, { status: 400 })
+    }
+
     products[index] = {
       ...products[index],
       ...body,
@@ -44,11 +64,24 @@ export async function PUT(
     }
 
     await saveProducts(products)
+
+    // Invalidate availability cache
+    availabilityCache.invalidate(`availability:${params.id}`)
+    availabilityCache.invalidate(`products:orderable:`)
+
     return NextResponse.json(products[index])
   } catch (error) {
     console.error('Error updating product:', error)
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
   }
+}
+
+// PATCH /api/products/[id] — partial update (same logic as PUT)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return PUT(request, { params })
 }
 
 // DELETE /api/products/[id]
@@ -66,6 +99,11 @@ export async function DELETE(
 
     products.splice(index, 1)
     await saveProducts(products)
+
+    // Invalidate availability cache
+    availabilityCache.invalidate(`availability:${params.id}`)
+    availabilityCache.invalidate(`products:orderable:`)
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting product:', error)

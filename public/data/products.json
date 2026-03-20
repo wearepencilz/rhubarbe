@@ -29,7 +29,7 @@
     "category": "sweet",
     "description": "4 individual pastries: mango-lime-coconut tart, raspberry-coffee paris-brest, vanilla-pecan flower, chocolate macaronade",
     "serves": null,
-    "price": null,
+    "price": 0,
     "currency": "CAD",
     "allergens": [
       "nuts",
@@ -38,7 +38,54 @@
       "egg"
     ],
     "image": "https://rhubarbe.ca/app/uploads/2026/03/79d20485-c6ae-4eb2-808a-8f8619047443-960x1265.jpg",
-    "status": "active"
+    "status": "active",
+    "title": "4 pastries",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [
+      {
+        "ingredientId": "milk",
+        "displayOrder": 0,
+        "quantity": "",
+        "notes": ""
+      },
+      {
+        "ingredientId": "white-peaches",
+        "displayOrder": 1,
+        "quantity": "",
+        "notes": ""
+      },
+      {
+        "ingredientId": "red-watermelon",
+        "displayOrder": 2,
+        "quantity": "",
+        "notes": ""
+      },
+      {
+        "ingredientId": "ile-dorleans-strawberries",
+        "displayOrder": 3,
+        "quantity": "",
+        "notes": ""
+      },
+      {
+        "ingredientId": "1774039323453",
+        "displayOrder": 4,
+        "quantity": "",
+        "notes": ""
+      }
+    ],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-20T20:42:07.075Z"
   },
   {
     "id": "financier",
@@ -69,7 +116,36 @@
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2024/03/IMG_9018-2-960x1265.jpeg",
-    "status": "active"
+    "status": "active",
+    "title": "Birthday cake",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [
+      {
+        "ingredientId": "1774038983725",
+        "displayOrder": 0,
+        "quantity": "",
+        "notes": ""
+      },
+      {
+        "ingredientId": "browned-butter",
+        "displayOrder": 1,
+        "quantity": "",
+        "notes": ""
+      }
+    ],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-20T20:36:28.245Z"
   },
   {
     "id": "gateau-fete-pistache-framboise",
@@ -303,14 +379,30 @@
     "id": "gravlax",
     "slug": "gravlax",
     "name": "Gravlax",
-    "category": "savory",
+    "category": "snack",
     "description": "Salmon, salt, sugar, vodka. Served sliced, vacuum-sealed. 150g.",
     "serves": null,
     "price": 15,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2020/11/Cirkus-noel-2015-0688-960x1265.jpg",
-    "status": "active"
+    "status": "active",
+    "title": "Gravlax",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-20T20:54:22.351Z"
   },
   {
     "id": "moussaka-epicee",
@@ -329,27 +421,59 @@
     "id": "pate-saumon",
     "slug": "pate-saumon",
     "name": "Salmon pie",
-    "category": "savory",
+    "category": "snack",
     "description": "Puff pastry, salmon, bechamel, onions, celery, carrots, spices. Keep frozen, bake before serving.",
     "serves": null,
     "price": 35,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2020/11/Cirkus-noel-2015-0708-960x1265.jpg",
-    "status": "active"
+    "status": "active",
+    "title": "Salmon pie",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-20T20:53:59.904Z"
   },
   {
     "id": "poulet-paprika",
     "slug": "poulet-paprika",
     "name": "Paprika chicken",
-    "category": "savory",
+    "category": "snack",
     "description": "Chicken, cream, carrots, onions, garlic, paprika",
     "serves": null,
     "price": 23,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2025/08/UNADJUSTEDNONRAW_mini_629c.jpg",
-    "status": "active"
+    "status": "active",
+    "title": "Paprika chicken",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-20T20:54:12.118Z"
   },
   {
     "id": "quiche",

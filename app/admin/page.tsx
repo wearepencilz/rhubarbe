@@ -14,16 +14,18 @@ interface DashboardGroup {
 
 const groups: DashboardGroup[] = [
   {
-    label: 'Commerce',
+    label: 'Products',
     cards: [
       { title: 'Products', description: 'Generated products linked to Shopify', href: '/admin/products', icon: '🎁' },
+      { title: 'Ingredients', description: 'Ingredient library with provenance', href: '/admin/ingredients', icon: '🌿' },
     ],
   },
   {
-    label: 'Archive',
+    label: 'Ordering',
     cards: [
-      { title: 'Flavours', description: 'Flavour archive and recipe management', href: '/admin/flavours', icon: '🍦' },
-      { title: 'Ingredients', description: 'Ingredient library with provenance', href: '/admin/ingredients', icon: '🌿' },
+      { title: 'Menus', description: 'Weekly preorder menus and launches', href: '/admin/menus', icon: '📅' },
+      { title: 'Orders', description: 'Preorders, prep sheets, and pickup lists', href: '/admin/orders', icon: '🧾' },
+      { title: 'Pickup Locations', description: 'Physical pickup points and instructions', href: '/admin/pickup-locations', icon: '📍' },
     ],
   },
   {
