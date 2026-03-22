@@ -365,6 +365,18 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       if (closes >= pickup) e.orderCloses = 'Order close must be before pickup date';
     }
 
+    // Validate product quantity overrides
+    for (const lp of linkedProducts) {
+      if (lp.maxQuantityOverride != null && lp.maxQuantityOverride === 0) {
+        e.products = `"${lp.productName}" has max quantity of 0 — customers won't be able to order it`;
+        break;
+      }
+      if (lp.maxQuantityOverride != null && lp.minQuantityOverride != null && lp.maxQuantityOverride < lp.minQuantityOverride) {
+        e.products = `"${lp.productName}" has max quantity (${lp.maxQuantityOverride}) less than min (${lp.minQuantityOverride})`;
+        break;
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -755,6 +767,9 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
             <p className="text-sm text-gray-500">No products added yet.</p>
           ) : (
             <div className="space-y-1.5">
+              {errors.products && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errors.products}</p>
+              )}
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-500">{linkedProducts.length} product{linkedProducts.length !== 1 ? 's' : ''}</p>
                 <button
@@ -770,7 +785,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
               {linkedProducts.map((lp, idx) => (
-                <div key={lp.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
+                <div key={lp.id} className="relative flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-400 w-6">{idx + 1}</span>
                   <span className="text-sm font-medium text-gray-900 flex-1 truncate">{lp.productName}</span>
                   <div className="flex items-center gap-1.5">
@@ -799,9 +814,20 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
                         const val = e.target.value ? parseInt(e.target.value, 10) : null;
                         setLinkedProducts((prev) => prev.map((p) => p.id === lp.id ? { ...p, maxQuantityOverride: val } : p));
                       }}
-                      className="w-16 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className={`w-16 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-brand-500 ${
+                        (lp.maxQuantityOverride != null && lp.maxQuantityOverride === 0) ||
+                        (lp.maxQuantityOverride != null && lp.minQuantityOverride != null && lp.maxQuantityOverride < lp.minQuantityOverride)
+                          ? 'border-red-400 bg-red-50'
+                          : 'border-gray-200'
+                      }`}
                       title="Max quantity override"
                     />
+                    {lp.maxQuantityOverride != null && lp.maxQuantityOverride === 0 && (
+                      <span className="text-[10px] text-red-500 absolute -bottom-3.5 right-8">Max can't be 0</span>
+                    )}
+                    {lp.maxQuantityOverride != null && lp.minQuantityOverride != null && lp.maxQuantityOverride > 0 && lp.maxQuantityOverride < lp.minQuantityOverride && (
+                      <span className="text-[10px] text-red-500 absolute -bottom-3.5 right-8">Max &lt; Min</span>
+                    )}
                   </div>
                   <button
                     type="button"

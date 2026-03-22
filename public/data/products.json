@@ -6,7 +6,7 @@
     "category": "sweet",
     "description": "Brioche, pistachio cream and crunch, orange blossom, oranges",
     "serves": "6",
-    "price": 2000,
+    "price": 3800,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2026/03/A9E88F29-AF50-4526-B3EF-C2A3AA4B9E00-960x1265.jpeg",
@@ -20,7 +20,18 @@
     "keyNotes": [],
     "tastingNotes": "",
     "ingredients": [],
-    "updatedAt": "2026-03-18T12:31:53.165Z"
+    "updatedAt": "2026-03-22T15:56:53.434Z",
+    "shopifyProductId": "gid://shopify/Product/8459893506227",
+    "shopifyProductHandle": "tropezienne-pistachio-orange",
+    "syncStatus": "synced",
+    "lastSyncedAt": "2026-03-22T15:56:53.434Z",
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "syncError": null
   },
   {
     "id": "4-patisseries",
@@ -29,7 +40,7 @@
     "category": "sweet",
     "description": "4 individual pastries: mango-lime-coconut tart, raspberry-coffee paris-brest, vanilla-pecan flower, chocolate macaronade",
     "serves": null,
-    "price": 0,
+    "price": 3800,
     "currency": "CAD",
     "allergens": [
       "nuts",
@@ -85,7 +96,32 @@
     "defaultPickupRequired": false,
     "dateSelectionType": "none",
     "slotSelectionType": "none",
-    "updatedAt": "2026-03-20T20:42:07.075Z"
+    "updatedAt": "2026-03-22T15:57:52.907Z",
+    "variantType": "size",
+    "variants": [
+      {
+        "id": "4-patisseries",
+        "label": "4 pastries",
+        "labelFr": "4 pâtisseries",
+        "available": true,
+        "sortOrder": 0,
+        "shopifyVariantId": "gid://shopify/ProductVariant/45374856757427"
+      },
+      {
+        "id": "8-patisseries",
+        "label": "8 pastries",
+        "labelFr": "8 pâtisseries",
+        "price": 7600,
+        "available": true,
+        "sortOrder": 1,
+        "shopifyVariantId": "gid://shopify/ProductVariant/45374856790195"
+      }
+    ],
+    "shopifyProductId": "gid://shopify/Product/8459894554803",
+    "shopifyProductHandle": "4-pastries",
+    "syncStatus": "synced",
+    "lastSyncedAt": "2026-03-22T15:57:52.907Z",
+    "syncError": null
   },
   {
     "id": "financier",
@@ -94,7 +130,7 @@
     "category": "sweet",
     "description": "Raw almond financier, hazelnuts, chocolate-hazelnut spread",
     "serves": "4",
-    "price": 28,
+    "price": 2800,
     "currency": "CAD",
     "allergens": [
       "dairy",
@@ -103,7 +139,28 @@
       "egg"
     ],
     "image": "https://rhubarbe.ca/app/uploads/2021/04/IMG_7957-960x1265.jpeg",
-    "status": "active"
+    "status": "active",
+    "title": "Financier",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-22T15:59:15.086Z",
+    "shopifyProductId": "gid://shopify/Product/8459895898291",
+    "shopifyProductHandle": "financier",
+    "syncStatus": "synced",
+    "lastSyncedAt": "2026-03-22T15:59:15.659Z",
+    "syncError": null
   },
   {
     "id": "gateau-de-fete",
@@ -112,7 +169,7 @@
     "category": "sweet",
     "description": "Banana-buckwheat cake, banana-passion fruit cream, coffee crumble, milk chocolate mousse",
     "serves": "8-10",
-    "price": 75,
+    "price": 7500,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2024/03/IMG_9018-2-960x1265.jpeg",
@@ -145,7 +202,7 @@
     "defaultPickupRequired": false,
     "dateSelectionType": "none",
     "slotSelectionType": "none",
-    "updatedAt": "2026-03-20T20:36:28.245Z"
+    "updatedAt": "2026-03-22T14:49:10.210Z"
   },
   {
     "id": "gateau-fete-pistache-framboise",
@@ -154,11 +211,27 @@
     "category": "sweet",
     "description": "Pistachio cake, raspberry chantilly, vanilla cream. Photo for reference only.",
     "serves": null,
-    "price": null,
+    "price": 5500,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2023/04/IMG_5179-960x1265.jpeg",
-    "status": "active"
+    "status": "active",
+    "title": "Pistachio-raspberry celebration cake",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-22T14:51:08.951Z"
   },
   {
     "id": "gateau-orange-sanguine",
@@ -167,11 +240,27 @@
     "category": "sweet",
     "description": "Chiffon cake, blood orange gel and cream, jasmine whipped ganache, almond crumble. Decoration may vary.",
     "serves": "8-10",
-    "price": 75,
+    "price": 7500,
     "currency": "CAD",
     "allergens": [],
     "image": "https://rhubarbe.ca/app/uploads/2024/03/1FF83A3F-F684-48A4-A105-E29E38761A84-960x1265.jpeg",
-    "status": "active"
+    "status": "active",
+    "title": "Blood orange, jasmine and almond cake",
+    "shortCardCopy": "",
+    "tags": [],
+    "inventoryTracked": false,
+    "onlineOrderable": true,
+    "pickupOnly": false,
+    "keyNotes": [],
+    "tastingNotes": "",
+    "ingredients": [],
+    "availabilityMode": "always_available",
+    "defaultMinQuantity": 1,
+    "defaultQuantityStep": 1,
+    "defaultPickupRequired": false,
+    "dateSelectionType": "none",
+    "slotSelectionType": "none",
+    "updatedAt": "2026-03-22T14:51:17.903Z"
   },
   {
     "id": "paris-brest-framboise-cafe",

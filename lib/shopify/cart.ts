@@ -20,6 +20,10 @@ export interface CartLine {
       amount: string;
       currencyCode: string;
     };
+    selectedOptions?: Array<{
+      name: string;
+      value: string;
+    }>;
     image?: {
       url: string;
       altText?: string;
@@ -81,6 +85,10 @@ const cartFragment = `
                 amount
                 currencyCode
               }
+              selectedOptions {
+                name
+                value
+              }
               image {
                 url
                 altText
@@ -109,20 +117,99 @@ const cartFragment = `
   }
 `;
 
-export async function createCart(): Promise<Cart> {
+export async function createCart(options?: {
+  lines?: Array<{ merchandiseId: string; quantity: number }>;
+  attributes?: Array<{ key: string; value: string }>;
+  note?: string;
+}): Promise<Cart> {
   const query = `
-    mutation cartCreate {
-      cartCreate {
+    mutation cartCreate($input: CartInput!) {
+      cartCreate(input: $input) {
         cart {
           ...CartFragment
+        }
+        userErrors {
+          field
+          message
         }
       }
     }
     ${cartFragment}
   `;
 
-  const response = await shopifyFetch({ query });
-  return (response.data as any).cartCreate.cart;
+  const input: Record<string, any> = {};
+  if (options?.lines) input.lines = options.lines;
+  if (options?.attributes) input.attributes = options.attributes;
+  if (options?.note) input.note = options.note;
+
+  const response = await shopifyFetch({ query, variables: { input }, cache: 'no-store' });
+
+  if (response.errors?.length) {
+    throw new Error(`Storefront API errors: ${JSON.stringify(response.errors)}`);
+  }
+
+  const result = (response.data as any).cartCreate;
+
+  if (!result) {
+    throw new Error('cartCreate returned null — product may not be published to the Storefront API sales channel');
+  }
+
+  if (result.userErrors?.length > 0) {
+    throw new Error(`Cart create errors: ${JSON.stringify(result.userErrors)}`);
+  }
+  if (!result.cart) {
+    throw new Error('Cart was not created — check that all variant IDs are valid and products are published to the Storefront API');
+  }
+  return result.cart;
+}
+
+export async function updateCartAttributes(
+  cartId: string,
+  attributes: Array<{ key: string; value: string }>
+): Promise<Cart> {
+  const query = `
+    mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+      cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+        cart {
+          ...CartFragment
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+    ${cartFragment}
+  `;
+
+  const response = await shopifyFetch({
+    query,
+    variables: { cartId, attributes },
+  });
+  return (response.data as any).cartAttributesUpdate.cart;
+}
+
+export async function updateCartNote(cartId: string, note: string): Promise<Cart> {
+  const query = `
+    mutation cartNoteUpdate($cartId: ID!, $note: String!) {
+      cartNoteUpdate(cartId: $cartId, note: $note) {
+        cart {
+          ...CartFragment
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+    ${cartFragment}
+  `;
+
+  const response = await shopifyFetch({
+    query,
+    variables: { cartId, note },
+  });
+  return (response.data as any).cartNoteUpdate.cart;
 }
 
 export async function addToCart(cartId: string, lines: Array<{ merchandiseId: string; quantity: number }>): Promise<Cart> {
