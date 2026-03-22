@@ -1,0 +1,73 @@
+{% comment %}
+  Shopify Order Status Page — Pickup Details Display
+  
+  Paste this into:
+  Shopify Admin → Settings → Checkout → Order status page → Additional scripts
+  
+  This reads the cart attributes set during the preorder flow and displays
+  them on the thank-you / order status page.
+{% endcomment %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Shopify exposes order attributes on the thank-you page via Checkout object
+    if (typeof Shopify === 'undefined' || typeof Shopify.checkout === 'undefined') return;
+
+    var attrs = Shopify.checkout.attributes || {};
+    var menu = attrs['Menu'];
+    var pickupDate = attrs['Pickup Date'];
+    var pickupLocation = attrs['Pickup Location'];
+    var pickupAddress = attrs['Pickup Address'];
+    var pickupSlot = attrs['Pickup Slot'];
+
+    if (!pickupDate && !pickupLocation) return;
+
+    var html = '<div class="pickup-details" style="' +
+      'background:#faf9f6;border:1px solid #e5e2db;border-radius:8px;' +
+      'padding:20px;margin:20px 0;font-family:inherit;">' +
+      '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.1em;' +
+      'color:#888;margin:0 0 12px;">Pickup Details</h3>';
+
+    if (menu) {
+      html += '<div style="margin-bottom:8px;">' +
+        '<span style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.05em;">Menu</span>' +
+        '<p style="margin:2px 0 0;font-size:14px;color:#333;">' + escapeHtml(menu) + '</p></div>';
+    }
+    if (pickupDate) {
+      html += '<div style="margin-bottom:8px;">' +
+        '<span style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.05em;">Date</span>' +
+        '<p style="margin:2px 0 0;font-size:14px;color:#333;">' + escapeHtml(pickupDate) + '</p></div>';
+    }
+    if (pickupSlot) {
+      html += '<div style="margin-bottom:8px;">' +
+        '<span style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.05em;">Time</span>' +
+        '<p style="margin:2px 0 0;font-size:14px;color:#333;">' + escapeHtml(pickupSlot) + '</p></div>';
+    }
+    if (pickupLocation) {
+      html += '<div style="margin-bottom:' + (pickupAddress ? '2' : '0') + 'px;">' +
+        '<span style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:0.05em;">Location</span>' +
+        '<p style="margin:2px 0 0;font-size:14px;color:#333;">' + escapeHtml(pickupLocation) + '</p></div>';
+    }
+    if (pickupAddress) {
+      html += '<p style="margin:0;font-size:13px;color:#666;">' + escapeHtml(pickupAddress) + '</p>';
+    }
+
+    html += '</div>';
+
+    // Insert after the order confirmation section
+    var target = document.querySelector('.os-step__special-description') ||
+                 document.querySelector('.os-order-number') ||
+                 document.querySelector('[data-step="thank_you"]') ||
+                 document.querySelector('.step__sections');
+    
+    if (target) {
+      target.insertAdjacentHTML('afterend', html);
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  });
+</script>

@@ -12,22 +12,27 @@ export const authOptions: NextAuthConfig = {
       authorize: async (credentials) => {
         if (!credentials?.username || !credentials?.password) return null;
 
-        // Ensure at least one user exists
-        await ensureDefaultUser();
+        try {
+          // Ensure at least one user exists
+          await ensureDefaultUser();
 
-        const user = await getUserByUsername(credentials.username as string);
-        if (!user || !user.active) return null;
+          const user = await getUserByUsername(credentials.username as string);
+          if (!user || !user.active) return null;
 
-        const valid = await verifyPassword(user, credentials.password as string);
-        if (!valid) return null;
+          const valid = await verifyPassword(user, credentials.password as string);
+          if (!valid) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-        };
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            username: user.username,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error('[Auth] authorize error:', error);
+          return null;
+        }
       },
     }),
   ],
