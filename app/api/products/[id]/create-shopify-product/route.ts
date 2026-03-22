@@ -61,6 +61,9 @@ export async function POST(
     const tags = [...(product.tags || [])].filter(Boolean);
 
     // Prepare Shopify product input
+    const hasVariants = product.variantType && product.variantType !== 'none' && product.variants && product.variants.length > 0;
+    const optionName = product.variantType === 'flavour' ? 'Saveur' : product.variantType === 'size' ? 'Taille' : undefined;
+
     const shopifyInput: CreateProductInput = {
       title: productTitle,
       descriptionHtml,
@@ -68,16 +71,25 @@ export async function POST(
       vendor: 'Janine',
       tags,
       status: product.status === 'active' ? 'ACTIVE' : 'DRAFT',
-      variants: [{
-        price: (product.price / 100).toFixed(2),
-        sku: product.slug || product.id,
-        ...(product.inventoryTracked && product.inventoryQuantity ? {
-          inventoryQuantities: [{
-            availableQuantity: product.inventoryQuantity,
-            locationId: process.env.SHOPIFY_LOCATION_ID || '',
-          }]
-        } : {})
-      }],
+      ...(hasVariants && optionName ? {
+        options: [optionName],
+        variants: product.variants.map((v: any) => ({
+          price: ((v.price || product.price) / 100).toFixed(2),
+          sku: v.sku || `${product.slug || product.id}-${v.id}`,
+          optionValues: [{ optionName, name: v.labelFr || v.label }],
+        })),
+      } : {
+        variants: [{
+          price: (product.price / 100).toFixed(2),
+          sku: product.slug || product.id,
+          ...(product.inventoryTracked && product.inventoryQuantity ? {
+            inventoryQuantities: [{
+              availableQuantity: product.inventoryQuantity,
+              locationId: process.env.SHOPIFY_LOCATION_ID || '',
+            }]
+          } : {})
+        }],
+      }),
       ...(product.image ? {
         images: [{ src: product.image, altText: productTitle }]
       } : {}),
@@ -103,16 +115,53 @@ export async function POST(
       ]
     };
 
-    // Create product in Shopify
+    // Create product in Shopify (also publishes to Headless channel)
     console.log('Creating Shopify product with input:', JSON.stringify(shopifyInput, null, 2));
     const shopifyProduct = await createProduct(shopifyInput);
+
+    // Verify storefront visibility (small delay to allow propagation)
+    let storefrontPublished = false;
+    try {
+      await new Promise((r) => setTimeout(r, 1500));
+      const sfRes = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Storefront-Access-Token': process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '',
+        },
+        body: JSON.stringify({
+          query: `query { product(id: "${shopifyProduct.id}") { id } }`,
+        }),
+      });
+      const sfData = await sfRes.json();
+      storefrontPublished = !!sfData?.data?.product;
+    } catch { /* ignore */ }
     
     // Update local product with Shopify IDs
     const productIndex = products.findIndex((p: any) => p.id === params.id);
+    
+    // Map Shopify variant IDs back to CMS variants by matching option values
+    let updatedVariants = product.variants;
+    if (hasVariants && shopifyProduct.variants?.edges) {
+      const shopifyVariants = shopifyProduct.variants.edges.map((e: any) => e.node);
+      updatedVariants = product.variants.map((v: any) => {
+        const variantLabel = v.labelFr || v.label;
+        // Match by option value name
+        const match = shopifyVariants.find((sv: any) =>
+          sv.selectedOptions?.some((opt: any) => opt.value === variantLabel)
+        );
+        return {
+          ...v,
+          shopifyVariantId: match?.id || undefined,
+        };
+      });
+    }
+
     products[productIndex] = {
       ...products[productIndex],
       shopifyProductId: shopifyProduct.id,
       shopifyProductHandle: shopifyProduct.handle,
+      ...(updatedVariants ? { variants: updatedVariants } : {}),
       syncStatus: 'synced',
       lastSyncedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -129,6 +178,10 @@ export async function POST(
         status: shopifyProduct.status,
       },
       offering: products[productIndex],
+      storefrontPublished,
+      ...(!storefrontPublished ? {
+        warning: 'Product was created but is NOT published to the Storefront/Headless sales channel. Checkout will fail until you publish it in Shopify Admin → Products → [Product] → Publishing → Manage → check "Headless".',
+      } : {}),
       timestamp: new Date().toISOString(),
     });
 

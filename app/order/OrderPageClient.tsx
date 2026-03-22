@@ -90,9 +90,10 @@ function ProductCard({
     : product.description;
 
   const atMax = maxQuantity != null && quantity >= maxQuantity;
+  const soldOut = maxQuantity != null && maxQuantity <= 0;
 
   return (
-    <div className="group flex flex-col gap-3">
+    <div className={`group flex flex-col gap-3 ${soldOut ? 'opacity-60' : ''}`}>
       {product.image && (
         <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
           <img
@@ -100,7 +101,17 @@ function ProductCard({
             alt={displayName}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          {/* Quick-add overlay */}
+          {soldOut ? (
+            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+              <p
+                className="text-center text-white text-xs uppercase tracking-widest font-medium"
+                style={{ fontFamily: 'var(--font-diatype-mono)' }}
+              >
+                {locale === 'fr' ? 'Épuisé' : 'Sold out'}
+              </p>
+            </div>
+          ) : (
+          /* Quick-add overlay */
           <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
             {quantity === 0 ? (
               <button
@@ -130,6 +141,7 @@ function ProductCard({
               </div>
             )}
           </div>
+          )}
         </div>
       )}
       <div className="flex flex-col gap-1">
@@ -151,7 +163,14 @@ function ProductCard({
         )}
         {/* Mobile quick-add */}
         <div className="mt-2 md:hidden">
-          {quantity === 0 ? (
+          {soldOut ? (
+            <p
+              className="w-full py-2 text-center text-xs uppercase tracking-widest font-medium text-gray-400"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+            >
+              {locale === 'fr' ? 'Épuisé' : 'Sold out'}
+            </p>
+          ) : quantity === 0 ? (
             <button
               onClick={onAdd}
               disabled={atMax}
@@ -231,12 +250,24 @@ function InlineCart({
   onRemove,
   locale,
   getMax,
+  pickupSlots,
+  selectedSlotId,
+  onSelectSlot,
+  onCheckout,
+  checkoutLoading,
+  checkoutError,
 }: {
   items: CartItem[];
   onUpdateQty: (productId: string, qty: number) => void;
   onRemove: (productId: string) => void;
   locale: string;
   getMax: (productId: string) => number | null;
+  pickupSlots: Array<{ id: string; startTime: string; endTime: string }>;
+  selectedSlotId: string | null;
+  onSelectSlot: (id: string) => void;
+  onCheckout: () => void;
+  checkoutLoading: boolean;
+  checkoutError: string | null;
 }) {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const isFr = locale === 'fr';
@@ -306,14 +337,48 @@ function InlineCart({
                 ${(subtotal / 100).toFixed(2)}
               </span>
             </div>
+
+            {/* Pickup slot selector */}
+            {pickupSlots.length > 0 && (
+              <div>
+                <label
+                  className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
+                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                >
+                  {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
+                </label>
+                <select
+                  value={selectedSlotId || ''}
+                  onChange={(e) => onSelectSlot(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
+                >
+                  <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
+                  {pickupSlots.map((slot) => (
+                    <option key={slot.id} value={slot.id}>
+                      {slot.startTime} – {slot.endTime}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <p className="text-xs text-gray-400">
               {isFr ? 'Taxes calculées à la caisse' : 'Taxes calculated at checkout'}
             </p>
+
+            {checkoutError && (
+              <p className="text-xs text-red-600">{checkoutError}</p>
+            )}
+
             <button
-              className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
+              onClick={onCheckout}
+              disabled={checkoutLoading || (pickupSlots.length > 0 && !selectedSlotId)}
+              className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
-              {isFr ? 'Passer à la caisse' : 'Checkout'}
+              {checkoutLoading
+                ? (isFr ? 'Chargement…' : 'Loading…')
+                : (isFr ? 'Passer à la caisse' : 'Checkout')}
             </button>
           </div>
         </>
@@ -333,6 +398,12 @@ export default function OrderPageClient() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartLaunchId, setCartLaunchId] = useState<string | null>(null);
   const [pendingSwitchIdx, setPendingSwitchIdx] = useState<number | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [shopifyStock, setShopifyStock] = useState<Record<string, number | null>>({});
 
   useEffect(() => {
     fetch('/api/launches/current')
@@ -346,6 +417,50 @@ export default function OrderPageClient() {
   }, []);
 
   const launch = launches[activeLaunchIdx] || null;
+
+  // Fetch live Shopify inventory for the active launch's products
+  useEffect(() => {
+    if (!launch) return;
+    const shopifyIds = launch.products
+      .map((p) => p.shopifyProductId)
+      .filter((id): id is string => !!id);
+    if (shopifyIds.length === 0) return;
+
+    const uniqueIds = [...new Set(shopifyIds)];
+    fetch(`/api/shopify/inventory?ids=${encodeURIComponent(uniqueIds.join(','))}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.inventory) setShopifyStock(data.inventory);
+      })
+      .catch(() => {});
+
+    // Refresh inventory every 30s while the page is open
+    const interval = setInterval(() => {
+      fetch(`/api/shopify/inventory?ids=${encodeURIComponent(uniqueIds.join(','))}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.inventory) {
+            setShopifyStock(data.inventory);
+            // Clamp cart quantities if stock dropped below current qty
+            setCart((prev) => prev.map((item) => {
+              const lp = launch.products.find((p) => p.productId === item.productId);
+              if (!lp?.shopifyProductId) return item;
+              const stock = data.inventory[lp.shopifyProductId];
+              if (stock === null || stock === undefined) return item;
+              const cmsMax = lp.maxQuantityOverride;
+              const effectiveMax = cmsMax !== null ? Math.min(cmsMax, stock) : stock;
+              if (item.quantity > effectiveMax) {
+                return { ...item, quantity: Math.max(effectiveMax, 0) };
+              }
+              return item;
+            }).filter((item) => item.quantity > 0));
+          }
+        })
+        .catch(() => {});
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [launch?.id]);
 
   // Collect unique categories from current launch products
   const categoryMap = new Map<string, string>();
@@ -409,7 +524,7 @@ export default function OrderPageClient() {
   // Cart helpers
   const addToCart = (product: LaunchProduct) => {
     if (launch) setCartLaunchId(launch.id);
-    const max = product.maxQuantityOverride;
+    const max = getMaxForProduct(product.productId);
     setCart((prev) => {
       const existing = prev.find((i) => i.productId === product.productId);
       if (existing) {
@@ -418,6 +533,8 @@ export default function OrderPageClient() {
           i.productId === product.productId ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
+      // Don't add if stock is 0
+      if (max != null && max <= 0) return prev;
       return [...prev, {
         productId: product.productId,
         name: product.productName,
@@ -431,7 +548,18 @@ export default function OrderPageClient() {
   const getMaxForProduct = (productId: string): number | null => {
     if (!launch) return null;
     const lp = launch.products.find((p) => p.productId === productId);
-    return lp?.maxQuantityOverride ?? null;
+    const cmsMax = lp?.maxQuantityOverride ?? null;
+
+    // Check Shopify inventory for this product
+    const shopifyId = lp?.shopifyProductId;
+    const stock = shopifyId ? shopifyStock[shopifyId] : undefined;
+
+    // stock === null means unlimited (not tracked), undefined means unknown
+    if (stock === undefined || stock === null) return cmsMax;
+
+    // Enforce the lower of CMS max and Shopify stock
+    if (cmsMax === null) return stock > 0 ? stock : 0;
+    return Math.min(cmsMax, stock);
   };
 
   const updateCartQty = (productId: string, qty: number) => {
@@ -447,6 +575,193 @@ export default function OrderPageClient() {
   };
 
   const getQty = (productId: string) => cart.find((i) => i.productId === productId)?.quantity || 0;
+
+  const handleCheckout = async () => {
+    if (!launch || cart.length === 0) return;
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+
+    const selectedSlot = launch.pickupSlots.find((s) => s.id === selectedSlotId) || null;
+
+    // Build items with Shopify product IDs from launch products
+    const items = cart.map((item) => {
+      const lp = launch.products.find((p) => p.productId === item.productId);
+      return {
+        productId: item.productId,
+        productName: item.name,
+        shopifyProductId: lp?.shopifyProductId || null,
+        quantity: item.quantity,
+        price: item.price,
+      };
+    });
+
+    const pickupDateFormatted = formatDate(launch.pickupDate, locale);
+    const locationName = launch.pickupLocation
+      ? (isFr ? launch.pickupLocation.publicLabel.fr : launch.pickupLocation.publicLabel.en)
+      : '';
+    const locationAddress = launch.pickupLocation?.address || '';
+
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          launchId: launch.id,
+          launchTitle: isFr ? launch.title.fr : launch.title.en,
+          pickupDate: pickupDateFormatted,
+          pickupLocationName: locationName,
+          pickupLocationAddress: locationAddress,
+          pickupSlot: selectedSlot ? { startTime: selectedSlot.startTime, endTime: selectedSlot.endTime } : undefined,
+          locale,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setCheckoutError(data.error || (isFr ? 'Erreur lors de la création de la commande' : 'Failed to create checkout'));
+        return;
+      }
+
+      // Show confirmation page instead of immediate redirect
+      setCheckoutUrl(data.checkoutUrl);
+      setShowConfirmation(true);
+    } catch {
+      setCheckoutError(isFr ? 'Erreur réseau. Veuillez réessayer.' : 'Network error. Please try again.');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  // ── Confirmation screen ──
+  if (showConfirmation && launch && checkoutUrl) {
+    const selectedSlot = launch.pickupSlots.find((s) => s.id === selectedSlotId) || null;
+    const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+    const locationName = launch.pickupLocation
+      ? (isFr ? launch.pickupLocation.publicLabel.fr : launch.pickupLocation.publicLabel.en)
+      : '';
+    const locationAddress = launch.pickupLocation?.address || '';
+
+    return (
+      <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-lg mx-auto">
+        <button
+          onClick={() => setShowConfirmation(false)}
+          className="text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 mb-8 flex items-center gap-1"
+          style={{ fontFamily: 'var(--font-diatype-mono)' }}
+        >
+          ← {isFr ? 'Retour au menu' : 'Back to menu'}
+        </button>
+
+        <h1
+          className="text-2xl uppercase tracking-widest mb-8"
+          style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
+        >
+          {isFr ? 'Confirmer votre commande' : 'Confirm your order'}
+        </h1>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Pickup details */}
+          <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+            <h2
+              className="text-xs uppercase tracking-widest text-gray-400 mb-4"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+            >
+              {isFr ? 'Détails de cueillette' : 'Pickup details'}
+            </h2>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                Menu
+              </p>
+              <p className="text-sm text-gray-900 mt-0.5">{isFr ? launch.title.fr : launch.title.en}</p>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                {isFr ? 'Date' : 'Date'}
+              </p>
+              <p className="text-sm text-gray-900 mt-0.5">{formatDate(launch.pickupDate, locale)}</p>
+            </div>
+
+            {selectedSlot && (
+              <div>
+                <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  {isFr ? 'Créneau' : 'Time slot'}
+                </p>
+                <p className="text-sm text-gray-900 mt-0.5">{selectedSlot.startTime} – {selectedSlot.endTime}</p>
+              </div>
+            )}
+
+            {launch.pickupLocation && (
+              <div>
+                <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  {isFr ? 'Lieu' : 'Location'}
+                </p>
+                <p className="text-sm text-gray-900 mt-0.5">{locationName}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{locationAddress}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Order items */}
+          <div className="space-y-4">
+            <h2
+              className="text-xs uppercase tracking-widest text-gray-400 mb-4"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+            >
+              {isFr ? 'Articles' : 'Items'}
+            </h2>
+
+            <div className="divide-y divide-gray-100">
+              {cart.map((item) => (
+                <div key={item.productId} className="flex items-center gap-3 py-3">
+                  {item.image && (
+                    <div className="w-12 h-12 rounded bg-gray-100 overflow-hidden shrink-0">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                    <p className="text-xs text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                      {item.quantity} × ${(item.price / 100).toFixed(2)}
+                    </p>
+                  </div>
+                  <p className="text-sm font-medium shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    ${((item.price * item.quantity) / 100).toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-gray-200 pt-3 flex justify-between">
+              <span className="text-sm text-gray-500">{isFr ? 'Sous-total' : 'Subtotal'}</span>
+              <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                ${(subtotal / 100).toFixed(2)}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400">
+              {isFr ? 'Taxes calculées à l\'étape suivante' : 'Taxes calculated at next step'}
+            </p>
+          </div>
+        </div>
+
+        {/* Proceed to payment */}
+        <div className="mt-10 flex flex-col items-center gap-3">
+          <a
+            href={checkoutUrl}
+            className="inline-block px-10 py-3.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
+            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+          >
+            {isFr ? 'Procéder au paiement' : 'Proceed to payment'}
+          </a>
+          <p className="text-xs text-gray-400">
+            {isFr ? 'Vous serez redirigé vers notre page de paiement sécurisée' : 'You\'ll be redirected to our secure payment page'}
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (loading) {
     return (
@@ -606,7 +921,7 @@ export default function OrderPageClient() {
                           product={product}
                           locale={locale}
                           quantity={getQty(product.productId)}
-                          maxQuantity={product.maxQuantityOverride}
+                          maxQuantity={getMaxForProduct(product.productId)}
                           onAdd={() => addToCart(product)}
                           onRemove={() => {
                             const qty = getQty(product.productId);
@@ -631,27 +946,66 @@ export default function OrderPageClient() {
             onRemove={removeFromCart}
             locale={locale}
             getMax={getMaxForProduct}
+            pickupSlots={launch?.pickupSlots || []}
+            selectedSlotId={selectedSlotId}
+            onSelectSlot={setSelectedSlotId}
+            onCheckout={handleCheckout}
+            checkoutLoading={checkoutLoading}
+            checkoutError={checkoutError}
           />
         </div>
       </div>
 
-      {/* Mobile cart summary (fixed bottom bar) */}
-      {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40 flex items-center justify-between">
-          <div>
-            <span className="text-sm font-medium">
-              {cart.reduce((s, i) => s + i.quantity, 0)} {isFr ? 'articles' : 'items'}
-            </span>
-            <span className="text-sm text-gray-500 ml-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              ${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}
-            </span>
-          </div>
-          <button
-            className="px-5 py-2.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
+      {/* Mobile pickup slot selector */}
+      {cart.length > 0 && launch && launch.pickupSlots.length > 0 && (
+        <div className="lg:hidden fixed bottom-[60px] inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
+          <label
+            className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
             style={{ fontFamily: 'var(--font-diatype-mono)' }}
           >
-            {isFr ? 'Commander' : 'Checkout'}
-          </button>
+            {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
+          </label>
+          <select
+            value={selectedSlotId || ''}
+            onChange={(e) => setSelectedSlotId(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
+          >
+            <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
+            {launch.pickupSlots.map((slot) => (
+              <option key={slot.id} value={slot.id}>
+                {slot.startTime} – {slot.endTime}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Mobile cart summary (fixed bottom bar) */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
+          {checkoutError && (
+            <p className="text-xs text-red-600 mb-2">{checkoutError}</p>
+          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-sm font-medium">
+                {cart.reduce((s, i) => s + i.quantity, 0)} {isFr ? 'articles' : 'items'}
+              </span>
+              <span className="text-sm text-gray-500 ml-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                ${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}
+              </span>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={checkoutLoading || (launch != null && launch.pickupSlots.length > 0 && !selectedSlotId)}
+              className="px-5 py-2.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+            >
+              {checkoutLoading
+                ? (isFr ? 'Chargement…' : 'Loading…')
+                : (isFr ? 'Commander' : 'Checkout')}
+            </button>
+          </div>
         </div>
       )}
 

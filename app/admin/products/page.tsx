@@ -40,6 +40,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', name: '' });
+  const [brokenLinks, setBrokenLinks] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
@@ -52,11 +53,37 @@ export default function ProductsPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter);
 
       const productsRes = await fetch(`/api/products?${params}`);
-      if (productsRes.ok) setProducts(await productsRes.json());
+      if (productsRes.ok) {
+        const data: Product[] = await productsRes.json();
+        setProducts(data);
+        verifyShopifyLinks(data);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function verifyShopifyLinks(items: Product[]) {
+    const linked = items.filter((p) => p.shopifyProductId);
+    if (linked.length === 0) return;
+
+    try {
+      const ids = linked.map((p) => p.shopifyProductId!).join(',');
+      const res = await fetch(`/api/shopify/products/verify?ids=${encodeURIComponent(ids)}`);
+      if (!res.ok) return;
+
+      const { results } = await res.json() as { results: Record<string, boolean> };
+      const broken = new Set<string>();
+      for (const p of linked) {
+        if (results[p.shopifyProductId!] === false) {
+          broken.add(p.id);
+        }
+      }
+      setBrokenLinks(broken);
+    } catch {
+      // network error — don't flag anything
     }
   }
 
@@ -158,20 +185,27 @@ export default function ProductsPage() {
                   </Table.Cell>
                   <Table.Cell>
                     {product.shopifyProductId ? (
-                      <div className="flex flex-col gap-1">
-                        <BadgeWithDot color="success">Linked</BadgeWithDot>
-                        {product.shopifyProductHandle && (
-                          <a
-                            href={`https://admin.shopify.com/store/products/${product.shopifyProductHandle}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-brand-600 hover:underline"
-                          >
-                            View →
-                          </a>
-                        )}
-                      </div>
+                      brokenLinks.has(product.id) ? (
+                        <div className="flex flex-col gap-1">
+                          <BadgeWithDot color="error">Broken link</BadgeWithDot>
+                          <span className="text-xs text-tertiary">Deleted from Shopify</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <BadgeWithDot color="success">Linked</BadgeWithDot>
+                          {product.shopifyProductHandle && (
+                            <a
+                              href={`https://admin.shopify.com/store/products/${product.shopifyProductHandle}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-brand-600 hover:underline"
+                            >
+                              View →
+                            </a>
+                          )}
+                        </div>
+                      )
                     ) : (
                       <Badge color="gray">Not linked</Badge>
                     )}

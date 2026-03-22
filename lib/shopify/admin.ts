@@ -218,6 +218,22 @@ export async function searchProducts(query: string, limit: number = 10) {
   return data.products.edges.map((edge: any) => edge.node);
 }
 
+export async function getProductVariantId(productId: string): Promise<string | null> {
+  const query = `
+    query getProductVariant($id: ID!) {
+      product(id: $id) {
+        variants(first: 1) {
+          edges {
+            node { id }
+          }
+        }
+      }
+    }
+  `;
+  const data = await shopifyAdminFetch(query, { id: productId });
+  return data.product?.variants?.edges?.[0]?.node?.id ?? null;
+}
+
 export async function getProduct(productId: string) {
   const query = `
     query getProduct($id: ID!) {
@@ -225,6 +241,7 @@ export async function getProduct(productId: string) {
         id
         handle
         title
+        status
         featuredImage {
           url
           altText
@@ -234,6 +251,25 @@ export async function getProduct(productId: string) {
             amount
             currencyCode
           }
+        }
+        variants(first: 100) {
+          edges {
+            node {
+              id
+              title
+              price
+              sku
+              selectedOptions {
+                name
+                value
+              }
+            }
+          }
+        }
+        options {
+          id
+          name
+          values
         }
         metafields(first: 20) {
           edges {
@@ -255,6 +291,56 @@ export async function getProduct(productId: string) {
   return data.product;
 }
 
+/**
+ * Fetch inventory levels for multiple Shopify products in a single query.
+ * Returns a map of shopifyProductId → total available quantity across all locations.
+ */
+export async function getInventoryLevels(productIds: string[]): Promise<Record<string, number | null>> {
+  if (productIds.length === 0) return {};
+
+  // Shopify Admin API supports up to 250 IDs per query
+  const query = `
+    query getInventory($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        ... on Product {
+          id
+          totalInventory
+          tracksInventory
+          variants(first: 100) {
+            edges {
+              node {
+                id
+                inventoryQuantity
+                inventoryPolicy
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await shopifyAdminFetch(query, { ids: productIds });
+    const result: Record<string, number | null> = {};
+
+    for (const node of (data.nodes || [])) {
+      if (!node?.id) continue;
+      // If the product doesn't track inventory, it's unlimited
+      if (!node.tracksInventory) {
+        result[node.id] = null; // null = unlimited
+        continue;
+      }
+      result[node.id] = node.totalInventory ?? 0;
+    }
+
+    return result;
+  } catch (err) {
+    console.error('[Shopify] Failed to fetch inventory levels:', err instanceof Error ? err.message : err);
+    return {};
+  }
+}
+
 
 export interface CreateProductInput {
   title: string;
@@ -266,14 +352,18 @@ export interface CreateProductInput {
   variants?: {
     price: string;
     sku?: string;
+    optionValues?: { optionName: string; name: string }[];
     inventoryQuantities?: { availableQuantity: number; locationId: string }[];
   }[];
+  options?: string[]; // Option names e.g. ["Saveur"] or ["Taille"]
   images?: { src: string; altText?: string }[];
   metafields?: { namespace: string; key: string; value: string; type: string }[];
 }
 
 export async function createProduct(input: CreateProductInput) {
-  // Create product without variants first
+  const hasMultipleVariants = input.variants && input.variants.length > 1 && input.options && input.options.length > 0;
+
+  // Step 1: Create the product (Shopify auto-creates a default variant)
   const createMutation = `
     mutation productCreate($input: ProductInput!) {
       productCreate(input: $input) {
@@ -282,16 +372,267 @@ export async function createProduct(input: CreateProductInput) {
           handle
           title
           status
-          featuredImage {
-            url
-            altText
-          }
+          featuredImage { url altText }
           variants(first: 1) {
+            edges { node { id price } }
+          }
+        }
+        userErrors { field message }
+      }
+    }
+  `;
+
+  const createData = await shopifyAdminFetch(createMutation, {
+    input: {
+      title: input.title,
+      descriptionHtml: input.descriptionHtml,
+      productType: input.productType,
+      vendor: input.vendor,
+      tags: input.tags,
+      status: input.status || 'DRAFT',
+      ...(input.metafields && input.metafields.length > 0 ? { metafields: input.metafields } : {}),
+    }
+  });
+
+  if (createData.productCreate.userErrors.length > 0) {
+    throw new Error(`Shopify create errors: ${JSON.stringify(createData.productCreate.userErrors)}`);
+  }
+
+  const product = createData.productCreate.product;
+
+  // Add images via productCreateMedia
+  if (input.images && input.images.length > 0) {
+    const mediaData = await shopifyAdminFetch(`
+      mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+        productCreateMedia(productId: $productId, media: $media) {
+          media { alt status }
+          mediaUserErrors { field message }
+        }
+      }
+    `, {
+      productId: product.id,
+      media: input.images.map(img => ({
+        originalSource: img.src,
+        alt: img.altText || '',
+        mediaContentType: 'IMAGE',
+      })),
+    });
+    if (mediaData.productCreateMedia.mediaUserErrors.length > 0) {
+      console.warn('Failed to add product images:', mediaData.productCreateMedia.mediaUserErrors);
+    }
+  }
+
+  if (hasMultipleVariants && input.variants && input.options) {
+    // Step 2: Add options with all values using LEAVE_AS_IS
+    // This adds the option definition without creating extra variants
+    const optionData = await shopifyAdminFetch(`
+      mutation productOptionsCreate(
+        $productId: ID!,
+        $options: [OptionCreateInput!]!,
+        $variantStrategy: ProductOptionCreateVariantStrategy
+      ) {
+        productOptionsCreate(
+          productId: $productId,
+          options: $options,
+          variantStrategy: $variantStrategy
+        ) {
+          product {
+            id
+            options { id name values }
+            variants(first: 10) {
+              edges { node { id title selectedOptions { name value } } }
+            }
+          }
+          userErrors { field message }
+        }
+      }
+    `, {
+      productId: product.id,
+      variantStrategy: 'LEAVE_AS_IS',
+      options: input.options.map(optionName => ({
+        name: optionName,
+        values: input.variants!.map(v => {
+          const ov = v.optionValues?.find(o => o.optionName === optionName);
+          return { name: ov?.name || 'Default' };
+        }),
+      })),
+    });
+
+    if (optionData.productOptionsCreate.userErrors.length > 0) {
+      console.warn('Failed to create options:', optionData.productOptionsCreate.userErrors);
+    }
+
+    // Step 3: Bulk-create all variants with REMOVE_STANDALONE_VARIANT
+    // This replaces the auto-created default variant with our real variants
+    const bulkCreateData = await shopifyAdminFetch(`
+      mutation productVariantsBulkCreate(
+        $productId: ID!,
+        $variants: [ProductVariantsBulkInput!]!,
+        $strategy: ProductVariantsBulkCreateStrategy
+      ) {
+        productVariantsBulkCreate(
+          productId: $productId,
+          variants: $variants,
+          strategy: $strategy
+        ) {
+          productVariants {
+            id
+            title
+            price
+            selectedOptions { name value }
+          }
+          userErrors { field message }
+        }
+      }
+    `, {
+      productId: product.id,
+      strategy: 'REMOVE_STANDALONE_VARIANT',
+      variants: input.variants.map(v => ({
+        price: v.price,
+        optionValues: v.optionValues?.map(ov => ({
+          optionName: ov.optionName,
+          name: ov.name,
+        })) || [],
+      })),
+    });
+
+    if (bulkCreateData.productVariantsBulkCreate.userErrors.length > 0) {
+      console.warn('Failed to bulk-create variants:', bulkCreateData.productVariantsBulkCreate.userErrors);
+    }
+  } else if (input.variants && input.variants.length > 0 && product.variants.edges.length > 0) {
+    // Single variant: just update the default variant price
+    const variantId = product.variants.edges[0].node.id;
+    const variantInput = input.variants[0];
+
+    const updateData = await shopifyAdminFetch(`
+      mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+        productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+          productVariants { id price }
+          userErrors { field message }
+        }
+      }
+    `, {
+      productId: product.id,
+      variants: [{ id: variantId, price: variantInput.price }],
+    });
+
+    if (updateData.productVariantsBulkUpdate.userErrors.length > 0) {
+      console.warn('Failed to update variant price:', updateData.productVariantsBulkUpdate.userErrors);
+    }
+  }
+
+  // Attempt to publish the product to the Storefront / Headless sales channel.
+  // This requires `write_publications` scope — if missing, log a warning.
+  await publishProductToStorefront(product.id);
+
+  // Fetch the complete product to return
+  const finalProduct = await getProduct(product.id);
+  return finalProduct;
+}
+
+/**
+ * Attempt to publish a product to all available sales channels.
+ * Requires `write_publications` + `read_publications` scopes.
+ * Fails silently if scopes are missing — the product must then be
+ * published manually in Shopify Admin.
+ */
+export async function publishProductToStorefront(productId: string): Promise<boolean> {
+  try {
+    // Discover all available publications (Headless, Online Store, etc.)
+    const pubData = await shopifyAdminFetch(`
+      query {
+        publications(first: 20) {
+          edges {
+            node {
+              id
+              name
+              supportsFuturePublishing
+            }
+          }
+        }
+      }
+    `);
+
+    const publications = pubData?.publications?.edges?.map((e: any) => e.node) || [];
+    // Publish to Headless channel (and any channel with "headless" or "storefront" in the name)
+    const targets = publications.filter((p: any) =>
+      /headless|storefront|hydrogen/i.test(p.name)
+    );
+
+    if (targets.length === 0) {
+      // Fallback: try the app's own publication
+      const appData = await shopifyAdminFetch(`
+        query { app { installation { id publication { id name } } } }
+      `);
+      const appPub = appData?.app?.installation?.publication;
+      if (appPub?.id) {
+        targets.push(appPub);
+      }
+    }
+
+    if (targets.length === 0) {
+      console.warn('[Shopify] No Headless/Storefront publication found — product must be published manually.');
+      return false;
+    }
+
+    // Publish to all matching channels
+    const publishData = await shopifyAdminFetch(`
+      mutation publishablePublish($id: ID!, $input: [PublicationInput!]!) {
+        publishablePublish(id: $id, input: $input) {
+          publishable { ... on Product { id title } }
+          userErrors { field message }
+        }
+      }
+    `, {
+      id: productId,
+      input: targets.map((t: any) => ({ publicationId: t.id })),
+    });
+
+    if (publishData.publishablePublish?.userErrors?.length > 0) {
+      console.warn('[Shopify] Failed to publish product:', publishData.publishablePublish.userErrors);
+      return false;
+    }
+
+    console.log(`[Shopify] Published product ${productId} to: ${targets.map((t: any) => t.name).join(', ')}`);
+    return true;
+  } catch (err) {
+    // Expected to fail if scopes are missing — not a hard error
+    console.warn('[Shopify] Auto-publish failed (likely missing write_publications scope). Product must be published manually.', err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
+export interface UpdateProductInput {
+  shopifyProductId: string;
+  title?: string;
+  descriptionHtml?: string;
+  status?: string;
+  tags?: string[];
+  price?: string;
+  variants?: { id?: string; price: string; optionValues?: { optionName: string; name: string }[] }[];
+  metafields?: { namespace: string; key: string; value: string; type: string }[];
+}
+
+export async function updateProduct(input: UpdateProductInput) {
+  // Update product fields
+  const mutation = `
+    mutation productUpdate($input: ProductInput!) {
+      productUpdate(input: $input) {
+        product {
+          id
+          handle
+          title
+          status
+          variants(first: 100) {
             edges {
               node {
                 id
-                sku
                 price
+                title
+                selectedOptions {
+                  name
+                  value
+                }
               }
             }
           }
@@ -304,40 +645,67 @@ export async function createProduct(input: CreateProductInput) {
     }
   `;
 
-  const createVariables = {
+  const variables: any = {
     input: {
-      title: input.title,
-      descriptionHtml: input.descriptionHtml,
-      productType: input.productType,
-      vendor: input.vendor,
-      tags: input.tags,
-      status: input.status || 'DRAFT',
-      ...(input.images && input.images.length > 0 ? { images: input.images } : {}),
-      ...(input.metafields && input.metafields.length > 0 ? { metafields: input.metafields } : {})
+      id: input.shopifyProductId,
+      ...(input.title && { title: input.title }),
+      ...(input.descriptionHtml && { descriptionHtml: input.descriptionHtml }),
+      ...(input.status && { status: input.status }),
+      ...(input.tags && { tags: input.tags }),
+      ...(input.metafields && input.metafields.length > 0 && { metafields: input.metafields }),
     }
   };
 
-  const createData = await shopifyAdminFetch(createMutation, createVariables);
+  const data = await shopifyAdminFetch(mutation, variables);
 
-  if (createData.productCreate.userErrors.length > 0) {
+  if (data.productUpdate.userErrors.length > 0) {
     throw new Error(
-      `Shopify user errors: ${JSON.stringify(createData.productCreate.userErrors)}`
+      `Shopify update errors: ${JSON.stringify(data.productUpdate.userErrors)}`
     );
   }
 
-  const product = createData.productCreate.product;
+  const product = data.productUpdate.product;
 
-  // Update the default variant with price only (SKU not supported in bulk update)
+  // Update variant prices
   if (input.variants && input.variants.length > 0 && product.variants.edges.length > 0) {
-    const variantId = product.variants.edges[0].node.id;
-    const variantInput = input.variants[0];
+    // Match input variants to existing Shopify variants by ID or position
+    const variantUpdates = input.variants
+      .filter(v => v.id) // Only update variants that have a Shopify ID
+      .map(v => ({ id: v.id!, price: v.price }));
 
-    const updateVariantMutation = `
+    if (variantUpdates.length > 0) {
+      const variantMutation = `
+        mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+          productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+            productVariants {
+              id
+              price
+              title
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+
+      const variantData = await shopifyAdminFetch(variantMutation, {
+        productId: product.id,
+        variants: variantUpdates,
+      });
+
+      if (variantData.productVariantsBulkUpdate.userErrors.length > 0) {
+        console.warn('Failed to update variant prices:', variantData.productVariantsBulkUpdate.userErrors);
+      }
+    }
+  } else if (input.price && product.variants.edges.length > 0) {
+    // Fallback: single variant price update
+    const variantId = product.variants.edges[0].node.id;
+
+    const variantMutation = `
       mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
         productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-          product {
-            id
-          }
           productVariants {
             id
             price
@@ -350,24 +718,58 @@ export async function createProduct(input: CreateProductInput) {
       }
     `;
 
-    const updateVariables = {
+    const variantData = await shopifyAdminFetch(variantMutation, {
       productId: product.id,
-      variants: [{
-        id: variantId,
-        price: variantInput.price
-      }]
-    };
+      variants: [{ id: variantId, price: input.price }],
+    });
 
-    const updateData = await shopifyAdminFetch(updateVariantMutation, updateVariables);
-
-    if (updateData.productVariantsBulkUpdate.userErrors.length > 0) {
-      console.warn('Failed to update variant price:', updateData.productVariantsBulkUpdate.userErrors);
-      // Don't throw - product was created successfully
+    if (variantData.productVariantsBulkUpdate.userErrors.length > 0) {
+      console.warn('Failed to update variant price:', variantData.productVariantsBulkUpdate.userErrors);
     }
   }
 
-  // Fetch the complete product to return
-  const finalProduct = await getProduct(product.id);
+  return product;
+}
 
-  return finalProduct;
+export interface DraftOrderInput {
+  lineItems: Array<{ variantId: string; quantity: number }>;
+  note?: string;
+  customAttributes?: Array<{ key: string; value: string }>;
+}
+
+export async function createDraftOrder(input: DraftOrderInput) {
+  const mutation = `
+    mutation draftOrderCreate($input: DraftOrderInput!) {
+      draftOrderCreate(input: $input) {
+        draftOrder {
+          id
+          invoiceUrl
+          name
+          totalPrice
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    input: {
+      lineItems: input.lineItems,
+      note: input.note,
+      customAttributes: input.customAttributes,
+    },
+  };
+
+  const data = await shopifyAdminFetch(mutation, variables);
+
+  if (data.draftOrderCreate.userErrors.length > 0) {
+    throw new Error(
+      `Draft order errors: ${JSON.stringify(data.draftOrderCreate.userErrors)}`
+    );
+  }
+
+  return data.draftOrderCreate.draftOrder;
 }

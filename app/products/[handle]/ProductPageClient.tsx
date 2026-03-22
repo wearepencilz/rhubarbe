@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useT } from '@/lib/i18n/useT';
 import { t } from '@/lib/i18n';
 import AddToCartButton from '@/components/AddToCartButton';
@@ -7,6 +8,36 @@ import ProductAvailabilityDisplay from '@/components/ProductAvailabilityDisplay'
 
 export function ShopifyProductView({ product }: { product: any }) {
   const { T } = useT();
+
+  // Build option state: { "Saveur": "airelles", "Taille": "500ml" }
+  const hasOptions = product.options.length > 0 && product.options[0].name !== 'Title';
+  const initialSelections: Record<string, string> = {};
+  if (hasOptions) {
+    for (const option of product.options) {
+      initialSelections[option.name] = option.values[0];
+    }
+  }
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(initialSelections);
+
+  // Find the matching variant based on selected options
+  const selectedVariant = useMemo(() => {
+    if (!hasOptions) return product.variants[0];
+    return product.variants.find((variant: any) =>
+      variant.selectedOptions.every(
+        (opt: any) => selectedOptions[opt.name] === opt.value
+      )
+    ) || product.variants[0];
+  }, [selectedOptions, product.variants, hasOptions]);
+
+  const displayPrice = selectedVariant?.price?.amount
+    ? parseFloat(selectedVariant.price.amount).toFixed(2)
+    : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2);
+
+  const comparePrice = selectedVariant?.compareAtPrice?.amount
+    ? parseFloat(selectedVariant.compareAtPrice.amount).toFixed(2)
+    : product.compareAtPriceRange
+      ? parseFloat(product.compareAtPriceRange.minVariantPrice.amount).toFixed(2)
+      : null;
 
   return (
     <main className="min-h-screen pt-32 pb-16 px-4 md:px-8">
@@ -42,11 +73,11 @@ export function ShopifyProductView({ product }: { product: any }) {
               </h1>
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                  ${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}
+                  ${displayPrice}
                 </span>
-                {product.compareAtPriceRange && (
+                {comparePrice && parseFloat(comparePrice) > parseFloat(displayPrice) && (
                   <span className="text-lg text-gray-400 line-through" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    ${parseFloat(product.compareAtPriceRange.minVariantPrice.amount).toFixed(2)}
+                    ${comparePrice}
                   </span>
                 )}
               </div>
@@ -56,7 +87,7 @@ export function ShopifyProductView({ product }: { product: any }) {
 
             {product.description && <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>}
 
-            {product.options.length > 0 && product.options[0].name !== 'Title' && (
+            {hasOptions && (
               <div className="space-y-4">
                 {product.options.map((option: any) => (
                   <div key={option.name}>
@@ -64,18 +95,48 @@ export function ShopifyProductView({ product }: { product: any }) {
                       {option.name}
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {option.values.map((value: string) => (
-                        <button key={value} className="px-4 py-2 border rounded hover:border-black transition-colors text-sm">
-                          {value}
-                        </button>
-                      ))}
+                      {option.values.map((value: string) => {
+                        const isSelected = selectedOptions[option.name] === value;
+                        // Check if this option value leads to an available variant
+                        const testOptions: Record<string, string> = { ...selectedOptions, [option.name]: value };
+                        const matchingVariant = product.variants.find((v: any) =>
+                          v.selectedOptions.every((opt: any) => testOptions[opt.name] === opt.value)
+                        );
+                        const isAvailable = matchingVariant?.availableForSale !== false;
+
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                            disabled={!isAvailable}
+                            className={`px-4 py-2 border rounded transition-colors text-sm ${
+                              isSelected
+                                ? 'border-black bg-black text-white'
+                                : isAvailable
+                                  ? 'border-gray-300 hover:border-black'
+                                  : 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
+                            }`}
+                            aria-pressed={isSelected}
+                          >
+                            {value}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <AddToCartButton variantId={product.variants[0].id} availability={product.availability} showQuantity />
+            <AddToCartButton
+              variantId={selectedVariant?.id || product.variants[0]?.id}
+              availability={
+                selectedVariant?.availableForSale === false
+                  ? 'sold_out'
+                  : product.availability
+              }
+              showQuantity
+            />
           </div>
         </div>
       </div>

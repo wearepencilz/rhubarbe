@@ -20,7 +20,8 @@ import ImageUploader from '@/app/admin/components/ImageUploader';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 import ProductAvailabilityTab from '@/app/admin/components/ProductAvailabilityTab';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
-import type { FlavourIngredient, ContentTranslations } from '@/types';
+import VariantEditor from '../../components/VariantEditor';
+import type { FlavourIngredient, ContentTranslations, ProductVariant } from '@/types';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -32,6 +33,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [creatingShopifyProduct, setCreatingShopifyProduct] = useState(false);
   const [shopifyConfirmOpen, setShopifyConfirmOpen] = useState(false);
   const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
+  const [shopifyLinkBroken, setShopifyLinkBroken] = useState(false);
+  const [verifyingShopifyLink, setVerifyingShopifyLink] = useState(false);
   const toast = useToast();
 
   const [formData, setFormData] = useState({
@@ -69,9 +72,27 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     defaultLocationRestriction: '',
     dateSelectionType: 'none',
     slotSelectionType: 'none',
+    variantType: 'none' as 'none' | 'flavour' | 'size',
+    variants: [] as ProductVariant[],
   });
 
   useEffect(() => { fetchData(); }, [params.id]);
+
+  async function verifyShopifyLink(shopifyProductId: string) {
+    if (!shopifyProductId) return;
+    setVerifyingShopifyLink(true);
+    try {
+      const res = await fetch(`/api/shopify/products/verify?id=${encodeURIComponent(shopifyProductId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setShopifyLinkBroken(!data.exists);
+      }
+    } catch {
+      // Network error — don't flag as broken, just skip
+    } finally {
+      setVerifyingShopifyLink(false);
+    }
+  }
 
   async function fetchData() {
     try {
@@ -84,6 +105,14 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         const ingredientsData = await ingredientsRes.json();
         setOffering(offeringData);
         setIngredients(ingredientsData.data || ingredientsData);
+
+        // Verify Shopify link if product is linked
+        if (offeringData.shopifyProductId) {
+          verifyShopifyLink(offeringData.shopifyProductId);
+        } else {
+          setShopifyLinkBroken(false);
+        }
+
         setFormData({
           title: offeringData.title || offeringData.publicName || offeringData.internalName || offeringData.name || '',
           slug: offeringData.slug || '',
@@ -118,6 +147,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           defaultLocationRestriction: (offeringData.defaultLocationRestriction || []).join(', '),
           dateSelectionType: offeringData.dateSelectionType || 'none',
           slotSelectionType: offeringData.slotSelectionType || 'none',
+          variantType: offeringData.variantType || 'none',
+          variants: offeringData.variants || [],
         });
       }
     } catch (error) {
@@ -148,8 +179,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         inventoryQuantity: formData.inventoryQuantity ? parseInt(formData.inventoryQuantity) : undefined,
         onlineOrderable: formData.onlineOrderable,
         pickupOnly: formData.pickupOnly,
-        shopifyProductId: formData.shopifyProductId || undefined,
-        shopifyProductHandle: formData.shopifyProductHandle || undefined,
+        shopifyProductId: formData.shopifyProductId || null,
+        shopifyProductHandle: formData.shopifyProductHandle || null,
         image: formData.image || undefined,
         keyNotes: formData.keyNotes,
         tastingNotes: formData.tastingNotes,
@@ -171,6 +202,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           : undefined,
         dateSelectionType: formData.dateSelectionType,
         slotSelectionType: formData.slotSelectionType,
+        variantType: formData.variantType !== 'none' ? formData.variantType : undefined,
+        variants: formData.variantType !== 'none' ? formData.variants : undefined,
       };
       const response = await fetch(`/api/products/${params.id}`, {
         method: 'PUT',
@@ -235,7 +268,11 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         setOffering({ ...offering, shopifyProductId: data.shopifyProduct.id, shopifyProductHandle: data.shopifyProduct.handle, syncStatus: 'synced', lastSyncedAt: data.offering.lastSyncedAt });
       }
       await fetchData();
-      toast.success('Shopify product created', `"${data.shopifyProduct.title}" is now live on Shopify`);
+      if (data.warning) {
+        toast.showToast({ variant: 'warning', title: 'Shopify product created — action needed', message: data.warning, duration: 15000 });
+      } else {
+        toast.success('Shopify product created', `"${data.shopifyProduct.title}" is now live on Shopify`);
+      }
     } catch (error) {
       console.error('Error creating Shopify product:', error);
       const msg = error instanceof Error ? error.message : 'Failed to create Shopify product';
@@ -363,7 +400,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-sm font-semibold text-gray-900">Pricing & options</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Pricing, status, and availability settings.</p>
+              <p className="text-sm text-gray-500 mt-0.5">Pricing, status, and inventory settings.</p>
             </div>
             <div className="px-6 py-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -396,12 +433,27 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
               <div className="flex items-center gap-6 pt-1">
                 <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
-                <Checkbox isSelected={formData.onlineOrderable} onChange={(v) => setFormData({ ...formData, onlineOrderable: v })} label="Online orderable" />
-                <Checkbox isSelected={formData.pickupOnly} onChange={(v) => setFormData({ ...formData, pickupOnly: v })} label="Pickup only" />
               </div>
               {formData.inventoryTracked && (
                 <Input label="Inventory quantity" type="number" value={formData.inventoryQuantity} onChange={(v) => setFormData({ ...formData, inventoryQuantity: v })} />
               )}
+            </div>
+          </div>
+
+          {/* Tasting notes */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Variants</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Define flavour or size options for this product.</p>
+            </div>
+            <div className="px-6 py-6">
+              <VariantEditor
+                variantType={formData.variantType}
+                variants={formData.variants}
+                basePrice={formData.price}
+                onVariantTypeChange={(type) => setFormData({ ...formData, variantType: type })}
+                onVariantsChange={(variants) => setFormData({ ...formData, variants })}
+              />
             </div>
           </div>
 
@@ -505,27 +557,49 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <p className="text-sm text-gray-500 mt-0.5">Manage this product's Shopify connection.</p>
               </div>
               {formData.shopifyProductId ? (
-                <Badge color="success">Linked</Badge>
+                shopifyLinkBroken ? (
+                  <Badge color="error">Broken link</Badge>
+                ) : (
+                  <Badge color="success">Linked</Badge>
+                )
               ) : (
                 <Badge color="gray">Not linked</Badge>
               )}
             </div>
             {formData.shopifyProductId ? (
               <>
+                {shopifyLinkBroken && (
+                  <div className="px-6 py-3 bg-red-50 border-b border-red-200 flex items-start gap-3">
+                    <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-red-800">Shopify product not found</p>
+                      <p className="text-xs text-red-600 mt-0.5">The linked product may have been deleted from Shopify. Unlink to clean up or link a new product.</p>
+                    </div>
+                    <Button variant="danger" size="sm" className="flex-shrink-0" onClick={() => setUnlinkConfirmOpen(true)}>Unlink</Button>
+                  </div>
+                )}
+                {verifyingShopifyLink && !shopifyLinkBroken && (
+                  <div className="px-6 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
+                    <p className="text-xs text-gray-500">Verifying Shopify link…</p>
+                  </div>
+                )}
                 <div className="px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${shopifyLinkBroken ? 'bg-red-100' : 'bg-gray-100'}`}>
+                      <svg className={`w-5 h-5 ${shopifyLinkBroken ? 'text-red-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 font-mono">{formData.shopifyProductHandle}</p>
+                      <p className={`text-sm font-medium font-mono ${shopifyLinkBroken ? 'text-red-700 line-through' : 'text-gray-900'}`}>{formData.shopifyProductHandle}</p>
                       <p className="text-xs text-gray-500 mt-0.5">ID: {formData.shopifyProductId}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {formData.shopifyProductHandle && (
+                    {formData.shopifyProductHandle && !shopifyLinkBroken && (
                       <a href={`${shopifyAdminBase}/products/${formData.shopifyProductHandle}`} target="_blank" rel="noopener noreferrer">
                         <Button variant="secondary" size="sm">View in Shopify</Button>
                       </a>
@@ -534,7 +608,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                   </div>
                 </div>
                 <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">Changes sync to Shopify on save.</p>
+                  <p className="text-xs text-gray-500">{shopifyLinkBroken ? 'Unlink this product to re-enable Shopify sync.' : 'Changes sync to Shopify on save.'}</p>
                 </div>
               </>
             ) : (
@@ -593,7 +667,27 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         message="This will remove the Shopify connection. The product will not be deleted from Shopify."
         confirmLabel="Unlink"
         cancelLabel="Cancel"
-        onConfirm={() => { setFormData({ ...formData, shopifyProductId: '', shopifyProductHandle: '' }); setUnlinkConfirmOpen(false); }}
+        onConfirm={async () => {
+          setUnlinkConfirmOpen(false);
+          try {
+            const res = await fetch(`/api/products/${params.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ shopifyProductId: null, shopifyProductHandle: null, syncStatus: 'not_linked', lastSyncedAt: null, syncError: null }),
+            });
+            if (res.ok) {
+              setFormData(prev => ({ ...prev, shopifyProductId: '', shopifyProductHandle: '' }));
+              setShopifyLinkBroken(false);
+              setOffering(await res.json());
+              toast.success('Unlinked', 'Shopify connection removed');
+            } else {
+              const err = await res.json();
+              toast.error('Unlink failed', err.error || 'Could not unlink product');
+            }
+          } catch {
+            toast.error('Unlink failed', 'An unexpected error occurred');
+          }
+        }}
         onCancel={() => setUnlinkConfirmOpen(false)}
       />
     </EditPageLayout>
