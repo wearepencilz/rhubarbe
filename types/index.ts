@@ -302,6 +302,21 @@ export type OfferingStatus =
   | 'sold-out'    // Temporarily unavailable
   | 'archived';   // No longer offered
 
+// ============================================================================
+// Product Variant Types
+// ============================================================================
+
+export interface ProductVariant {
+  id: string;                    // UUID or slug-based ID
+  label: string;                 // Display label (e.g. "Vanille", "500ml")
+  labelFr?: string;              // French label
+  price?: number;                // Override price in cents (null = use base price)
+  sku?: string;                  // SKU for this variant
+  shopifyVariantId?: string;     // Shopify variant GID after sync
+  available: boolean;            // Is this variant currently available?
+  sortOrder: number;             // Display order
+}
+
 export interface Offering {
   id: string;                    // UUID
   title: string;                 // Product title (maps to Shopify title)
@@ -333,6 +348,10 @@ export interface Offering {
   
   // Tags & Classification
   tags: string[];                // e.g., ["seasonal", "weekly", "featured", "limited", "collab"]
+  
+  // Variants
+  variantType?: 'none' | 'flavour' | 'size'; // Type of variant for this product
+  variants?: ProductVariant[];   // Variant definitions (managed in CMS)
   
   // Shopify Integration
   shopifyProductId?: string;     // Linked Shopify product GID
