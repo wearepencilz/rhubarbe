@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const filename = `${timestamp}-${normalizedName}`;
 
     // Check environment and Vercel Blob availability
-    const hasVercelBlob = !!(process.env.PUB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN);
+    const hasVercelBlob = !!process.env.PUB_READ_WRITE_TOKEN;
     const isVercel = process.env.VERCEL === '1';
     const isProduction = process.env.NODE_ENV === 'production';
 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         const blob = await put(filename, file, {
           access: 'public',
           addRandomSuffix: false,
-          token: process.env.PUB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
+          token: process.env.PUB_READ_WRITE_TOKEN,
         });
         
         console.log('✓ Uploaded to Vercel Blob:', blob.url);
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Note: This won't work in production on Vercel (read-only filesystem)
     if (isVercel && !hasVercelBlob) {
       return NextResponse.json(
-        { error: 'Image upload not configured. Please add BLOB_READ_WRITE_TOKEN to your Vercel environment variables.' },
+        { error: 'Image upload not configured. Please add PUB_READ_WRITE_TOKEN to your Vercel environment variables.' },
         { status: 500 }
       );
     }
