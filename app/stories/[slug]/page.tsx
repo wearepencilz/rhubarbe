@@ -196,6 +196,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
 
   const title = (story.title as any)?.fr || (story.title as any)?.en || '';
   const tags = story.tags ?? [];
+  const content = (story.content || {}) as { intro?: string; wordBy?: string; wordByRole?: string; blocks?: StoryBlock[] };
   const related = await getRelatedStories(story.id, tags);
 
   return (
@@ -268,23 +269,23 @@ export default async function StoryPage({ params }: { params: { slug: string } }
       <div className="px-4 md:px-8 max-w-[672px] mx-auto pt-14 pb-24">
 
         {/* Intro + meta */}
-        {story.intro && (
+        {content.intro && (
           <p
             className="text-[#333112] text-[19px] md:text-[21px] leading-[1.6] mb-8"
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 400 }}
           >
-            {story.intro}
+            {content.intro}
           </p>
         )}
 
-        {story.wordBy && (
+        {content.wordBy && (
           <div className="flex items-center gap-4 mb-12 pb-10 border-b border-[#333112]/10">
             <div className="h-px flex-1 bg-[#333112]/10" />
             <p
               className="text-[#333112]/40 text-[10px] tracking-[0.2px] uppercase whitespace-nowrap"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
-              Word by {story.wordBy}{story.wordByRole ? `, ${story.wordByRole}` : ''}
+              Word by {content.wordBy}{content.wordByRole ? `, ${content.wordByRole}` : ''}
             </p>
             <div className="h-px flex-1 bg-[#333112]/10" />
           </div>
@@ -292,7 +293,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
 
         {/* Content blocks */}
         <div className="space-y-10">
-          {(story.blocks || []).map((block: StoryBlock) => renderBlock(block))}
+          {(content.blocks || []).map((block: StoryBlock) => renderBlock(block))}
         </div>
 
         {/* Tags footer */}
@@ -383,12 +384,12 @@ export default async function StoryPage({ params }: { params: { slug: string } }
                 >
                   {s.title?.fr || s.title?.en || ''}
                 </h3>
-                {s.intro && (
+                {(s.content as any)?.intro && (
                   <p
                     className="text-[#333112]/55 text-[13px] leading-[1.65] line-clamp-2"
                     style={{ fontFamily: 'var(--font-neue-montreal)' }}
                   >
-                    {s.intro}
+                    {(s.content as any).intro}
                   </p>
                 )}
               </Link>
