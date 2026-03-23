@@ -27,13 +27,16 @@ function LoginForm() {
         redirect: false,
       });
 
+      console.log('[Login] signIn result:', JSON.stringify(result));
+
       if (result?.error) {
         setError('Invalid username or password');
       } else {
-        router.push(callbackUrl);
-        router.refresh();
+        // Use window.location for a full navigation to ensure cookies are picked up
+        window.location.href = callbackUrl;
       }
-    } catch {
+    } catch (err) {
+      console.error('[Login] signIn error:', err);
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
