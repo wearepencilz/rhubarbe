@@ -2,6 +2,8 @@ import { db } from '@/lib/db/client';
 import { orders, orderItems } from '@/lib/db/schema';
 import { eq, desc, and, inArray } from 'drizzle-orm';
 
+type OrderStatus = 'pending' | 'confirmed' | 'fulfilled' | 'cancelled';
+
 /**
  * List orders with optional status filter.
  * Returns the shape the admin orders page expects.
@@ -9,7 +11,7 @@ import { eq, desc, and, inArray } from 'drizzle-orm';
 export async function list(filters?: { status?: string }) {
   const conditions = [];
   if (filters?.status) {
-    conditions.push(eq(orders.status, filters.status));
+    conditions.push(eq(orders.status, filters.status as OrderStatus));
   }
 
   const rows = await db
@@ -91,7 +93,7 @@ export async function create(
 export async function updateStatus(id: string, status: string) {
   const [updated] = await db
     .update(orders)
-    .set({ status, updatedAt: new Date() })
+    .set({ status: status as OrderStatus, updatedAt: new Date() })
     .where(eq(orders.id, id))
     .returning();
   return updated ?? null;
