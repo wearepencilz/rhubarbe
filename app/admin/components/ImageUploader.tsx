@@ -171,7 +171,16 @@ export default function ImageUploader({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !uploading) {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
             isDragging
               ? 'border-blue-500 bg-blue-50'
               : 'border-gray-300 hover:border-gray-400'
@@ -207,13 +216,9 @@ export default function ImageUploader({
                 />
               </svg>
               <p className="mt-2 text-sm text-gray-600">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-[--color-brand-600] hover:text-[--color-brand-700] font-medium"
-                >
+                <span className="text-[--color-brand-600] font-medium">
                   Click to upload
-                </button>{' '}
+                </span>{' '}
                 or drag and drop
               </p>
               <p className="text-xs text-gray-500 mt-1">

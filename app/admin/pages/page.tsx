@@ -31,6 +31,12 @@ const PAGES = [
     description: 'The /gateaux-signatures page — heading, intro, form labels (FR & EN)',
     href: '/admin/pages/gateaux',
   },
+  {
+    key: 'thank-you',
+    label: 'Thank You / Merci',
+    description: 'Post-checkout confirmation — heading, message, pickup reminder (FR & EN)',
+    href: '/admin/pages/thank-you',
+  },
 ];
 
 export default function PagesIndex() {

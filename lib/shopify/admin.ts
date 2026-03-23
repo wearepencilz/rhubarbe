@@ -98,7 +98,7 @@ async function getConfig(): Promise<ShopifyAdminConfig> {
   return { shop, accessToken };
 }
 
-async function shopifyAdminFetch(query: string, variables?: any) {
+export async function shopifyAdminFetch(query: string, variables?: any) {
   const { shop, accessToken } = await getConfig();
   
   const url = `https://${shop}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/graphql.json`;

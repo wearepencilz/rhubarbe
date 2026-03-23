@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import '../src/styles/globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { Providers } from './providers';
-import MobileDevLinkHeader from '@/components/MobileDevLinkHeader';
 import CartModal from '@/components/CartModal';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
@@ -44,7 +43,6 @@ export default function RootLayout({
       <body>
         <Providers>
           <CartProvider>
-            <MobileDevLinkHeader />
             <PublicLayout header={<SiteHeader />} footer={<SiteFooter />}>
               {children}
             </PublicLayout>

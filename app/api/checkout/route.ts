@@ -5,6 +5,7 @@ interface CheckoutItem {
   productId: string;
   productName: string;
   shopifyProductId: string | null;
+  shopifyVariantId: string | null;
   quantity: number;
   price: number;
 }
@@ -54,7 +55,11 @@ export async function POST(request: NextRequest) {
         skippedItems.push(item.productName);
         continue;
       }
-      const variantId = await getAdminVariantId(item.shopifyProductId);
+      // Use the specific variant ID if provided, otherwise fall back to first variant
+      let variantId = item.shopifyVariantId || null;
+      if (!variantId) {
+        variantId = await getAdminVariantId(item.shopifyProductId);
+      }
       if (!variantId) {
         skippedItems.push(item.productName);
         continue;

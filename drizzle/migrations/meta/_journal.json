@@ -50,6 +50,20 @@
       "when": 1774224765972,
       "tag": "0006_tiny_carlie_cooper",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774229231398,
+      "tag": "0007_cute_karen_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774229994317,
+      "tag": "0008_misty_solo",
+      "breakpoints": true
     }
   ]
 }

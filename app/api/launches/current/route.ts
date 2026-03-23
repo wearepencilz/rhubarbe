@@ -76,6 +76,8 @@ export async function GET() {
           allergens: dbProduct?.allergens || [],
           serves: dbProduct?.serves || null,
           translations: dbProduct?.translations || null,
+          variantType: dbProduct?.variantType || 'none',
+          variants: dbProduct?.variants || [],
         };
       });
 

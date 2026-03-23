@@ -26,6 +26,7 @@ export default function OrdersPage() {
   const toast = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -59,6 +60,24 @@ export default function OrdersPage() {
       default: return 'gray';
     }
   };
+
+  async function syncFromShopify() {
+    try {
+      setSyncing(true);
+      const res = await fetch('/api/orders/sync', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Sync complete', data.message);
+        fetchData();
+      } else {
+        toast.error('Sync failed', data.error || 'Unknown error');
+      }
+    } catch {
+      toast.error('Sync failed', 'Could not reach sync endpoint');
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   return (
     <TableCard.Root>
@@ -97,6 +116,9 @@ export default function OrdersPage() {
             </Button>
             <Button color="secondary" size="sm" onClick={() => router.push('/admin/orders/pickup-list')}>
               Pickup List
+            </Button>
+            <Button color="secondary" size="sm" onClick={syncFromShopify} disabled={syncing}>
+              {syncing ? 'Syncing…' : 'Sync Shopify'}
             </Button>
           </div>
         }

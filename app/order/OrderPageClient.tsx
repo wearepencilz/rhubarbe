@@ -21,6 +21,16 @@ interface LaunchProduct {
   allergens: string[];
   serves: string | null;
   translations: any;
+  variantType: 'none' | 'flavour' | 'size';
+  variants: Array<{
+    id: string;
+    label: string;
+    labelFr?: string;
+    price?: number;
+    shopifyVariantId?: string;
+    available: boolean;
+    sortOrder: number;
+  }>;
 }
 
 interface PickupLocation {
@@ -45,10 +55,13 @@ interface Launch {
 
 interface CartItem {
   productId: string;
+  variantId: string | null;
+  variantLabel: string | null;
   name: string;
   price: number;
   quantity: number;
   image: string | null;
+  shopifyVariantId: string | null;
 }
 
 function formatDate(iso: string, locale: string) {
@@ -74,6 +87,8 @@ function ProductCard({
   maxQuantity,
   onAdd,
   onRemove,
+  selectedVariantId,
+  onSelectVariant,
 }: {
   product: LaunchProduct;
   locale: string;
@@ -81,6 +96,8 @@ function ProductCard({
   maxQuantity: number | null;
   onAdd: () => void;
   onRemove: () => void;
+  selectedVariantId: string | null;
+  onSelectVariant: (variantId: string) => void;
 }) {
   const displayName = product.translations?.fr?.title && locale === 'fr'
     ? product.translations.fr.title
@@ -89,8 +106,18 @@ function ProductCard({
     ? product.translations.fr.description
     : product.description;
 
+  const isFr = locale === 'fr';
   const atMax = maxQuantity != null && quantity >= maxQuantity;
   const soldOut = maxQuantity != null && maxQuantity <= 0;
+
+  const hasVariants = product.variantType !== 'none' && product.variants.length > 1;
+  const availableVariants = product.variants.filter((v) => v.available);
+  const activeVariant = hasVariants
+    ? product.variants.find((v) => v.id === selectedVariantId) || availableVariants[0] || null
+    : null;
+
+  // Resolve display price: variant price overrides base price
+  const displayPrice = activeVariant?.price ?? product.price;
 
   return (
     <div className={`group flex flex-col gap-3 ${soldOut ? 'opacity-60' : ''}`}>
@@ -107,7 +134,7 @@ function ProductCard({
                 className="text-center text-white text-xs uppercase tracking-widest font-medium"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}
               >
-                {locale === 'fr' ? 'Épuisé' : 'Sold out'}
+                {isFr ? 'Épuisé' : 'Sold out'}
               </p>
             </div>
           ) : (
@@ -116,11 +143,11 @@ function ProductCard({
             {quantity === 0 ? (
               <button
                 onClick={onAdd}
-                disabled={atMax}
+                disabled={atMax || (hasVariants && !activeVariant)}
                 className="w-full py-2 bg-white text-black text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}
               >
-                {locale === 'fr' ? 'Ajouter' : 'Add to order'}
+                {isFr ? 'Ajouter' : 'Add to order'}
               </button>
             ) : (
               <div className="flex items-center justify-center gap-3">
@@ -152,15 +179,40 @@ function ProductCard({
           >
             {displayName}
           </h3>
-          {product.price != null && product.price > 0 && (
+          {displayPrice != null && displayPrice > 0 && (
             <span className="text-sm shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              ${(product.price / 100).toFixed(2)}
+              ${(displayPrice / 100).toFixed(2)}
             </span>
           )}
         </div>
         {description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{description}</p>
         )}
+
+        {/* Variant selector */}
+        {hasVariants && availableVariants.length > 1 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {availableVariants.map((v) => {
+              const isActive = v.id === (activeVariant?.id);
+              const label = isFr && v.labelFr ? v.labelFr : v.label;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => onSelectVariant(v.id)}
+                  className={`px-2.5 py-1 text-[11px] uppercase tracking-wider rounded-full border transition-colors ${
+                    isActive
+                      ? 'border-[#333112] bg-[#333112] text-white'
+                      : 'border-gray-300 text-gray-500 hover:border-gray-400'
+                  }`}
+                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Mobile quick-add */}
         <div className="mt-2 md:hidden">
           {soldOut ? (
@@ -168,16 +220,16 @@ function ProductCard({
               className="w-full py-2 text-center text-xs uppercase tracking-widest font-medium text-gray-400"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
-              {locale === 'fr' ? 'Épuisé' : 'Sold out'}
+              {isFr ? 'Épuisé' : 'Sold out'}
             </p>
           ) : quantity === 0 ? (
             <button
               onClick={onAdd}
-              disabled={atMax}
+              disabled={atMax || (hasVariants && !activeVariant)}
               className="w-full py-2 border border-gray-300 text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
-              {locale === 'fr' ? '+ Ajouter' : '+ Add'}
+              {isFr ? '+ Ajouter' : '+ Add'}
             </button>
           ) : (
             <div className="flex items-center justify-between border border-gray-300 rounded">
@@ -299,7 +351,14 @@ function InlineCart({
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {item.variantLabel && item.name.includes(' — ') ? item.name.split(' — ')[0] : item.name}
+                  </p>
+                  {item.variantLabel && (
+                    <p className="text-[11px] uppercase tracking-wider text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                      {item.variantLabel}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                     ${(item.price / 100).toFixed(2)}
                   </p>
@@ -399,6 +458,7 @@ export default function OrderPageClient() {
   const [cartLaunchId, setCartLaunchId] = useState<string | null>(null);
   const [pendingSwitchIdx, setPendingSwitchIdx] = useState<number | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -443,7 +503,8 @@ export default function OrderPageClient() {
             setShopifyStock(data.inventory);
             // Clamp cart quantities if stock dropped below current qty
             setCart((prev) => prev.map((item) => {
-              const lp = launch.products.find((p) => p.productId === item.productId);
+              const baseId = item.productId.includes('::') ? item.productId.split('::')[0] : item.productId;
+              const lp = launch.products.find((p) => p.productId === baseId);
               if (!lp?.shopifyProductId) return item;
               const stock = data.inventory[lp.shopifyProductId];
               if (stock === null || stock === undefined) return item;
@@ -525,29 +586,49 @@ export default function OrderPageClient() {
   const addToCart = (product: LaunchProduct) => {
     if (launch) setCartLaunchId(launch.id);
     const max = getMaxForProduct(product.productId);
+
+    const hasVariants = product.variantType !== 'none' && product.variants.length > 1;
+    const availableVariants = product.variants.filter((v) => v.available);
+    const activeVariant = hasVariants
+      ? product.variants.find((v) => v.id === selectedVariants[product.productId]) || availableVariants[0] || null
+      : null;
+
+    const price = activeVariant?.price ?? product.price ?? 0;
+    const variantLabel = activeVariant
+      ? (locale === 'fr' && activeVariant.labelFr ? activeVariant.labelFr : activeVariant.label)
+      : null;
+
+    // Cart key combines product + variant
+    const cartKey = activeVariant ? `${product.productId}::${activeVariant.id}` : product.productId;
+
     setCart((prev) => {
-      const existing = prev.find((i) => i.productId === product.productId);
+      const existing = prev.find((i) => i.productId === cartKey);
       if (existing) {
         if (max != null && existing.quantity >= max) return prev;
         return prev.map((i) =>
-          i.productId === product.productId ? { ...i, quantity: i.quantity + 1 } : i
+          i.productId === cartKey ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      // Don't add if stock is 0
       if (max != null && max <= 0) return prev;
       return [...prev, {
-        productId: product.productId,
+        productId: cartKey,
+        variantId: activeVariant?.id || null,
+        variantLabel,
         name: product.productName,
-        price: product.price || 0,
+        price,
         quantity: 1,
         image: product.image,
+        shopifyVariantId: activeVariant?.shopifyVariantId || null,
       }];
     });
   };
 
+  const getBaseProductId = (id: string) => id.includes('::') ? id.split('::')[0] : id;
+
   const getMaxForProduct = (productId: string): number | null => {
     if (!launch) return null;
-    const lp = launch.products.find((p) => p.productId === productId);
+    const baseId = getBaseProductId(productId);
+    const lp = launch.products.find((p) => p.productId === baseId);
     const cmsMax = lp?.maxQuantityOverride ?? null;
 
     // Check Shopify inventory for this product
@@ -574,7 +655,21 @@ export default function OrderPageClient() {
     setCart((prev) => prev.filter((i) => i.productId !== productId));
   };
 
-  const getQty = (productId: string) => cart.find((i) => i.productId === productId)?.quantity || 0;
+  const getQty = (productId: string) => {
+    // Sum quantities across all variants of this product
+    return cart
+      .filter((i) => i.productId === productId || i.productId.startsWith(`${productId}::`))
+      .reduce((sum, i) => sum + i.quantity, 0);
+  };
+
+  const getCartKey = (productId: string) => {
+    const product = launch?.products.find((p) => p.productId === productId);
+    if (!product) return productId;
+    const hasVariants = product.variantType !== 'none' && product.variants.length > 1;
+    if (!hasVariants) return productId;
+    const activeVariantId = selectedVariants[productId] || product.variants.find((v) => v.available)?.id;
+    return activeVariantId ? `${productId}::${activeVariantId}` : productId;
+  };
 
   const handleCheckout = async () => {
     if (!launch || cart.length === 0) return;
@@ -585,11 +680,14 @@ export default function OrderPageClient() {
 
     // Build items with Shopify product IDs from launch products
     const items = cart.map((item) => {
-      const lp = launch.products.find((p) => p.productId === item.productId);
+      // Extract base product ID (strip variant suffix)
+      const baseProductId = item.productId.includes('::') ? item.productId.split('::')[0] : item.productId;
+      const lp = launch.products.find((p) => p.productId === baseProductId);
       return {
-        productId: item.productId,
+        productId: baseProductId,
         productName: item.name,
         shopifyProductId: lp?.shopifyProductId || null,
+        shopifyVariantId: item.shopifyVariantId || null,
         quantity: item.quantity,
         price: item.price,
       };
@@ -722,7 +820,14 @@ export default function OrderPageClient() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {item.variantLabel && item.name.includes(' — ') ? item.name.split(' — ')[0] : item.name}
+                    </p>
+                    {item.variantLabel && (
+                      <p className="text-[11px] uppercase tracking-wider text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                        {item.variantLabel}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                       {item.quantity} × ${(item.price / 100).toFixed(2)}
                     </p>
@@ -750,6 +855,23 @@ export default function OrderPageClient() {
         <div className="mt-10 flex flex-col items-center gap-3">
           <a
             href={checkoutUrl}
+            onClick={() => {
+              // Save order details for the thank-you page
+              try {
+                sessionStorage.setItem('rhubarbe_order', JSON.stringify({
+                  menu: isFr ? launch.title.fr : launch.title.en,
+                  pickupDate: formatDate(launch.pickupDate, locale),
+                  pickupLocation: locationName + (locationAddress ? ` — ${locationAddress}` : ''),
+                  pickupSlot: selectedSlot ? `${selectedSlot.startTime} – ${selectedSlot.endTime}` : '',
+                  items: cart.map((item) => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                  })),
+                  subtotal,
+                }));
+              } catch {}
+            }}
             className="inline-block px-10 py-3.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
             style={{ fontFamily: 'var(--font-diatype-mono)' }}
           >
@@ -924,10 +1046,26 @@ export default function OrderPageClient() {
                           maxQuantity={getMaxForProduct(product.productId)}
                           onAdd={() => addToCart(product)}
                           onRemove={() => {
-                            const qty = getQty(product.productId);
-                            if (qty <= 1) removeFromCart(product.productId);
-                            else updateCartQty(product.productId, qty - 1);
+                            const cartKey = getCartKey(product.productId);
+                            const existing = cart.find((i) => i.productId === cartKey);
+                            if (existing) {
+                              if (existing.quantity <= 1) removeFromCart(cartKey);
+                              else updateCartQty(cartKey, existing.quantity - 1);
+                            } else {
+                              // Selected variant not in cart — decrement the last variant of this product that is
+                              const fallback = [...cart].reverse().find(
+                                (i) => i.productId === product.productId || i.productId.startsWith(`${product.productId}::`)
+                              );
+                              if (fallback) {
+                                if (fallback.quantity <= 1) removeFromCart(fallback.productId);
+                                else updateCartQty(fallback.productId, fallback.quantity - 1);
+                              }
+                            }
                           }}
+                          selectedVariantId={selectedVariants[product.productId] || null}
+                          onSelectVariant={(variantId) =>
+                            setSelectedVariants((prev) => ({ ...prev, [product.productId]: variantId }))
+                          }
                         />
                       ))}
                     </div>

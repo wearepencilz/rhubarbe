@@ -155,6 +155,9 @@ export const launchProducts = pgTable('launch_products', {
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderNumber: text('order_number').notNull().unique(),
+  shopifyOrderId: text('shopify_order_id').unique(),
+  launchId: text('launch_id'),
+  launchTitle: text('launch_title'),
   customerName: text('customer_name').notNull(),
   customerEmail: text('customer_email').notNull(),
   customerPhone: text('customer_phone').notNull(),
@@ -178,6 +181,7 @@ export const orders = pgTable('orders', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
   orderNumberIdx: index('orders_order_number_idx').on(table.orderNumber),
+  shopifyOrderIdIdx: index('orders_shopify_order_id_idx').on(table.shopifyOrderId),
   statusIdx: index('orders_status_idx').on(table.status),
   orderDateIdx: index('orders_order_date_idx').on(table.orderDate),
 }));
