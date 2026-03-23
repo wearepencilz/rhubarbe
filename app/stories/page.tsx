@@ -1,4 +1,4 @@
-import { getStories as getStoriesFromDB } from '@/lib/db';
+import * as storiesQuery from '@/lib/db/queries/stories';
 import StoriesPageClient from './StoriesPageClient';
 
 export const metadata = {
@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function StoriesPage() {
-  const all = await getStoriesFromDB().catch(() => []) as any[];
+  const all = await storiesQuery.list().catch(() => []) as any[];
   const stories = all.filter((s) => s.status === 'published');
   return <StoriesPageClient stories={stories} />;
 }

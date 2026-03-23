@@ -1,7 +1,7 @@
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 export default async function AboutSection() {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({}));
   const about = (settings as any)?.about || {};
 
   const bg: string = about.bg || '#948c22';

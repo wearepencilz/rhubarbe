@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 import SiteNav from '@/components/SiteNav';
 import { getLocale } from '@/lib/i18n/server';
 
@@ -8,7 +8,7 @@ interface SiteHeaderProps {
 }
 
 export default async function SiteHeader({ theme = 'dark' }: SiteHeaderProps) {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({})) as any;
   const logo: string = settings?.logo || '';
   const companyName: string = settings?.companyName || 'Janine';
 

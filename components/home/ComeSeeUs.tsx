@@ -1,8 +1,8 @@
 import Image from 'next/image';
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 export default async function ComeSeeUs() {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({})) as any;
   const visit = settings?.visit || {};
 
   const message = visit.message || '<p>THU / FRI / SAT</p><p>13H – 20H <em>SOMETIMES LATER</em></p>';

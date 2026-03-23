@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateTaxonomyValue, deleteTaxonomyValue } from '@/lib/db'
-import { validateTaxonomyDeletion, validateTaxonomyUniqueness } from '@/lib/validation'
+import { update, remove, isValueUnique } from '@/lib/db/queries/taxonomies'
+import { validateTaxonomyDeletion } from '@/lib/validation'
 import { auth } from '@/lib/auth'
 
 // PUT /api/settings/taxonomies/[category]/[id] - Update taxonomy value
@@ -15,19 +15,19 @@ export async function PUT(
 
   try {
     const body = await request.json()
-    
+
     // Validate uniqueness if value is being changed
     if (body.value) {
-      const isUnique = await validateTaxonomyUniqueness(params.category, body.value, params.id)
-      if (!isUnique) {
+      const unique = await isValueUnique(params.category, body.value, params.id)
+      if (!unique) {
         return NextResponse.json(
           { error: 'A taxonomy value with this name already exists in this category' },
           { status: 400 }
         )
       }
     }
-    
-    const updatedValue = await updateTaxonomyValue(params.category, params.id, body)
+
+    const updatedValue = await update(params.id, body)
     return NextResponse.json(updatedValue)
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -45,9 +45,9 @@ export async function DELETE(
   }
 
   try {
-    // Check if value is in use
+    // Check if value is in use (still uses lib/validation which reads from JSON for non-migrated entities)
     const validation = await validateTaxonomyDeletion(params.category, params.id)
-    
+
     if (!validation.canDelete) {
       return NextResponse.json(
         {
@@ -57,8 +57,8 @@ export async function DELETE(
         { status: 409 }
       )
     }
-    
-    await deleteTaxonomyValue(params.category, params.id)
+
+    await remove(params.id)
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

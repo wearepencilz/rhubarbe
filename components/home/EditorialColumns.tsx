@@ -1,4 +1,4 @@
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 const defaultColumns = [
   {
@@ -16,7 +16,7 @@ const defaultColumns = [
 ];
 
 export default async function EditorialColumns() {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({}));
   const raw = (settings as any)?.home?.editorial;
   const columns = Array.isArray(raw) && raw.length === 3
     ? raw.map((col: any, i: number) => ({ ...defaultColumns[i], ...col }))

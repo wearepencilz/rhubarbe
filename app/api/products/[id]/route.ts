@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getProducts, saveProducts } from '@/lib/db.js'
-import { availabilityCache } from '@/lib/cache/availability-cache'
-import { updateProduct as syncToShopify } from '@/lib/shopify/admin'
+import { NextRequest, NextResponse } from 'next/server';
+import * as productQueries from '@/lib/db/queries/products';
+import { availabilityCache } from '@/lib/cache/availability-cache';
+import { updateProduct as syncToShopify } from '@/lib/shopify/admin';
 
 // GET /api/products/[id]
 export async function GET(
@@ -9,17 +9,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const products = await getProducts()
-    const product = products.find((p: any) => p.id === params.id)
+    const product = await productQueries.getById(params.id);
 
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    return NextResponse.json(product)
+    return NextResponse.json(product);
   } catch (error) {
-    console.error('Error fetching product:', error)
-    return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 })
+    console.error('Error fetching product:', error);
+    return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
   }
 }
 
@@ -29,115 +28,135 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json()
-    const products = await getProducts()
-    const index = products.findIndex((p: any) => p.id === params.id)
+    const body = await request.json();
 
-    if (index === -1) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    // Check product exists
+    const existing = await productQueries.getById(params.id);
+    if (!existing) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
     // Validate availability_mode if provided
     if (body.availabilityMode !== undefined) {
-      const validModes = ['always_available', 'scheduled', 'pattern_based', 'hidden']
+      const validModes = ['always_available', 'scheduled', 'pattern_based', 'hidden'];
       if (!validModes.includes(body.availabilityMode)) {
         return NextResponse.json(
           { error: `Invalid availability_mode. Must be one of: ${validModes.join(', ')}` },
-          { status: 400 }
-        )
+          { status: 400 },
+        );
       }
     }
 
     // Validate quantity rules if provided
     if (body.defaultMinQuantity !== undefined && body.defaultMinQuantity < 1) {
-      return NextResponse.json({ error: 'default_min_quantity must be at least 1' }, { status: 400 })
+      return NextResponse.json({ error: 'default_min_quantity must be at least 1' }, { status: 400 });
     }
     if (body.defaultQuantityStep !== undefined && body.defaultQuantityStep < 1) {
-      return NextResponse.json({ error: 'default_quantity_step must be at least 1' }, { status: 400 })
+      return NextResponse.json({ error: 'default_quantity_step must be at least 1' }, { status: 400 });
     }
 
-    products[index] = {
-      ...products[index],
-      ...body,
-      id: params.id,
-      createdAt: products[index].createdAt,
-      updatedAt: new Date().toISOString(),
+    // Extract ingredients from body before updating the product row
+    const { ingredients: bodyIngredients, ...productFields } = body;
+
+    // Remove fields that shouldn't be set directly
+    delete productFields.id;
+    delete productFields.createdAt;
+
+    const saved = await productQueries.update(params.id, productFields);
+
+    if (!saved) {
+      return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
     }
 
-    await saveProducts(products)
+    // Update product_ingredients if provided
+    if (bodyIngredients && Array.isArray(bodyIngredients)) {
+      await productQueries.setProductIngredients(
+        params.id,
+        bodyIngredients.map((ing: any, idx: number) => ({
+          ingredientId: ing.ingredientId || ing.id,
+          displayOrder: ing.displayOrder ?? idx,
+          quantity: ing.quantity ?? null,
+          notes: ing.notes ?? null,
+        })),
+      );
+    }
 
     // Sync to Shopify if product is linked
-    const saved = products[index];
     let syncError = null;
     if (saved.shopifyProductId) {
       try {
         const descriptionHtml = [
           saved.title ? `<h2>${saved.title}</h2>` : '',
           saved.description ? `<p>${saved.description}</p>` : '',
-        ].filter(Boolean).join('\n');
+        ]
+          .filter(Boolean)
+          .join('\n');
 
         await syncToShopify({
           shopifyProductId: saved.shopifyProductId,
           title: saved.title || saved.name || saved.slug,
           descriptionHtml,
           status: saved.status === 'active' ? 'ACTIVE' : 'DRAFT',
-          tags: saved.tags || [],
+          tags: (saved.tags as string[]) || [],
           price: saved.price ? (saved.price / 100).toFixed(2) : undefined,
-          // Sync variant prices if product has variants with Shopify IDs
-          ...(saved.variants && saved.variants.length > 0 && saved.variants.some((v: any) => v.shopifyVariantId) ? {
-            variants: saved.variants
-              .filter((v: any) => v.shopifyVariantId)
-              .map((v: any) => ({
-                id: v.shopifyVariantId,
-                price: ((v.price || saved.price) / 100).toFixed(2),
-              })),
-          } : {}),
+          ...(saved.variants &&
+          Array.isArray(saved.variants) &&
+          saved.variants.length > 0 &&
+          saved.variants.some((v: any) => v.shopifyVariantId)
+            ? {
+                variants: saved.variants
+                  .filter((v: any) => v.shopifyVariantId)
+                  .map((v: any) => ({
+                    id: v.shopifyVariantId,
+                    price: ((v.price || saved.price) / 100).toFixed(2),
+                  })),
+              }
+            : {}),
           metafields: [
             {
               namespace: 'translations',
               key: 'title_fr',
-              value: saved.translations?.fr?.title || saved.title || '',
+              value: (saved as any).translations?.fr?.title || saved.title || '',
               type: 'single_line_text_field',
             },
             {
               namespace: 'translations',
               key: 'description_fr',
-              value: saved.translations?.fr?.description || saved.description || '',
+              value: (saved as any).translations?.fr?.description || saved.description || '',
               type: 'multi_line_text_field',
             },
           ],
         });
 
-        products[index] = {
-          ...products[index],
+        // Update sync status
+        await productQueries.update(params.id, {
           syncStatus: 'synced',
-          lastSyncedAt: new Date().toISOString(),
+          lastSyncedAt: new Date(),
           syncError: null,
-        };
-        await saveProducts(products);
+        });
       } catch (err: any) {
         syncError = err.message || 'Shopify sync failed';
         console.error('Shopify sync error:', syncError);
-        products[index] = {
-          ...products[index],
+        await productQueries.update(params.id, {
           syncStatus: 'error',
           syncError,
-        };
-        await saveProducts(products);
+        });
       }
     }
 
     // Invalidate availability cache
-    availabilityCache.invalidate(`availability:${params.id}`)
-    availabilityCache.invalidate(`products:orderable:`)
+    availabilityCache.invalidate(`availability:${params.id}`);
+    availabilityCache.invalidate(`products:orderable:`);
 
+    // Return the full product with ingredients
+    const result = await productQueries.getById(params.id);
     return NextResponse.json({
-      ...products[index],
+      ...result,
       ...(syncError ? { syncWarning: syncError } : {}),
-    })
+    });
   } catch (error) {
-    console.error('Error updating product:', error)
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
+    console.error('Error updating product:', error);
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
 
@@ -146,7 +165,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return PUT(request, { params })
+  return PUT(request, { params });
 }
 
 // DELETE /api/products/[id]
@@ -155,23 +174,19 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const products = await getProducts()
-    const index = products.findIndex((p: any) => p.id === params.id)
+    const deleted = await productQueries.remove(params.id);
 
-    if (index === -1) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    if (!deleted) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    products.splice(index, 1)
-    await saveProducts(products)
-
     // Invalidate availability cache
-    availabilityCache.invalidate(`availability:${params.id}`)
-    availabilityCache.invalidate(`products:orderable:`)
+    availabilityCache.invalidate(`availability:${params.id}`);
+    availabilityCache.invalidate(`products:orderable:`);
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting product:', error)
-    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 })
+    console.error('Error deleting product:', error);
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
 }

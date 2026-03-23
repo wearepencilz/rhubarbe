@@ -1,7 +1,7 @@
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 export default async function StorySection() {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({}));
   const story = (settings as any)?.home?.story || {};
 
   const text: string = story.text || '<p>This is the story of a lost heritage in a southern village, nestled between the azure sea and the singing cicadas. From Marseille to La Spezia.</p><p>A frozen delight for the long summer days.</p><p>A tribute to a grandmother who loves the sea, the warm sand, and the sweetness of a gelato. It is the story of all those little moments of happiness that belong to each of us, told through frozen flavors with simplicity and honesty.</p><p>To Janine,<br>the cicadas will forever sing your name.</p>';

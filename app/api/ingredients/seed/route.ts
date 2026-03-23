@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getIngredients, saveIngredients } from '@/lib/db';
+import * as ingredientQueries from '@/lib/db/queries/ingredients';
 import { ingredientsSeed, transformSeedToIngredient } from '@/lib/seeds/ingredients';
 import type { Ingredient, ErrorResponse } from '@/types';
 
@@ -11,22 +11,21 @@ import type { Ingredient, ErrorResponse } from '@/types';
  */
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     const errorResponse: ErrorResponse = {
       error: 'Unauthorized',
       code: 'AUTH_REQUIRED',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
     return NextResponse.json(errorResponse, { status: 401 });
   }
 
   try {
     const { searchParams } = new URL(request.url);
-    const mode = searchParams.get('mode') || 'skip'; // 'skip', 'replace', or 'merge'
-    
-    const existingIngredients = await getIngredients() as Ingredient[];
-    let finalIngredients: Ingredient[] = [];
+    const mode = searchParams.get('mode') || 'skip';
+
+    const existingIngredients = await ingredientQueries.list();
     let stats = {
       existing: existingIngredients.length,
       seeded: 0,
@@ -39,53 +38,113 @@ export async function POST(request: NextRequest) {
 
     switch (mode) {
       case 'replace':
-        // Replace all existing data with seed data
-        finalIngredients = seedIngredients;
+        // Delete all existing, then insert seeds
+        for (const existing of existingIngredients) {
+          await ingredientQueries.remove(existing.id);
+        }
+        for (const seedIng of seedIngredients) {
+          await ingredientQueries.create({
+            name: seedIng.name,
+            latinName: seedIng.latinName ?? null,
+            category: seedIng.category ?? null,
+            origin: seedIng.origin ?? null,
+            allergens: seedIng.allergens || [],
+            animalDerived: seedIng.animalDerived || false,
+            vegetarian: seedIng.vegetarian !== false,
+            seasonal: seedIng.seasonal || false,
+            availableMonths: seedIng.availableMonths || [],
+            image: seedIng.image ?? null,
+            imageAlt: seedIng.imageAlt ?? null,
+            description: seedIng.description ?? null,
+            story: seedIng.story ?? null,
+            tastingNotes: seedIng.tastingNotes || [],
+            supplier: seedIng.supplier ?? null,
+            farm: seedIng.farm ?? null,
+            isOrganic: seedIng.isOrganic || false,
+            roles: seedIng.roles || [],
+            descriptors: seedIng.descriptors || [],
+            status: seedIng.status || 'active',
+          });
+          stats.seeded++;
+        }
         stats.replaced = existingIngredients.length;
-        stats.seeded = seedIngredients.length;
         break;
 
       case 'merge':
-        // Merge: update existing by ID, add new ones
-        const existingMap = new Map(existingIngredients.map(ing => [ing.id, ing]));
-        
-        seedIngredients.forEach(seedIng => {
-          if (existingMap.has(seedIng.id)) {
-            // Update existing
-            existingMap.set(seedIng.id, {
-              ...existingMap.get(seedIng.id)!,
-              ...seedIng,
-              updatedAt: new Date().toISOString(),
+        for (const seedIng of seedIngredients) {
+          const existing = await ingredientQueries.getByName(seedIng.name);
+          if (existing) {
+            await ingredientQueries.update(existing.id, {
+              latinName: seedIng.latinName ?? null,
+              category: seedIng.category ?? null,
+              origin: seedIng.origin ?? null,
+              allergens: seedIng.allergens || [],
+              roles: seedIng.roles || [],
+              descriptors: seedIng.descriptors || [],
             });
             stats.replaced++;
           } else {
-            // Add new
-            existingMap.set(seedIng.id, seedIng);
+            await ingredientQueries.create({
+              name: seedIng.name,
+              latinName: seedIng.latinName ?? null,
+              category: seedIng.category ?? null,
+              origin: seedIng.origin ?? null,
+              allergens: seedIng.allergens || [],
+              animalDerived: seedIng.animalDerived || false,
+              vegetarian: seedIng.vegetarian !== false,
+              seasonal: seedIng.seasonal || false,
+              availableMonths: seedIng.availableMonths || [],
+              image: seedIng.image ?? null,
+              imageAlt: seedIng.imageAlt ?? null,
+              description: seedIng.description ?? null,
+              story: seedIng.story ?? null,
+              tastingNotes: seedIng.tastingNotes || [],
+              supplier: seedIng.supplier ?? null,
+              farm: seedIng.farm ?? null,
+              isOrganic: seedIng.isOrganic || false,
+              roles: seedIng.roles || [],
+              descriptors: seedIng.descriptors || [],
+              status: seedIng.status || 'active',
+            });
             stats.seeded++;
           }
-        });
-        
-        finalIngredients = Array.from(existingMap.values());
+        }
         break;
 
       case 'skip':
       default:
-        // Skip: only add ingredients that don't exist
-        const existingIds = new Set(existingIngredients.map(ing => ing.id));
-        const newIngredients = seedIngredients.filter(seedIng => {
-          if (existingIds.has(seedIng.id)) {
+        const existingNames = new Set(existingIngredients.map((i) => i.name.toLowerCase()));
+        for (const seedIng of seedIngredients) {
+          if (existingNames.has(seedIng.name.toLowerCase())) {
             stats.skipped++;
-            return false;
+          } else {
+            await ingredientQueries.create({
+              name: seedIng.name,
+              latinName: seedIng.latinName ?? null,
+              category: seedIng.category ?? null,
+              origin: seedIng.origin ?? null,
+              allergens: seedIng.allergens || [],
+              animalDerived: seedIng.animalDerived || false,
+              vegetarian: seedIng.vegetarian !== false,
+              seasonal: seedIng.seasonal || false,
+              availableMonths: seedIng.availableMonths || [],
+              image: seedIng.image ?? null,
+              imageAlt: seedIng.imageAlt ?? null,
+              description: seedIng.description ?? null,
+              story: seedIng.story ?? null,
+              tastingNotes: seedIng.tastingNotes || [],
+              supplier: seedIng.supplier ?? null,
+              farm: seedIng.farm ?? null,
+              isOrganic: seedIng.isOrganic || false,
+              roles: seedIng.roles || [],
+              descriptors: seedIng.descriptors || [],
+              status: seedIng.status || 'active',
+            });
+            stats.seeded++;
           }
-          stats.seeded++;
-          return true;
-        });
-        
-        finalIngredients = [...existingIngredients, ...newIngredients];
+        }
         break;
     }
-
-    await saveIngredients(finalIngredients);
 
     return NextResponse.json({
       success: true,
@@ -93,13 +152,12 @@ export async function POST(request: NextRequest) {
       stats,
       timestamp: new Date().toISOString(),
     }, { status: 200 });
-
   } catch (error) {
     console.error('Error seeding ingredients:', error);
     const errorResponse: ErrorResponse = {
       error: 'Failed to seed ingredients',
       details: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
     return NextResponse.json(errorResponse, { status: 500 });
   }

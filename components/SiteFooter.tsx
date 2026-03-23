@@ -1,4 +1,4 @@
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 import SiteFooterClient from './SiteFooterClient';
 
 interface FooterLocale {
@@ -8,7 +8,7 @@ interface FooterLocale {
 }
 
 export default async function SiteFooter() {
-  const settings = await getSettings().catch(() => ({})) as any;
+  const settings = await settingsQueries.getAll().catch(() => ({})) as any;
 
   const companyName: string = settings?.companyName || 'Rhubarbe';
   const addressUrl: string = settings?.footer?.addressUrl || '';

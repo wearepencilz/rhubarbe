@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getProduct, enrichProduct } from '@/lib/shopify';
-import { getProducts } from '@/lib/db.js';
+import * as productQueries from '@/lib/db/queries/products';
 import type { Metadata } from 'next';
 import { ShopifyProductView, DbProductView } from './ProductPageClient';
 
@@ -14,9 +14,9 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const shopifyProduct = await getProduct(params.handle);
   if (shopifyProduct) return { title: shopifyProduct.title, description: shopifyProduct.description };
 
-  const allProducts = await getProducts().catch(() => []);
+  const allProducts = await productQueries.list().catch(() => []);
   const dbProduct = allProducts.find((p: any) => p.slug === params.handle || p.id === params.handle);
-  if (dbProduct) return { title: dbProduct.name || dbProduct.title, description: dbProduct.description };
+  if (dbProduct) return { title: (dbProduct as any).name || (dbProduct as any).title, description: (dbProduct as any).description };
 
   return { title: 'Product Not Found' };
 }
@@ -29,7 +29,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     return <ShopifyProductView product={product} />;
   }
 
-  const allProducts = await getProducts().catch(() => []);
+  const allProducts = await productQueries.list().catch(() => []);
   const dbProduct = allProducts.find((p: any) => p.slug === params.handle || p.id === params.handle);
 
   if (!dbProduct) notFound();

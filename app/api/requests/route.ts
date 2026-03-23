@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import * as requestsQuery from '@/lib/db/queries/requests';
 
 export async function GET() {
   try {
-    const data = await db.read('requests.json');
-    return NextResponse.json(data || []);
+    const data = await requestsQuery.list();
+    return NextResponse.json(data);
   } catch {
     return NextResponse.json([]);
   }
@@ -13,15 +13,20 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const requests = (await db.read('requests.json')) || [];
-    const newItem = {
-      ...body,
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
+    const newItem = await requestsQuery.create({
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      date: body.date,
+      time: body.time,
+      guests: body.guests,
+      eventType: body.eventType,
+      delivery: body.delivery,
+      address: body.address,
+      notes: body.notes,
+      type: body.type,
       status: 'new',
-    };
-    requests.push(newItem);
-    await db.write('requests.json', requests);
+    });
 
     // Future: trigger Klaviyo or other integrations here
     // await klaviyo.track('Form Submitted', { ...newItem });

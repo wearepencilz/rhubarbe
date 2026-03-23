@@ -1,5 +1,5 @@
 import RequestForm from '@/components/RequestForm';
-import { db } from '@/lib/db';
+import * as pageQueries from '@/lib/db/queries/pages';
 
 export const metadata = {
   title: "Gâteaux signatures / Signature Cakes – Rhubarbe",
@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function GateauxSignaturesPage() {
-  const pages = await db.read('pages.json').catch(() => ({})) || {};
-  const content = (pages as any)?.gateaux || {};
+  const page = await pageQueries.getByName('gateaux').catch(() => null);
+  const content = (page?.content as any) ?? {};
   return <RequestForm type="gateaux" content={content} />;
 }

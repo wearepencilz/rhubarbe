@@ -1,91 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getProducts, saveProducts } from '@/lib/db.js'
-import { availabilityCache } from '@/lib/cache/availability-cache'
+import { NextRequest, NextResponse } from 'next/server';
+import * as productQueries from '@/lib/db/queries/products';
+import { availabilityCache } from '@/lib/cache/availability-cache';
 
 const PRODUCT_LIST_TTL = 120; // 120 seconds
 
 // GET /api/products - Get all products with optional filtering
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const formatId = searchParams.get('formatId')
-    const onlineOrderable = searchParams.get('onlineOrderable')
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status') || undefined;
+    const formatId = searchParams.get('formatId') || undefined;
+    const onlineOrderableParam = searchParams.get('onlineOrderable');
+    const onlineOrderable =
+      onlineOrderableParam === 'true' ? true : onlineOrderableParam === 'false' ? false : undefined;
 
     // Build cache key from filters
-    const cacheKey = `products:orderable:${status || 'all'}:${formatId || 'all'}:${onlineOrderable || 'all'}`;
-    
+    const cacheKey = `products:orderable:${status || 'all'}:${formatId || 'all'}:${onlineOrderableParam || 'all'}`;
+
     // Check cache
     const cached = availabilityCache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
     }
 
-    let products = await getProducts()
-
-    if (status) {
-      products = products.filter((p: any) => p.status === status)
-    }
-    if (formatId) {
-      products = products.filter((p: any) => p.formatId === formatId)
-    }
-    if (onlineOrderable === 'true') {
-      products = products.filter((p: any) => p.onlineOrderable === true)
-    }
+    const products = await productQueries.list({ status, formatId, onlineOrderable });
 
     // Cache the result
     availabilityCache.set(cacheKey, products, PRODUCT_LIST_TTL);
 
-    return NextResponse.json(products)
+    return NextResponse.json(products);
   } catch (error) {
-    console.error('Error fetching products:', error)
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
+    console.error('Error fetching products:', error);
+    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }
 
 // POST /api/products - Create a new product
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await request.json();
 
-    if (!body.title) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    if (!body.title && !body.name) {
+      return NextResponse.json({ error: 'Title or name is required' }, { status: 400 });
     }
 
-    const products = await getProducts()
-    const id = `product-${Date.now()}`
-
-    const newProduct = {
-      id,
-      title: body.title,
-      slug: body.slug || id,
+    const newProduct = await productQueries.create({
+      name: body.name || body.title,
+      slug: body.slug || `product-${Date.now()}`,
+      title: body.title || body.name,
       status: body.status || 'draft',
-      description: body.description || null,
-      shortCardCopy: body.shortCardCopy || null,
-      image: body.image || null,
+      description: body.description ?? null,
+      shortCardCopy: body.shortCardCopy ?? null,
+      image: body.image ?? null,
       price: body.price || 0,
-      compareAtPrice: body.compareAtPrice || null,
+      currency: body.currency || 'CAD',
       tags: body.tags || [],
-      shopifyProductId: body.shopifyProductId || null,
-      shopifyProductHandle: body.shopifyProductHandle || null,
+      shopifyProductId: body.shopifyProductId ?? null,
+      shopifyProductHandle: body.shopifyProductHandle ?? null,
       inventoryTracked: body.inventoryTracked || false,
-      inventoryQuantity: body.inventoryQuantity || null,
       onlineOrderable: body.onlineOrderable || false,
       pickupOnly: body.pickupOnly || false,
       keyNotes: body.keyNotes || [],
-      tastingNotes: body.tastingNotes || null,
-      ingredients: body.ingredients || [],
-      translations: body.translations || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      tastingNotes: body.tastingNotes ?? null,
+      allergens: body.allergens || [],
+      category: body.category ?? null,
+      serves: body.serves ?? null,
+      variants: body.variants || [],
+      availabilityMode: body.availabilityMode ?? null,
+      defaultMinQuantity: body.defaultMinQuantity ?? 1,
+      defaultQuantityStep: body.defaultQuantityStep ?? 1,
+      defaultMaxQuantity: body.defaultMaxQuantity ?? null,
+      defaultPickupRequired: body.defaultPickupRequired ?? false,
+      dateSelectionType: body.dateSelectionType ?? null,
+      slotSelectionType: body.slotSelectionType ?? null,
+    });
+
+    // If ingredients were provided, link them
+    if (body.ingredients && Array.isArray(body.ingredients) && body.ingredients.length > 0) {
+      await productQueries.setProductIngredients(
+        newProduct.id,
+        body.ingredients.map((ing: any, idx: number) => ({
+          ingredientId: ing.ingredientId || ing.id,
+          displayOrder: ing.displayOrder ?? idx,
+          quantity: ing.quantity ?? null,
+          notes: ing.notes ?? null,
+        })),
+      );
     }
 
-    products.push(newProduct)
-    await saveProducts(products)
-
-    return NextResponse.json(newProduct, { status: 201 })
+    return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
-    console.error('Error creating product:', error)
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+    console.error('Error creating product:', error);
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getTaxonomies } from '@/lib/db';
+import { getAllGroupedByCategory } from '@/lib/db/queries/taxonomies';
 
 const SYSTEM_PROMPT = `You are a culinary expert helping fill in details for an artisan ice cream shop's ingredient database.
 Given an ingredient name (and optional hints), return a JSON object with suggested values.
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch existing taxonomy values to constrain the AI
-    const taxonomyData = await getTaxonomies() as Taxonomies;
+    const taxonomyData = await getAllGroupedByCategory() as Taxonomies;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

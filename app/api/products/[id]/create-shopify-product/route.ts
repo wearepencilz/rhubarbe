@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getProducts, saveProducts } from '@/lib/db';
+import * as productQueries from '@/lib/db/queries/products';
 import { createProduct, type CreateProductInput } from '@/lib/shopify/admin';
 
 export async function POST(
@@ -17,9 +17,9 @@ export async function POST(
   }
 
   try {
-    // Get the product
-    const products = await getProducts();
-    const product = products.find((p: any) => p.id === params.id);
+    // Get the product from Postgres
+    const productResult = await productQueries.getById(params.id);
+    const product = productResult as any;
     
     if (!product) {
       return NextResponse.json(
@@ -138,15 +138,12 @@ export async function POST(
     } catch { /* ignore */ }
     
     // Update local product with Shopify IDs
-    const productIndex = products.findIndex((p: any) => p.id === params.id);
-    
     // Map Shopify variant IDs back to CMS variants by matching option values
     let updatedVariants = product.variants;
     if (hasVariants && shopifyProduct.variants?.edges) {
       const shopifyVariants = shopifyProduct.variants.edges.map((e: any) => e.node);
-      updatedVariants = product.variants.map((v: any) => {
+      updatedVariants = (product.variants as any[]).map((v: any) => {
         const variantLabel = v.labelFr || v.label;
-        // Match by option value name
         const match = shopifyVariants.find((sv: any) =>
           sv.selectedOptions?.some((opt: any) => opt.value === variantLabel)
         );
@@ -157,17 +154,14 @@ export async function POST(
       });
     }
 
-    products[productIndex] = {
-      ...products[productIndex],
+    const updatedProduct = await productQueries.update(params.id, {
       shopifyProductId: shopifyProduct.id,
       shopifyProductHandle: shopifyProduct.handle,
       ...(updatedVariants ? { variants: updatedVariants } : {}),
       syncStatus: 'synced',
-      lastSyncedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await saveProducts(products);
+      lastSyncedAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     return NextResponse.json({
       success: true,
@@ -177,7 +171,7 @@ export async function POST(
         title: shopifyProduct.title,
         status: shopifyProduct.status,
       },
-      offering: products[productIndex],
+      offering: updatedProduct,
       storefrontPublished,
       ...(!storefrontPublished ? {
         warning: 'Product was created but is NOT published to the Storefront/Headless sales channel. Checkout will fail until you publish it in Shopify Admin → Products → [Product] → Publishing → Manage → check "Headless".',

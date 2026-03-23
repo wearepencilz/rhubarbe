@@ -8,6 +8,48 @@
       "when": 1774020047757,
       "tag": "0000_panoramic_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774219311678,
+      "tag": "0001_flashy_hellion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774223225199,
+      "tag": "0002_clammy_marvel_zombies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774223732906,
+      "tag": "0003_narrow_stone_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774224133277,
+      "tag": "0004_wise_doorman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774224472383,
+      "tag": "0005_stale_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774224765972,
+      "tag": "0006_tiny_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

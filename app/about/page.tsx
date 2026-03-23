@@ -1,4 +1,4 @@
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 import AboutPageClient from './AboutPageClient';
 
 export const metadata = {
@@ -18,7 +18,7 @@ const EN_DEFAULTS = {
 };
 
 export default async function AboutPage() {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({}));
   const raw = (settings as any)?.about ?? {};
 
   let en: Record<string, string>;

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import * as newsQuery from '@/lib/db/queries/news';
 import { auth } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const data = await db.read('news.json');
-    return NextResponse.json(data || []);
+    const data = await newsQuery.list();
+    return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json([]);
   }
@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const news = (await db.read('news.json')) || [];
-    const newItem = { ...body, id: Date.now() };
-    news.push(newItem);
-    await db.write('news.json', news);
+    const newItem = await newsQuery.create({
+      title: body.title,
+      content: body.content,
+    });
     return NextResponse.json(newItem);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

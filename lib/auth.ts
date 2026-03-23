@@ -1,6 +1,6 @@
 import NextAuth, { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { getUserByUsername, verifyPassword, ensureDefaultUser, type UserRole } from './users';
+import { byUsername, verifyPassword, ensureDefaultUser, type UserRole } from './db/queries/users';
 
 export const authOptions: NextAuthConfig = {
   providers: [
@@ -16,7 +16,7 @@ export const authOptions: NextAuthConfig = {
           // Ensure at least one user exists
           await ensureDefaultUser();
 
-          const user = await getUserByUsername(credentials.username as string);
+          const user = await byUsername(credentials.username as string);
           if (!user || !user.active) return null;
 
           const valid = await verifyPassword(user, credentials.password as string);

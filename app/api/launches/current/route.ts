@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { launches, launchProducts, pickupLocations } from '@/lib/db/schema';
+import { launches, launchProducts, pickupLocations, products } from '@/lib/db/schema';
 import { eq, asc, desc, and, gte } from 'drizzle-orm';
-import { getProducts, getTaxonomyValues } from '@/lib/db.js';
+import { getByCategory } from '@/lib/db/queries/taxonomies';
 
 /**
  * GET /api/launches/current
@@ -26,16 +26,17 @@ export async function GET() {
       });
     }
 
-    // Load all products from JSON for enrichment
-    const allProducts = await getProducts().catch(() => []);
+    // Load all products from Postgres for enrichment
+    const allProducts = await db.select().from(products).orderBy(asc(products.name));
     const productMap = new Map<string, any>();
     for (const p of allProducts) {
       productMap.set(p.id, p);
-      if (p.slug) productMap.set(p.slug, p);
+      if ((p as any).slug) productMap.set((p as any).slug, p);
+      if ((p as any).legacyId) productMap.set((p as any).legacyId, p);
     }
 
     // Load product category taxonomy for label resolution
-    const categoryTaxonomy = await getTaxonomyValues('productCategories').catch(() => []);
+    const categoryTaxonomy = await getByCategory('productCategories').catch(() => []);
     const categoryLabelMap = new Map<string, string>();
     for (const t of categoryTaxonomy) {
       categoryLabelMap.set(t.value, t.label);
@@ -51,30 +52,30 @@ export async function GET() {
         .where(eq(launchProducts.launchId, launch.id))
         .orderBy(asc(launchProducts.sortOrder));
 
-      // Enrich with JSON product data
+      // Enrich with Postgres product data
       const enrichedProducts = linked.map((lp) => {
-        const jsonProduct = productMap.get(lp.productId);
-        const catSlug = jsonProduct?.category || null;
+        const dbProduct = productMap.get(lp.productId);
+        const catSlug = dbProduct?.category || null;
         return {
           id: lp.id,
           productId: lp.productId,
-          productName: lp.productName || jsonProduct?.name || jsonProduct?.title || lp.productId,
+          productName: lp.productName || dbProduct?.name || dbProduct?.title || lp.productId,
           sortOrder: lp.sortOrder,
           minQuantityOverride: lp.minQuantityOverride,
           maxQuantityOverride: lp.maxQuantityOverride,
           quantityStepOverride: lp.quantityStepOverride,
-          // Enriched from JSON
-          image: jsonProduct?.image || null,
-          price: jsonProduct?.price || null,
-          description: jsonProduct?.description || null,
+          // Enriched from Postgres
+          image: dbProduct?.image || null,
+          price: dbProduct?.price || null,
+          description: dbProduct?.description || null,
           category: catSlug,
           categoryLabel: catSlug ? (categoryLabelMap.get(catSlug) || catSlug) : null,
-          slug: jsonProduct?.slug || lp.productId,
-          shopifyProductId: jsonProduct?.shopifyProductId || null,
-          shopifyProductHandle: jsonProduct?.shopifyProductHandle || null,
-          allergens: jsonProduct?.allergens || [],
-          serves: jsonProduct?.serves || null,
-          translations: jsonProduct?.translations || null,
+          slug: dbProduct?.slug || lp.productId,
+          shopifyProductId: dbProduct?.shopifyProductId || null,
+          shopifyProductHandle: dbProduct?.shopifyProductHandle || null,
+          allergens: dbProduct?.allergens || [],
+          serves: dbProduct?.serves || null,
+          translations: dbProduct?.translations || null,
         };
       });
 

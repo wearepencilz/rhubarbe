@@ -1,5 +1,5 @@
 import RequestForm from '@/components/RequestForm';
-import { db } from '@/lib/db';
+import * as pageQueries from '@/lib/db/queries/pages';
 
 export const metadata = {
   title: 'Traiteur / Catering – Rhubarbe',
@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function TraiteurPage() {
-  const pages = await db.read('pages.json').catch(() => ({})) || {};
-  const content = (pages as any)?.traiteur || {};
+  const page = await pageQueries.getByName('traiteur').catch(() => null);
+  const content = (page?.content as any) ?? {};
   return <RequestForm type="traiteur" content={content} />;
 }

@@ -1,6 +1,11 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import * as dotenv from 'dotenv';
 import * as schema from './schema';
+
+// Load .env.local for standalone scripts (seeds, migrations)
+// Next.js handles this automatically for the app runtime
+dotenv.config({ path: '.env.local' });
 
 // Determine environment
 const isProduction = process.env.VERCEL === '1';

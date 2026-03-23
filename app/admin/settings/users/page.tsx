@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/app/admin/components/ui/button';
-import type { PublicUser, UserRole } from '@/lib/users';
+import type { PublicUser, UserRole } from '@/lib/db/queries/users';
 
 const ROLES: { value: UserRole; label: string }[] = [
   { value: 'super_admin', label: 'Super Admin' },

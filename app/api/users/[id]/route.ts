@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { updateUser, deleteUser, type UserRole } from '@/lib/users';
+import { update, remove, type UserRole } from '@/lib/db/queries/users';
 
 // PUT /api/users/[id]
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'You cannot change your own role' }, { status: 400 });
     }
 
-    const updated = await updateUser(params.id, { name, email, username, role: role as UserRole, active });
+    const updated = await update(params.id, { name, email, username, role: role as UserRole, active });
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -50,7 +50,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   try {
-    await deleteUser(params.id);
+    await remove(params.id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

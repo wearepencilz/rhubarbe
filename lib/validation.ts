@@ -1,4 +1,6 @@
-import { getTaxonomies, getIngredients, getSettings } from './db.js'
+import { getByCategory, isValueUnique } from './db/queries/taxonomies'
+import * as ingredientQueries from './db/queries/ingredients'
+import * as settingsQueries from './db/queries/settings'
 
 // Taxonomy Validation Functions
 
@@ -14,9 +16,9 @@ export async function validateEligibleFlavourTypes(eligibleFlavourTypes: string[
     return { valid: true, errors: [] }
   }
   
-  // Get flavourTypes taxonomy
-  const taxonomies = await getTaxonomies()
-  if (!taxonomies.flavourTypes) {
+  // Get flavourTypes taxonomy from Postgres
+  const flavourTypes = await getByCategory('flavourTypes')
+  if (!flavourTypes || flavourTypes.length === 0) {
     errors.push({
       field: 'eligibleFlavourTypes',
       constraint: 'taxonomy-missing',
@@ -25,7 +27,7 @@ export async function validateEligibleFlavourTypes(eligibleFlavourTypes: string[
     return { valid: false, errors }
   }
   
-  const validFlavourTypes = taxonomies.flavourTypes.map((item: any) => item.id)
+  const validFlavourTypes = flavourTypes.map((item) => item.id)
   
   // Check each provided type exists in taxonomy
   for (const typeId of eligibleFlavourTypes) {
@@ -46,17 +48,7 @@ export async function validateEligibleFlavourTypes(eligibleFlavourTypes: string[
 }
 
 export async function validateTaxonomyUniqueness(category: string, value: string, excludeId?: string): Promise<boolean> {
-  const taxonomies = await getTaxonomies()
-  if (!taxonomies[category]) {
-    return true // Category doesn't exist yet, so value is unique
-  }
-  
-  const existingValues = taxonomies[category]
-  const duplicate = existingValues.find((item: any) => 
-    item.value === value && item.id !== excludeId
-  )
-  
-  return !duplicate
+  return isValueUnique(category, value, excludeId)
 }
 
 export async function validateTaxonomyDeletion(category: string, id: string): Promise<{ canDelete: boolean; usedBy: any[] }> {
@@ -65,7 +57,7 @@ export async function validateTaxonomyDeletion(category: string, id: string): Pr
   // Check usage based on category
   switch (category) {
     case 'ingredientCategories':
-      const ingredients = await getIngredients()
+      const ingredients = await ingredientQueries.list()
       const usedInIngredients = ingredients.filter((ing: any) => ing.category === id)
       if (usedInIngredients.length > 0) {
         usedBy.push(...usedInIngredients.map((ing: any) => ({ type: 'ingredient', id: ing.id, name: ing.name })))
@@ -81,7 +73,7 @@ export async function validateTaxonomyDeletion(category: string, id: string): Pr
       break
       
     case 'allergens':
-      const allIngredients = await getIngredients()
+      const allIngredients = await ingredientQueries.list()
       const ingredientsWithValue = allIngredients.filter((ing: any) =>
         ing.allergens?.includes(id)
       )
@@ -131,8 +123,8 @@ export function generateProductName(product: any, format: any, flavours: any[]):
 
 // Format Eligibility
 export async function getFormatEligibility(flavourType: string): Promise<string[]> {
-  const settings = await getSettings()
-  if (!settings.formatEligibilityRules) {
+  const allSettings = await settingsQueries.getAll()
+  if (!allSettings.formatEligibilityRules) {
     // Fallback to hardcoded rules if not in settings
     // These rules now use servingStyle values
     const defaultRules: Record<string, string[]> = {
@@ -146,7 +138,7 @@ export async function getFormatEligibility(flavourType: string): Promise<string[
     return defaultRules[flavourType] || []
   }
   
-  return settings.formatEligibilityRules[flavourType] || []
+  return (allSettings.formatEligibilityRules as Record<string, string[]>)[flavourType] || []
 }
 
 export async function isEligibleForFormat(flavourType: string, formatIdentifier: string): Promise<boolean> {

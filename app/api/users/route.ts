@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getAllUsers, createUser, ensureDefaultUser, type UserRole } from '@/lib/users';
+import { list, create, ensureDefaultUser, type UserRole } from '@/lib/db/queries/users';
 
 // GET /api/users
 export async function GET() {
@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const users = await getAllUsers();
+  const users = await list();
   return NextResponse.json(users);
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only super admins can create super admin accounts' }, { status: 403 });
     }
 
-    const user = await createUser({ name, email, username, password, role: newRole as UserRole });
+    const user = await create({ name, email, username, password, role: newRole as UserRole });
     return NextResponse.json(user, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

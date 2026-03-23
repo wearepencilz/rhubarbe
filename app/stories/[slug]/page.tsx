@@ -1,13 +1,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import SiteFooter from '@/components/home/SiteFooter';
-import { getStories as getStoriesFromDB } from '@/lib/db';
+import * as storiesQuery from '@/lib/db/queries/stories';
 import type { StoryBlock } from '@/app/admin/components/StoryBlockBuilder';
 
 async function getStory(slug: string) {
   try {
-    const all = (await getStoriesFromDB()) as any[];
-    return all.find((s) => s.slug === slug || s.id === slug) || null;
+    return await storiesQuery.getByIdOrSlug(slug);
   } catch {
     return null;
   }
@@ -15,10 +14,10 @@ async function getStory(slug: string) {
 
 async function getRelatedStories(currentId: string, tags: string[]) {
   try {
-    const all = (await getStoriesFromDB()) as any[];
+    const all = (await storiesQuery.list()) as any[];
     return all
       .filter((s) => s.id !== currentId && s.status === 'published')
-      .filter((s) => s.tags?.some((t: string) => tags.includes(t)))
+      .filter((s) => (s.tags as string[] | null)?.some((t: string) => tags.includes(t)))
       .slice(0, 3);
   } catch {
     return [];

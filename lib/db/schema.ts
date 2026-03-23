@@ -10,7 +10,7 @@
  * - Orders and Order Items
  */
 
-import { pgTable, uuid, text, timestamp, integer, boolean, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { customJsonb } from './custom-types';
 
 // Products table
@@ -23,6 +23,37 @@ export const products = pgTable('products', {
   shopifyProductId: text('shopify_product_id'),
   shopifyProductHandle: text('shopify_product_handle'),
   
+  // Migration fields
+  legacyId: text('legacy_id'),
+  title: text('title'),
+  description: text('description'),
+  category: text('category'),
+  price: integer('price'),
+  currency: text('currency').default('CAD'),
+  image: text('image'),
+  serves: text('serves'),
+  shortCardCopy: text('short_card_copy'),
+  tastingNotes: text('tasting_notes'),
+  status: text('status'),
+
+  // Jsonb arrays
+  allergens: customJsonb<string[]>('allergens'),
+  tags: customJsonb<string[]>('tags'),
+  keyNotes: customJsonb<string[]>('key_notes'),
+  variants: customJsonb<Record<string, unknown>[]>('variants'),
+
+  // Availability & selection
+  inventoryTracked: boolean('inventory_tracked').default(false),
+  availabilityMode: text('availability_mode'),
+  dateSelectionType: text('date_selection_type'),
+  slotSelectionType: text('slot_selection_type'),
+  variantType: text('variant_type'),
+
+  // Sync fields
+  syncStatus: text('sync_status'),
+  lastSyncedAt: timestamp('last_synced_at'),
+  syncError: text('sync_error'),
+
   // Order rules
   defaultMinQuantity: integer('default_min_quantity').notNull().default(1),
   defaultQuantityStep: integer('default_quantity_step').notNull().default(1),
@@ -37,6 +68,8 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
   slugIdx: index('products_slug_idx').on(table.slug),
+  legacyIdIdx: index('products_legacy_id_idx').on(table.legacyId),
+  categoryIdx: index('products_category_idx').on(table.category),
 }));
 
 // Pickup Locations
@@ -174,4 +207,174 @@ export const orderItems = pgTable('order_items', {
   productIdIdx: index('order_items_product_id_idx').on(table.productId),
   pickupDateIdx: index('order_items_pickup_date_idx').on(table.pickupDate),
   pickupLocationIdx: index('order_items_pickup_location_id_idx').on(table.pickupLocationId),
+}));
+
+// Taxonomy Values — normalized taxonomy entries with category discriminator
+export const taxonomyValues = pgTable('taxonomy_values', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  category: text('category').notNull(),
+  label: text('label').notNull(),
+  value: text('value').notNull(),
+  description: text('description'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  archived: boolean('archived').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  categoryIdx: index('taxonomy_values_category_idx').on(table.category),
+  categoryValueUniq: uniqueIndex('taxonomy_values_category_value_uniq').on(table.category, table.value),
+}));
+
+// Ingredients — gelato ingredients with taxonomy references and metadata
+export const ingredients = pgTable('ingredients', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  legacyId: text('legacy_id'),
+
+  // Core fields
+  name: text('name').notNull(),
+  latinName: text('latin_name'),
+  category: text('category'),
+  taxonomyCategory: text('taxonomy_category'),
+  origin: text('origin'),
+  description: text('description'),
+  story: text('story'),
+  image: text('image'),
+  imageAlt: text('image_alt'),
+
+  // Jsonb arrays
+  allergens: customJsonb<string[]>('allergens'),
+  roles: customJsonb<string[]>('roles'),
+  descriptors: customJsonb<string[]>('descriptors'),
+  tastingNotes: customJsonb<string[]>('tasting_notes'),
+  texture: customJsonb<string[]>('texture'),
+  process: customJsonb<string[]>('process'),
+  attributes: customJsonb<string[]>('attributes'),
+  usedAs: customJsonb<string[]>('used_as'),
+  availableMonths: customJsonb<number[]>('available_months'),
+
+  // Booleans
+  seasonal: boolean('seasonal').notNull().default(false),
+  animalDerived: boolean('animal_derived').default(false),
+  vegetarian: boolean('vegetarian').default(true),
+  isOrganic: boolean('is_organic').default(false),
+
+  // Supplier fields
+  sourceName: text('source_name'),
+  sourceType: text('source_type'),
+  supplier: text('supplier'),
+  farm: text('farm'),
+
+  // Status
+  status: text('status').default('active'),
+
+  // Timestamps
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  legacyIdIdx: index('ingredients_legacy_id_idx').on(table.legacyId),
+  nameIdx: index('ingredients_name_idx').on(table.name),
+  categoryIdx: index('ingredients_category_idx').on(table.category),
+}));
+
+// Users — admin/editor accounts migrated from users.json
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  legacyId: text('legacy_id'),
+
+  // Core fields
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  username: text('username').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  salt: text('salt').notNull(),
+  role: text('role').notNull(),
+  active: boolean('active').notNull().default(true),
+
+  // Timestamps
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Pages — CMS page content stored as flexible jsonb
+export const pages = pgTable('pages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  pageName: text('page_name').notNull().unique(),
+  content: customJsonb<Record<string, unknown>>('content').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Settings — key-value settings with jsonb values
+export const settings = pgTable('settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: text('key').notNull().unique(),
+  value: customJsonb<unknown>('value').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Product Ingredients — join table linking products to ingredients
+export const productIngredients = pgTable('product_ingredients', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  ingredientId: uuid('ingredient_id').notNull().references(() => ingredients.id, { onDelete: 'cascade' }),
+  displayOrder: integer('display_order').notNull().default(0),
+  quantity: text('quantity'),
+  notes: text('notes'),
+}, (table) => ({
+  productIdIdx: index('product_ingredients_product_id_idx').on(table.productId),
+  ingredientIdIdx: index('product_ingredients_ingredient_id_idx').on(table.ingredientId),
+}));
+
+// Stories — bilingual content with story blocks
+export const stories = pgTable('stories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  legacyId: text('legacy_id'),
+  slug: text('slug').unique(),
+  title: customJsonb<{ en: string; fr: string }>('title'),
+  subtitle: customJsonb<{ en: string; fr: string }>('subtitle'),
+  content: customJsonb<unknown>('content'),
+  category: text('category'),
+  tags: customJsonb<string[]>('tags'),
+  coverImage: text('cover_image'),
+  status: text('status'),
+  publishedAt: timestamp('published_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  slugIdx: index('stories_slug_idx').on(table.slug),
+  statusIdx: index('stories_status_idx').on(table.status),
+  categoryIdx: index('stories_category_idx').on(table.category),
+}));
+
+// News — simple content entries
+export const news = pgTable('news', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  legacyId: text('legacy_id'),
+  title: text('title'),
+  content: customJsonb<unknown>('content'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  legacyIdIdx: index('news_legacy_id_idx').on(table.legacyId),
+}));
+
+// Requests — traiteur and gateaux order requests
+export const requests = pgTable('requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  legacyId: text('legacy_id'),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  phone: text('phone'),
+  date: text('date'),
+  time: text('time'),
+  guests: text('guests'),
+  eventType: text('event_type'),
+  delivery: text('delivery'),
+  address: text('address'),
+  notes: text('notes'),
+  type: text('type').notNull(),
+  status: text('status').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  typeIdx: index('requests_type_idx').on(table.type),
+  statusIdx: index('requests_status_idx').on(table.status),
 }));

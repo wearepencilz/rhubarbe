@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { resetPassword } from '@/lib/users';
+import { resetPassword } from '@/lib/db/queries/users';
 
 // PUT /api/users/[id]/password
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {

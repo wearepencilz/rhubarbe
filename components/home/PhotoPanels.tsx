@@ -1,7 +1,7 @@
-import { getSettings } from '@/lib/db';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 export default async function PhotoPanels() {
-  const settings = await getSettings().catch(() => ({}));
+  const settings = await settingsQueries.getAll().catch(() => ({}));
   const photos = (settings as any)?.home?.photos || {};
   const photo1: string = photos.photo1 || '';
   const photo2: string = photos.photo2 || '';
