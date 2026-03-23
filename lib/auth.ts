@@ -61,8 +61,10 @@ export const authOptions: NextAuthConfig = {
       }
       return session;
     },
-    authorized: async ({ auth }) => {
-      return !!auth;
+    authorized: async ({ auth, request }) => {
+      // Let our custom middleware.ts handle admin route protection
+      // Returning true here prevents NextAuth from double-redirecting
+      return true;
     },
   },
 };
