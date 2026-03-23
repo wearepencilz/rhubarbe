@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import { useT } from '@/lib/i18n/useT';
+import DatePickerField from '@/components/ui/DatePickerField';
+import TimeField from '@/components/ui/TimeField';
+import { parseDate, Time } from '@internationalized/date';
+import type { DateValue, TimeValue } from 'react-aria-components';
 
-const EVENT_TYPES_FR = ['mariage', 'boîte repas', 'buffet', 'banquet', 'dîner cocktail', 'autre'];
-const EVENT_TYPES_EN = ['wedding', 'lunch box', 'buffet', 'banquet', 'cocktail dinner', 'other'];
+const EVENT_TYPES_FR = ['mariage', 'boîte à lunch', 'buffet', 'banquet', 'cocktail dînatoire'];
+const EVENT_TYPES_EN = ['wedding', 'lunch box', 'buffet', 'banquet', 'cocktail dinner'];
 
 interface PageContent {
   heading?: string;
@@ -28,9 +32,11 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
   const F = T.form.fields;
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', date: '', time: '',
+    name: '', email: '', phone: '',
     guests: '', eventType: '', delivery: 'no', address: '', notes: '',
   });
+  const [dateValue, setDateValue] = useState<DateValue | null>(null);
+  const [timeValue, setTimeValue] = useState<TimeValue | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -49,10 +55,13 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
     e.preventDefault();
     setStatus('sending');
     try {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const dateStr = dateValue ? `${dateValue.year}-${pad(dateValue.month)}-${pad(dateValue.day)}` : '';
+      const timeStr = timeValue ? `${pad((timeValue as any).hour)}:${pad((timeValue as any).minute)}` : '';
       const res = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, type, locale }),
+        body: JSON.stringify({ ...form, date: dateStr, time: timeStr, type, locale }),
       });
       if (!res.ok) throw new Error();
       setStatus('sent');
@@ -88,12 +97,16 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
             <Field label={F.phone}>
               <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
             </Field>
-            <Field label={F.date}>
-              <input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} />
-            </Field>
-            <Field label={F.time}>
-              <input type="time" value={form.time} onChange={(e) => set('time', e.target.value)} />
-            </Field>
+            <DatePickerField
+              label={F.date}
+              value={dateValue}
+              onChange={setDateValue}
+            />
+            <TimeField
+              label={F.time}
+              value={timeValue}
+              onChange={setTimeValue}
+            />
             <Field label={F.guests}>
               <input type="number" min="1" value={form.guests} onChange={(e) => set('guests', e.target.value)} />
             </Field>

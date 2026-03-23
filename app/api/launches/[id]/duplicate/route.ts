@@ -28,6 +28,7 @@ export async function POST(
         status: 'draft',
         orderOpens: source.orderOpens,
         orderCloses: source.orderCloses,
+        allowEarlyOrdering: source.allowEarlyOrdering,
         pickupDate: source.pickupDate,
         pickupLocationId: source.pickupLocationId,
         pickupInstructions: source.pickupInstructions,

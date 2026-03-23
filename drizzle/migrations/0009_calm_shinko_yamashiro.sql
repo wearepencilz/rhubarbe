@@ -1,0 +1,1 @@
+ALTER TABLE "launches" ADD COLUMN "allow_early_ordering" boolean DEFAULT false NOT NULL;

@@ -104,6 +104,7 @@ export const launches = pgTable('launches', {
   // Ordering Window
   orderOpens: timestamp('order_opens').notNull(),
   orderCloses: timestamp('order_closes').notNull(),
+  allowEarlyOrdering: boolean('allow_early_ordering').notNull().default(false),
   
   // Pickup
   pickupDate: timestamp('pickup_date').notNull(),

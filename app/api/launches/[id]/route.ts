@@ -108,6 +108,7 @@ export async function PATCH(
     if (body.status !== undefined) updateData.status = body.status;
     if (body.orderOpens !== undefined) updateData.orderOpens = new Date(body.orderOpens);
     if (body.orderCloses !== undefined) updateData.orderCloses = new Date(body.orderCloses);
+    if (body.allowEarlyOrdering !== undefined) updateData.allowEarlyOrdering = body.allowEarlyOrdering;
     if (body.pickupDate !== undefined) {
       const raw = body.pickupDate.length === 10 ? body.pickupDate + 'T12:00:00' : body.pickupDate;
       updateData.pickupDate = new Date(raw);

@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
         status: body.status ?? 'draft',
         orderOpens: new Date(body.orderOpens),
         orderCloses: closes,
+        allowEarlyOrdering: body.allowEarlyOrdering ?? false,
         pickupDate: pickup,
         pickupLocationId: body.pickupLocationId || null,
         pickupInstructions: body.pickupInstructions || null,

@@ -47,6 +47,7 @@ interface Launch {
   status: string;
   orderOpens: string;
   orderCloses: string;
+  orderingOpen: boolean;
   pickupDate: string;
   pickupSlots: Array<{ id: string; startTime: string; endTime: string; capacity?: number }>;
   pickupLocation: PickupLocation | null;
@@ -895,6 +896,9 @@ export default function OrderPageClient() {
     );
   }
 
+  // Check if all launches are preview-only (ordering not yet open)
+  const allPreview = launches.length > 0 && launches.every((l) => !l.orderingOpen);
+
   if (launches.length === 0) {
     return (
       <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-xl mx-auto">
@@ -914,6 +918,9 @@ export default function OrderPageClient() {
       </main>
     );
   }
+
+  // Whether the currently selected launch allows ordering
+  const currentOrderingOpen = launch?.orderingOpen ?? false;
 
   return (
     <main className="pt-28 pb-24 px-4 md:px-8 max-w-screen-xl mx-auto">
@@ -989,6 +996,23 @@ export default function OrderPageClient() {
                 </div>
               </div>
 
+              {/* Ordering not yet open banner */}
+              {!currentOrderingOpen && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-4 mb-8">
+                  <p
+                    className="text-xs uppercase tracking-widest text-amber-700 mb-1"
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                  >
+                    {isFr ? 'Commandes bientôt disponibles' : 'Ordering opens soon'}
+                  </p>
+                  <p className="text-sm text-amber-600">
+                    {isFr
+                      ? `Les commandes ouvrent le ${formatDatetime(launch.orderOpens, locale)}`
+                      : `Ordering opens ${formatDatetime(launch.orderOpens, locale)}`}
+                  </p>
+                </div>
+              )}
+
               {/* Category filter */}
               {categories.length > 1 && (
                 <div className="flex gap-2 mb-8 flex-wrap">
@@ -1043,7 +1067,7 @@ export default function OrderPageClient() {
                           product={product}
                           locale={locale}
                           quantity={getQty(product.productId)}
-                          maxQuantity={getMaxForProduct(product.productId)}
+                          maxQuantity={currentOrderingOpen ? getMaxForProduct(product.productId) : 0}
                           onAdd={() => addToCart(product)}
                           onRemove={() => {
                             const cartKey = getCartKey(product.productId);

@@ -7,6 +7,7 @@ import { Input } from '@/app/admin/components/ui/input';
 import { Textarea } from '@/app/admin/components/ui/textarea';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
+import { AdminDateTimeField, AdminDateField, AdminTimeField } from '@/app/admin/components/ui/date-picker/admin-date-time-field';
 
 function generateId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
@@ -169,6 +170,7 @@ interface FormData {
   status: 'draft' | 'active' | 'archived';
   orderOpens: string;
   orderCloses: string;
+  allowEarlyOrdering: boolean;
   pickupDate: string;
   pickupLocationId: string;
   pickupInstructionsEn: string;
@@ -184,6 +186,7 @@ const EMPTY_FORM: FormData = {
   introCopyEn: '', introCopyFr: '',
   status: 'draft',
   orderOpens: '', orderCloses: '',
+  allowEarlyOrdering: false,
   pickupDate: '',
   pickupLocationId: '',
   pickupInstructionsEn: '', pickupInstructionsFr: '',
@@ -243,6 +246,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
         status: d.status || 'draft',
         orderOpens: toLocalDatetime(d.orderOpens),
         orderCloses: toLocalDatetime(d.orderCloses),
+        allowEarlyOrdering: d.allowEarlyOrdering ?? false,
         pickupDate: toLocalDate(d.pickupDate),
         pickupLocationId: d.pickupLocationId || '',
         pickupInstructionsEn: d.pickupInstructions?.en || '',
@@ -263,7 +267,11 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           quantityStepOverride: p.quantityStepOverride,
         }))
       );
-    } catch { router.push('/admin/menus'); }
+    } catch (err) {
+      console.error('Failed to load launch:', err);
+      toast.error('Load failed', 'Could not load this menu. It may have been deleted.');
+      router.push('/admin/menus');
+    }
     finally { setLoading(false); }
   };
 
@@ -391,6 +399,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
         status: form.status,
         orderOpens: form.orderOpens,
         orderCloses: form.orderCloses,
+        allowEarlyOrdering: form.allowEarlyOrdering,
         pickupDate: form.pickupDate,
         pickupLocationId: form.pickupLocationId || null,
         pickupInstructions: form.pickupInstructionsEn || form.pickupInstructionsFr
@@ -630,37 +639,45 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
 
         {/* Section 2: Ordering Window */}
         <SectionCard title="Ordering Window" description="When customers can place orders.">
-          <Input
+          <AdminDateTimeField
             label="Order Opens"
-            type="datetime-local"
-            isRequired
             value={form.orderOpens}
             onChange={(v) => set({ orderOpens: v })}
-            validationState={errors.orderOpens ? 'error' : 'default'}
             errorMessage={errors.orderOpens}
-          />
-          <Input
-            label="Order Closes"
-            type="datetime-local"
             isRequired
+          />
+          <AdminDateTimeField
+            label="Order Closes"
             value={form.orderCloses}
             onChange={(v) => set({ orderCloses: v })}
-            helperText="Orders will be rejected after this time"
-            validationState={errors.orderCloses ? 'error' : 'default'}
+            description="Orders will be rejected after this time"
             errorMessage={errors.orderCloses}
+            isRequired
           />
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.allowEarlyOrdering}
+              onChange={(e) => set({ allowEarlyOrdering: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-700">Allow ordering before menu open date</span>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Show this menu on the storefront before the order window opens. Customers will see when ordering becomes available.
+              </p>
+            </div>
+          </label>
         </SectionCard>
 
         {/* Section 3: Pickup */}
         <SectionCard title="Pickup" description="Pickup date, location, and time slots.">
-          <Input
+          <AdminDateField
             label="Pickup Date"
-            type="date"
-            isRequired
             value={form.pickupDate}
             onChange={(v) => set({ pickupDate: v })}
-            validationState={errors.pickupDate ? 'error' : 'default'}
             errorMessage={errors.pickupDate}
+            isRequired
           />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
@@ -681,15 +698,13 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
         {/* Section 4: Pickup Slots */}
         <SectionCard title="Pickup Slots" description="Generate time slots for customer pickup.">
           <div className="grid grid-cols-3 gap-4">
-            <Input
+            <AdminTimeField
               label="Start Time"
-              type="time"
               value={form.slotStartTime}
               onChange={(v) => set({ slotStartTime: v })}
             />
-            <Input
+            <AdminTimeField
               label="End Time"
-              type="time"
               value={form.slotEndTime}
               onChange={(v) => set({ slotEndTime: v })}
             />

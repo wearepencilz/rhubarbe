@@ -64,6 +64,13 @@
       "when": 1774229994317,
       "tag": "0008_misty_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774272925865,
+      "tag": "0009_calm_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }
