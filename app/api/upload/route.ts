@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         // In production on Vercel, if Blob fails, return error (don't fallback to filesystem)
         if (isVercel || isProduction) {
           return NextResponse.json(
-            { error: 'Upload failed. Please check your Vercel Blob configuration and try again.' },
+            { error: `Blob upload failed: ${blobError.message || 'Unknown error'}` },
             { status: 500 }
           );
         }
