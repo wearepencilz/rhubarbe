@@ -204,7 +204,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
         {story.coverImage ? (
           <img
             src={story.coverImage}
-            alt={story.coverImageAlt || story.title}
+            alt={(story.title as any)?.fr || (story.title as any)?.en || ''}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
