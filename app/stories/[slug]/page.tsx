@@ -194,7 +194,9 @@ export default async function StoryPage({ params }: { params: { slug: string } }
   const story = await getStory(params.slug);
   if (!story || story.status !== 'published') notFound();
 
-  const related = await getRelatedStories(story.id, story.tags || []);
+  const title = (story.title as any)?.fr || (story.title as any)?.en || '';
+  const tags = story.tags ?? [];
+  const related = await getRelatedStories(story.id, tags);
 
   return (
     <main className="bg-white min-h-screen">
@@ -204,7 +206,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
         {story.coverImage ? (
           <img
             src={story.coverImage}
-            alt={(story.title as any)?.fr || (story.title as any)?.en || ''}
+            alt={title}
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
@@ -240,9 +242,9 @@ export default async function StoryPage({ params }: { params: { slug: string } }
 
         {/* Title block */}
         <div className="absolute bottom-0 left-0 right-0 px-4 md:px-8 pb-12 md:pb-16 max-w-5xl">
-          {(story.tags?.length ?? 0) > 0 && (
+          {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-5">
-              {story.tags!.map((tag: string) => (
+              {tags.map((tag: string) => (
                 <span
                   key={tag}
                   className="text-white/55 text-[10px] tracking-[0.2px] uppercase border border-white/20 px-2 py-0.5"
@@ -257,7 +259,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
             className="text-white text-[clamp(36px,6.5vw,88px)] leading-[0.95] uppercase tracking-tight"
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 700 }}
           >
-            {story.title}
+            {title}
           </h1>
         </div>
       </div>
@@ -294,7 +296,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
         </div>
 
         {/* Tags footer */}
-        {story.tags?.length > 0 && (
+        {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-16 pt-8 border-t border-[#333112]/10">
             <p
               className="text-[#333112]/30 text-[10px] tracking-[0.2px] uppercase mr-2 self-center"
@@ -302,7 +304,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
             >
               Tagged
             </p>
-            {story.tags.map((tag: string) => (
+            {tags.map((tag: string) => (
               <span
                 key={tag}
                 className="text-[#333112]/50 text-[10px] tracking-[0.2px] uppercase border border-[#333112]/20 px-2 py-0.5"
@@ -323,7 +325,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
             Share
           </p>
           <a
-            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(story.title)}&url=${encodeURIComponent(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/stories/${story.slug}`)}`}
+            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/stories/${story.slug}`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#333112]/40 text-[10px] tracking-[0.2px] uppercase hover:text-[#333112] transition-colors"
@@ -362,7 +364,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
                   <div className="overflow-hidden mb-4">
                     <img
                       src={s.coverImage}
-                      alt={s.coverImageAlt || s.title}
+                      alt={s.title?.fr || s.title?.en || ''}
                       className="w-full aspect-[4/3] object-cover group-hover:scale-[1.03] transition-transform duration-700"
                     />
                   </div>
@@ -379,7 +381,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
                   className="text-[#333112] text-[18px] md:text-[20px] leading-[1.05] uppercase mb-2"
                   style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 700 }}
                 >
-                  {s.title}
+                  {s.title?.fr || s.title?.en || ''}
                 </h3>
                 {s.intro && (
                   <p
