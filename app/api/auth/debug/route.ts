@@ -20,12 +20,38 @@ export async function GET(request: NextRequest) {
   checks.cookies = cookieNames;
   checks.has_session_cookie = cookieNames.some(n => n.includes('next-auth') || n.includes('authjs'));
 
-  // Try to read JWT token
+  // Try to read JWT token (same params as middleware)
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET,
+      salt: '__Secure-authjs.session-token',
+      cookieName: '__Secure-authjs.session-token',
+    });
+    checks.jwt_token_secure = token ? { id: token.id, username: token.username } : null;
+  } catch (e: any) {
+    checks.jwt_error_secure = e.message;
+  }
+
+  // Also try without secure prefix (for localhost/http)
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET,
+      salt: 'authjs.session-token',
+      cookieName: 'authjs.session-token',
+    });
+    checks.jwt_token_plain = token ? { id: token.id, username: token.username } : null;
+  } catch (e: any) {
+    checks.jwt_error_plain = e.message;
+  }
+
+  // Try default next-auth getToken (no overrides)
   try {
     const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
-    checks.jwt_token = token ? { id: token.id, username: token.username, exp: token.exp } : null;
+    checks.jwt_token_default = token ? { id: token.id, username: token.username } : null;
   } catch (e: any) {
-    checks.jwt_error = e.message;
+    checks.jwt_error_default = e.message;
   }
 
   try {
