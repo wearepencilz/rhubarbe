@@ -33,6 +33,8 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+export const revalidate = 60; // revalidate layout data every 60 seconds
+
 export default function RootLayout({
   children,
 }: {
