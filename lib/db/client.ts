@@ -33,8 +33,16 @@ const getDatabaseUrl = (): string => {
 
 // Create PostgreSQL client
 const connectionString = getDatabaseUrl();
-// Strip channel_binding param — postgres.js doesn't support it (Neon adds it by default)
-const cleanedConnectionString = connectionString.replace(/[?&]channel_binding=[^&]*/g, '').replace(/\?&/, '?');
+// Strip params that postgres.js doesn't understand (it treats them as part of the DB name)
+// - channel_binding: Neon adds this, postgres.js doesn't support it
+// - sslmode: we handle SSL via the `ssl` option instead
+const cleanedConnectionString = connectionString
+  .replace(/[?&](channel_binding|sslmode)=[^&]*/g, '')
+  .replace(/\?&/, '?')
+  .replace(/\?$/, '');
+
+// Detect if connecting to a remote/cloud database that needs SSL
+const needsSsl = cleanedConnectionString.includes('neon.tech') || cleanedConnectionString.includes('sslmode=require') || isProduction;
 
 // Configure connection based on environment
 const client = postgres(cleanedConnectionString, {
@@ -44,12 +52,8 @@ const client = postgres(cleanedConnectionString, {
   idle_timeout: isProduction ? 20 : undefined,
   // Connection timeout
   connect_timeout: 10,
-  // Required for Neon serverless
-  ssl: isProduction ? 'require' : undefined,
-  // postgres.js doesn't support channel_binding param — strip unknown params
-  connection: {
-    application_name: 'rhubarbe',
-  },
+  // SSL required for Neon and other cloud providers
+  ssl: needsSsl ? 'require' : undefined,
 });
 
 // Create Drizzle instance with schema
