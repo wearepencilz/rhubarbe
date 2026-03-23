@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as settingsQueries from '@/lib/db/queries/settings';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const data = await settingsQueries.getAll();
