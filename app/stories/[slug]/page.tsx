@@ -240,7 +240,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
 
         {/* Title block */}
         <div className="absolute bottom-0 left-0 right-0 px-4 md:px-8 pb-12 md:pb-16 max-w-5xl">
-          {story.tags?.length > 0 && (
+          {(story.tags?.length ?? 0) > 0 && (
             <div className="flex flex-wrap gap-2 mb-5">
               {story.tags.map((tag: string) => (
                 <span
