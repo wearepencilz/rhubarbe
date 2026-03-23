@@ -1,36 +1,31 @@
+import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
 
   if (!pathname.startsWith('/admin')) {
     return NextResponse.next();
   }
 
-  // Use getToken — works on Edge, reads the JWT cookie directly without hitting the DB
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-  });
+  const isLoggedIn = !!req.auth;
 
   if (pathname === '/admin/login') {
-    if (token) {
-      const callbackUrl = request.nextUrl.searchParams.get('callbackUrl') || '/admin';
-      return NextResponse.redirect(new URL(callbackUrl, request.url));
+    if (isLoggedIn) {
+      const callbackUrl = req.nextUrl.searchParams.get('callbackUrl') || '/admin';
+      return NextResponse.redirect(new URL(callbackUrl, req.url));
     }
     return NextResponse.next();
   }
 
-  if (!token) {
-    const loginUrl = new URL('/admin/login', request.url);
+  if (!isLoggedIn) {
+    const loginUrl = new URL('/admin/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ['/admin/:path*'],
