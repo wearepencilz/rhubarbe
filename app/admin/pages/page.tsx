@@ -22,13 +22,13 @@ const PAGES = [
   {
     key: 'traiteur',
     label: 'Traiteur / Catering',
-    description: 'The /traiteur page — heading, intro, form labels (FR & EN)',
+    description: 'The /traiteur page — heading, intro, notes (FR & EN)',
     href: '/admin/pages/traiteur',
   },
   {
     key: 'gateaux',
     label: 'Gâteaux signatures / Signature Cakes',
-    description: 'The /gateaux-signatures page — heading, intro, form labels (FR & EN)',
+    description: 'The /gateaux-signatures page — heading, intro, notes (FR & EN)',
     href: '/admin/pages/gateaux',
   },
   {
@@ -36,6 +36,12 @@ const PAGES = [
     label: 'Thank You / Merci',
     description: 'Post-checkout confirmation — heading, message, pickup reminder (FR & EN)',
     href: '/admin/pages/thank-you',
+  },
+  {
+    key: 'translations',
+    label: 'Translations / Traductions',
+    description: 'All UI labels, buttons, and text — editable per locale (FR & EN)',
+    href: '/admin/pages/translations',
   },
 ];
 

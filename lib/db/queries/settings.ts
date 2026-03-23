@@ -37,6 +37,8 @@ export async function upsertMany(data: Record<string, unknown>) {
 
   await db.transaction(async (tx) => {
     for (const [key, value] of Object.entries(data)) {
+      // Skip undefined values — jsonb columns can't store undefined
+      if (value === undefined) continue;
       await tx
         .insert(settings)
         .values({ key, value, updatedAt: now })

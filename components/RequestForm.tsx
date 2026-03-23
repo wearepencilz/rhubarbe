@@ -1,14 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useT } from '@/lib/i18n/useT';
-import DatePickerField from '@/components/ui/DatePickerField';
-import TimeField from '@/components/ui/TimeField';
-import { parseDate, Time } from '@internationalized/date';
 import type { DateValue, TimeValue } from 'react-aria-components';
+import dynamic from 'next/dynamic';
 
-const EVENT_TYPES_FR = ['mariage', 'boîte à lunch', 'buffet', 'banquet', 'cocktail dînatoire'];
-const EVENT_TYPES_EN = ['wedding', 'lunch box', 'buffet', 'banquet', 'cocktail dinner'];
+const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
+const TimeField = dynamic(() => import('@/components/ui/TimeField'), { ssr: false });
 
 interface PageContent {
   heading?: string;
@@ -49,7 +47,7 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
   const menuNote  = cmsLocale?.menuNote  ?? content?.menuNote  ?? defaultContent.menuNote;
   const contactNote = cmsLocale?.contactNote ?? content?.contactNote ?? defaultContent.contactNote;
 
-  const eventTypes = locale === 'fr' ? EVENT_TYPES_FR : EVENT_TYPES_EN;
+  const eventTypes = F.eventTypes;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +70,11 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
   };
 
   if (status === 'sent') {
-    return <p className="text-sm text-gray-600 py-4">{F.success}</p>;
+    return (
+      <main className="max-w-2xl mx-auto px-6 py-32 flex items-center justify-center min-h-[60vh]">
+        <p className="text-sm text-gray-600 text-center">{F.success}</p>
+      </main>
+    );
   }
 
   return (

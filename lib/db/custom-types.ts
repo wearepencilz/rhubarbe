@@ -20,7 +20,12 @@ export const customJsonb = <TData>(name: string) =>
     },
     fromDriver(value: string | TData): TData {
       if (typeof value === 'string') {
-        return JSON.parse(value) as TData;
+        try {
+          return JSON.parse(value) as TData;
+        } catch {
+          // postgres.js may have already parsed the jsonb value
+          return value as TData;
+        }
       }
       return value as TData;
     },

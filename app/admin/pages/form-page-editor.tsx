@@ -8,13 +8,20 @@ import { Textarea } from '@/app/admin/components/ui/textarea';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 
+interface FormLocaleContent {
+  heading?: string;
+  intro?: string;
+  menuNote?: string;
+  contactNote?: string;
+}
+
 interface FormPageContent {
   heading?: string;
   intro?: string;
   menuNote?: string;
   contactNote?: string;
-  fr?: { heading?: string; intro?: string; menuNote?: string; contactNote?: string };
-  en?: { heading?: string; intro?: string; menuNote?: string; contactNote?: string };
+  fr?: FormLocaleContent;
+  en?: FormLocaleContent;
 }
 
 interface FormPageEditorProps {
@@ -54,10 +61,10 @@ export default function FormPageEditor({ pageKey, label, defaults }: FormPageEdi
     }
   };
 
-  const setFr = (k: keyof NonNullable<FormPageContent['fr']>, v: string) =>
+  const setFr = (k: keyof FormLocaleContent, v: string) =>
     setContent((c) => ({ ...c, fr: { ...c.fr, [k]: v || undefined } }));
 
-  const setEn = (k: keyof NonNullable<FormPageContent['en']>, v: string) =>
+  const setEn = (k: keyof FormLocaleContent, v: string) =>
     setContent((c) => ({ ...c, en: { ...c.en, [k]: v || undefined } }));
 
   if (loading) {
@@ -79,6 +86,7 @@ export default function FormPageEditor({ pageKey, label, defaults }: FormPageEdi
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-gray-900">{label}</h1>
         <p className="text-gray-600 mt-1">Page content and translations. Leave blank to use the locale default.</p>
+        <p className="text-xs text-gray-400 mt-1">Form field labels, event types, and success/error messages are managed in the locale files.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">

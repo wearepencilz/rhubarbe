@@ -26,7 +26,8 @@ interface Props {
 }
 
 export default function ProductAvailabilityDisplay({ productId, onAvailabilityChange, onSelectionChange }: Props) {
-  const { locale } = useT();
+  const { T, locale } = useT();
+  const A = T.availability;
   const [availability, setAvailability] = useState<AvailabilityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -35,9 +36,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  useEffect(() => {
-    fetchAvailability();
-  }, [productId]);
+  useEffect(() => { fetchAvailability(); }, [productId]);
 
   useEffect(() => {
     onSelectionChange?.({ pickupDate: selectedDate, locationId: selectedLocation, slot: selectedSlot, quantity });
@@ -54,14 +53,9 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
         if (data.quantityRules) setQuantity(data.quantityRules.min);
         if (data.pickupDates?.length === 1) setSelectedDate(data.pickupDates[0]);
         if (data.locations?.length === 1) setSelectedLocation(data.locations[0].id);
-      } else {
-        setError(true);
-      }
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+      } else { setError(true); }
+    } catch { setError(true); }
+    finally { setLoading(false); }
   }
 
   const adjustQuantity = (delta: number) => {
@@ -71,11 +65,13 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
     if (next >= min && (max === null || next <= max)) setQuantity(next);
   };
 
+  const dateFmt = locale === 'fr' ? 'fr-CA' : 'en-CA';
+
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-3" role="status" aria-label="Loading availability">
+      <div className="flex items-center gap-2 py-3" role="status" aria-label={A.loading}>
         <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-gray-600" />
-        <span className="text-sm text-gray-500">{locale === 'fr' ? 'Chargement...' : 'Loading availability...'}</span>
+        <span className="text-sm text-gray-500">{A.loading}</span>
       </div>
     );
   }
@@ -83,7 +79,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
   if (error || !availability) {
     return (
       <div className="py-3">
-        <p className="text-sm text-gray-500">{locale === 'fr' ? 'Disponibilité non disponible' : 'Availability information unavailable'}</p>
+        <p className="text-sm text-gray-500">{A.unavailableInfo}</p>
       </div>
     );
   }
@@ -93,7 +89,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
       <div className="py-3">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-full text-sm">
           <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-          {locale === 'fr' ? 'Non disponible' : 'Not available'}
+          {A.notAvailable}
         </div>
         {availability.messages && (
           <p className="text-xs text-gray-500 mt-2">{locale === 'fr' ? availability.messages.fr : availability.messages.en}</p>
@@ -109,14 +105,14 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
       {/* Status */}
       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm">
         <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-        {locale === 'fr' ? 'Disponible' : 'Available'}
+        {A.available}
       </div>
 
       {/* Cutoff countdown */}
       {availability.cutoffDatetime && (
         <p className="text-xs text-gray-500">
-          {locale === 'fr' ? 'Commander avant le ' : 'Order by '}
-          {new Date(availability.cutoffDatetime).toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
+          {A.orderBy}
+          {new Date(availability.cutoffDatetime).toLocaleDateString(dateFmt, {
             month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
           })}
         </p>
@@ -128,7 +124,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
       {availability.pickupDates.length > 1 && (
         <div>
           <label className="block text-xs uppercase tracking-widest mb-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-            {locale === 'fr' ? 'Date de cueillette' : 'Pickup date'}
+            {A.pickupDate}
           </label>
           <div className="flex flex-wrap gap-2">
             {availability.pickupDates.map((date) => (
@@ -139,7 +135,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
                   selectedDate === date ? 'border-black bg-black text-white' : 'border-gray-300 hover:border-black'
                 }`}
               >
-                {new Date(date).toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'short', month: 'short', day: 'numeric' })}
+                {new Date(date).toLocaleDateString(dateFmt, { weekday: 'short', month: 'short', day: 'numeric' })}
               </button>
             ))}
           </div>
@@ -150,7 +146,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
       {availability.locations.length > 1 && (
         <div>
           <label className="block text-xs uppercase tracking-widest mb-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-            {locale === 'fr' ? 'Point de cueillette' : 'Pickup location'}
+            {A.pickupLocation}
           </label>
           <div className="flex flex-wrap gap-2">
             {availability.locations.map((loc) => (
@@ -172,7 +168,7 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
       {availability.slots.length > 0 && (
         <div>
           <label className="block text-xs uppercase tracking-widest mb-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-            {locale === 'fr' ? 'Créneau horaire' : 'Time slot'}
+            {A.timeSlot}
           </label>
           <div className="flex flex-wrap gap-2">
             {availability.slots.map((slot) => (
@@ -197,14 +193,14 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
       {/* Quantity controls */}
       <div>
         <label className="block text-xs uppercase tracking-widest mb-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-          {locale === 'fr' ? 'Quantité' : 'Quantity'}
+          {A.quantity}
         </label>
         <div className="inline-flex items-center border border-gray-300 rounded">
           <button
             onClick={() => adjustQuantity(-1)}
             disabled={quantity <= availability.quantityRules.min}
             className="px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label={locale === 'fr' ? 'Diminuer la quantité' : 'Decrease quantity'}
+            aria-label={A.decreaseQty}
           >
             −
           </button>
@@ -215,15 +211,13 @@ export default function ProductAvailabilityDisplay({ productId, onAvailabilityCh
             onClick={() => adjustQuantity(1)}
             disabled={availability.quantityRules.max !== null && quantity >= availability.quantityRules.max}
             className="px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label={locale === 'fr' ? 'Augmenter la quantité' : 'Increase quantity'}
+            aria-label={A.increaseQty}
           >
             +
           </button>
         </div>
         {availability.quantityRules.step > 1 && (
-          <p className="text-xs text-gray-400 mt-1">
-            {locale === 'fr' ? `Par multiples de ${availability.quantityRules.step}` : `In multiples of ${availability.quantityRules.step}`}
-          </p>
+          <p className="text-xs text-gray-400 mt-1">{A.multiples(availability.quantityRules.step)}</p>
         )}
       </div>
     </div>

@@ -11,6 +11,13 @@ const fr = {
   cart: {
     open: 'Ouvrir le panier',
     openWithItems: (n: number) => `Ouvrir le panier, ${n} article${n > 1 ? 's' : ''}`,
+    title: 'Panier',
+    close: 'Fermer le panier',
+    empty: 'Votre panier est vide',
+    remove: 'Retirer',
+    subtotal: 'Sous-total',
+    checkout: 'Passer à la caisse',
+    taxNote: 'Taxes et livraison calculées à la caisse',
   },
   product: {
     addToCart: 'Ajouter au panier',
@@ -30,6 +37,11 @@ const fr = {
     sweet: 'Sucré',
     savory: 'Salé',
     other: 'Autre',
+    pickupLabel: 'Cueillette:',
+    orderEnded: 'La période de commande est terminée',
+    ended: 'Terminé',
+    daysLeft: (n: number) => `${n}j restants`,
+    timeLeft: (h: number, m: number) => `${h}h ${m}m restants`,
   },
   flavours: {
     title: '[SAVEURS]',
@@ -47,9 +59,66 @@ const fr = {
     preorder: 'Précommande',
     soldOut: 'Épuisé',
     ships: (date: string) => `Expédition le ${date}`,
+    loading: 'Chargement...',
+    unavailableInfo: 'Disponibilité non disponible',
+    notAvailable: 'Non disponible',
+    available: 'Disponible',
+    orderBy: 'Commander avant le ',
+    pickupDate: 'Date de cueillette',
+    pickupLocation: 'Point de cueillette',
+    timeSlot: 'Créneau horaire',
+    quantity: 'Quantité',
+    decreaseQty: 'Diminuer la quantité',
+    increaseQty: 'Augmenter la quantité',
+    multiples: (n: number) => `Par multiples de ${n}`,
   },
   footer: {
     copyright: (year: number, name: string) => `© ${year} ${name}`,
+  },
+  allergens: {
+    title: 'Information sur les allergènes',
+    contains: 'Contient:',
+    dairy: 'Produits laitiers',
+    egg: 'Œufs',
+    'tree-nuts': 'Noix',
+    peanuts: 'Arachides',
+    soy: 'Soja',
+    gluten: 'Gluten',
+    sesame: 'Sésame',
+  },
+  dietary: {
+    title: 'Préférences alimentaires',
+    clearAll: 'Tout effacer',
+    showing: (n: number) => `Affichage des produits correspondant à ${n} filtre${n > 1 ? 's' : ''}`,
+    vegan: 'Végétalien',
+    vegetarian: 'Végétarien',
+    'gluten-free': 'Sans gluten',
+    'dairy-free': 'Sans lactose',
+    'nut-free': 'Sans noix',
+  },
+  ingredients: {
+    title: 'Ingrédients',
+    seasonal: 'Saisonnier',
+    none: 'Aucun ingrédient listé',
+    base: 'Base',
+    flavor: 'Saveurs',
+    'mix-in': 'Garnitures',
+    topping: 'Toppings',
+    spice: 'Épices',
+  },
+  thankYou: {
+    heading: 'Merci pour votre commande!',
+    message: 'Votre commande a été confirmée. Vous recevrez un courriel de confirmation sous peu.',
+    pickupReminder: 'N\'oubliez pas de vous présenter à l\'heure de cueillette choisie.',
+    backToMenu: '← Retour au menu',
+    orderSummary: 'Résumé de la commande',
+    pickupDetails: 'Détails de cueillette',
+    items: 'Articles',
+    subtotal: 'Sous-total',
+    date: 'Date',
+    location: 'Lieu',
+    timeSlot: 'Créneau',
+    menu: 'Menu',
   },
   form: {
     traiteur: {
@@ -72,6 +141,7 @@ const fr = {
       time: 'Heure',
       guests: 'Nombre de personnes',
       eventType: 'Type d\'événement',
+      eventTypes: ['mariage', 'boîte à lunch', 'buffet', 'banquet', 'cocktail dînatoire'],
       delivery: 'Livraison?',
       deliveryAddress: 'Adresse de livraison (si vous avez coché « Oui »)',
       notes: 'Autres informations',
@@ -90,16 +160,20 @@ export default fr;
 
 export type Translations = {
   nav: { order: string; catering: string; signatureCakes: string; about: string; cart: string; cartCount: (n: number) => string };
-  cart: { open: string; openWithItems: (n: number) => string };
+  cart: { open: string; openWithItems: (n: number) => string; title: string; close: string; empty: string; remove: string; subtotal: string; checkout: string; taxNote: string };
   product: { addToCart: string; adding: string; soldOut: string; preorder: string; quantity: string; inStock: string; noImage: string; orderComingSoon: string; serves: (n: string) => string };
-  order: { title: string; preordersOnly: string; pickup: string; sweet: string; savory: string; other: string };
+  order: { title: string; preordersOnly: string; pickup: string; sweet: string; savory: string; other: string; pickupLabel: string; orderEnded: string; ended: string; daysLeft: (n: number) => string; timeLeft: (h: number, m: number) => string };
   flavours: { title: string; ingredients: string; ingredientsLabel: string };
   stories: { read: string; moreStories: string; nothingYet: string; wordBy: (name: string) => string };
-  availability: { inStock: string; preorder: string; soldOut: string; ships: (date: string) => string };
+  availability: { inStock: string; preorder: string; soldOut: string; ships: (date: string) => string; loading: string; unavailableInfo: string; notAvailable: string; available: string; orderBy: string; pickupDate: string; pickupLocation: string; timeSlot: string; quantity: string; decreaseQty: string; increaseQty: string; multiples: (n: number) => string };
   footer: { copyright: (year: number, name: string) => string };
+  allergens: { title: string; contains: string; dairy: string; egg: string; 'tree-nuts': string; peanuts: string; soy: string; gluten: string; sesame: string };
+  dietary: { title: string; clearAll: string; showing: (n: number) => string; vegan: string; vegetarian: string; 'gluten-free': string; 'dairy-free': string; 'nut-free': string };
+  ingredients: { title: string; seasonal: string; none: string; base: string; flavor: string; 'mix-in': string; topping: string; spice: string };
+  thankYou: { heading: string; message: string; pickupReminder: string; backToMenu: string; orderSummary: string; pickupDetails: string; items: string; subtotal: string; date: string; location: string; timeSlot: string; menu: string };
   form: {
     traiteur: { heading: string; intro: string; menuNote: string; contactNote: string };
     gateaux: { heading: string; intro: string; menuNote: string; contactNote: string };
-    fields: { name: string; email: string; phone: string; date: string; time: string; guests: string; eventType: string; delivery: string; deliveryAddress: string; notes: string; yes: string; no: string; select: string; submit: string; sending: string; success: string; error: string };
+    fields: { name: string; email: string; phone: string; date: string; time: string; guests: string; eventType: string; eventTypes: string[]; delivery: string; deliveryAddress: string; notes: string; yes: string; no: string; select: string; submit: string; sending: string; success: string; error: string };
   };
 };

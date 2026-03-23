@@ -2,22 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/app/admin/components/ui/button';
+import { Input } from '@/app/admin/components/ui/input';
+import { Textarea } from '@/app/admin/components/ui/textarea';
 import RichTextEditor from '@/app/admin/components/RichTextEditor';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import Link from 'next/link';
 
 const SECTIONS = [
+  { key: 'hero', label: 'Hero' },
   { key: 'about', label: 'About' },
   { key: 'story', label: 'Story' },
   { key: 'editorial', label: 'Editorial' },
   { key: 'photos', label: 'Photos' },
 ];
 
+interface HeroSettings { taglineFr: string; taglineEn: string; }
 interface AboutSettings { bg: string; text: string; image: string; }
 interface StorySettings { bg: string; text: string; image: string; }
 interface EditorialColumn { text: string; image: string; }
 interface PhotosSettings { photo1: string; photo2: string; }
 
+const defaultHero: HeroSettings = { taglineFr: 'Crème glacée artisanale \net gelato méditerranéen,', taglineEn: 'Handcraft soft serve \nmediterranean gelato,' };
 const defaultAbout: AboutSettings = { bg: '#948c22', text: '<p>Handcraft soft serve mediterranean gelato, made with the heart and honesty.</p>', image: '' };
 const defaultStory: StorySettings = { bg: '#333112', text: '<p>This is the story of a lost heritage in a southern village…</p>', image: '' };
 const defaultEditorial: EditorialColumn[] = [
@@ -29,7 +34,8 @@ const defaultPhotos: PhotosSettings = { photo1: '', photo2: '' };
 
 export default function HomePageAdmin() {
   const toast = useToast();
-  const [activeSection, setActiveSection] = useState('about');
+  const [activeSection, setActiveSection] = useState('hero');
+  const [hero, setHero] = useState<HeroSettings>(defaultHero);
   const [about, setAbout] = useState<AboutSettings>(defaultAbout);
   const [story, setStory] = useState<StorySettings>(defaultStory);
   const [editorial, setEditorial] = useState<EditorialColumn[]>(defaultEditorial);
@@ -42,6 +48,7 @@ export default function HomePageAdmin() {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((data) => {
+        setHero({ ...defaultHero, ...data.home?.hero });
         setAbout({ ...defaultAbout, ...data.about });
         setStory({ ...defaultStory, ...data.home?.story });
         if (Array.isArray(data.home?.editorial)) {
@@ -72,7 +79,7 @@ export default function HomePageAdmin() {
   };
 
   const saveHome = (homePatch: object) => {
-    return save({ home: { story, editorial, photos, ...homePatch } });
+    return save({ home: { hero, story, editorial, photos, ...homePatch } });
   };
 
   const upload = async (file: File, onSuccess: (url: string) => void) => {
@@ -130,6 +137,29 @@ export default function HomePageAdmin() {
             <h1 className="text-3xl font-semibold text-gray-900">Home</h1>
             <p className="text-gray-600 mt-1">Edit content for the homepage</p>
           </div>
+
+          {/* Hero */}
+          {activeSection === 'hero' && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+              <h2 className="text-lg font-semibold text-gray-900">Hero Tagline</h2>
+              <p className="text-sm text-gray-500">The tagline displayed at the top of the homepage. Use \n for line breaks.</p>
+              <Textarea
+                label="🇫🇷 Français"
+                rows={2}
+                value={hero.taglineFr}
+                onChange={(v) => setHero((h) => ({ ...h, taglineFr: v }))}
+                placeholder={defaultHero.taglineFr}
+              />
+              <Textarea
+                label="🇬🇧 English"
+                rows={2}
+                value={hero.taglineEn}
+                onChange={(v) => setHero((h) => ({ ...h, taglineEn: v }))}
+                placeholder={defaultHero.taglineEn}
+              />
+              <Button type="button" variant="primary" isLoading={saving} isDisabled={saving} onClick={() => saveHome({ hero })}>Save</Button>
+            </div>
+          )}
 
           {/* About */}
           {activeSection === 'about' && (
