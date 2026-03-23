@@ -9,12 +9,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Auth.js v5 uses 'authjs' cookie prefix and different salt
+  // Auth.js v5 uses 'authjs' cookie prefix
+  // On HTTPS (production): __Secure-authjs.session-token
+  // On HTTP (localhost): authjs.session-token
+  const isSecure = request.url.startsWith('https');
+  const cookieName = isSecure
+    ? '__Secure-authjs.session-token'
+    : 'authjs.session-token';
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
-    salt: '__Secure-authjs.session-token',
-    cookieName: '__Secure-authjs.session-token',
+    salt: cookieName,
+    cookieName,
   });
 
   if (pathname === '/admin/login') {
