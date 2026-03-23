@@ -33,15 +33,23 @@ const getDatabaseUrl = (): string => {
 
 // Create PostgreSQL client
 const connectionString = getDatabaseUrl();
+// Strip channel_binding param — postgres.js doesn't support it (Neon adds it by default)
+const cleanedConnectionString = connectionString.replace(/[?&]channel_binding=[^&]*/g, '').replace(/\?&/, '?');
 
 // Configure connection based on environment
-const client = postgres(connectionString, {
+const client = postgres(cleanedConnectionString, {
   // In production (Vercel), use connection pooling
   max: isProduction ? 10 : 1,
   // Idle timeout
   idle_timeout: isProduction ? 20 : undefined,
   // Connection timeout
   connect_timeout: 10,
+  // Required for Neon serverless
+  ssl: isProduction ? 'require' : undefined,
+  // postgres.js doesn't support channel_binding param — strip unknown params
+  connection: {
+    application_name: 'rhubarbe',
+  },
 });
 
 // Create Drizzle instance with schema
