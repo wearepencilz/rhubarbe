@@ -35,6 +35,7 @@ interface VolumeProduct {
   slug: string;
   image: string | null;
   price: number | null;
+  shopifyProductId: string | null;
   volumeDescription: TranslationObject;
   volumeInstructions: TranslationObject;
   volumeMinOrderQuantity: number;
@@ -93,6 +94,7 @@ function formatDateHuman(dateStr: string, locale: string): string {
 interface CartGroup {
   productId: string;
   productName: string;
+  shopifyProductId: string | null;
   basePrice: number;
   variants: Array<{ variantId: string; variantLabel: string; quantity: number; shopifyVariantId: string; price: number }>;
   totalQty: number;
@@ -560,6 +562,7 @@ export default function VolumeOrderPageClient() {
         groups.push({
           productId: product.id,
           productName: product.name,
+          shopifyProductId: product.shopifyProductId ?? null,
           basePrice: product.price ?? 0,
           variants,
           totalQty: variants.reduce((s, v) => s + v.quantity, 0),
@@ -593,6 +596,7 @@ export default function VolumeOrderPageClient() {
       g.variants.map((v) => ({
         productId: g.productId,
         productName: g.productName,
+        shopifyProductId: g.shopifyProductId,
         variantId: v.variantId,
         variantLabel: v.variantLabel || g.productName,
         shopifyVariantId: v.shopifyVariantId,

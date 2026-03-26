@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
+import { getProductVariantId } from '@/lib/shopify/admin';
 
 interface VolumeCheckoutItem {
   productId: string;
   productName: string;
-  variantId: string;        // volume_variants.id
+  variantId: string;
   variantLabel: string;
   shopifyVariantId: string;
+  shopifyProductId?: string;
   quantity: number;
   price: number;
 }
@@ -53,7 +55,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Fulfillment date is required' }, { status: 400 });
     }
 
-    // Validate that every item has a Shopify variant ID
+    // Resolve Shopify variant IDs — look up default variant for items missing one
+    for (const item of items) {
+      if (!item.shopifyVariantId && item.shopifyProductId) {
+        const variantId = await getProductVariantId(item.shopifyProductId);
+        if (variantId) {
+          item.shopifyVariantId = variantId;
+        }
+      }
+    }
+
+    // Validate that every item now has a Shopify variant ID
     const unresolvableItems = items.filter((item) => !item.shopifyVariantId);
     if (unresolvableItems.length > 0) {
       const labels = unresolvableItems.map((i) => `${i.productName} — ${i.variantLabel}`);
