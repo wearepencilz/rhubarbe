@@ -54,6 +54,7 @@ export async function GET() {
     // Fetch Shopify prices for linked products
     const shopifyPriceMap = new Map<string, number>(); // shopifyProductId → price in cents
     const shopifyVariantPriceMap = new Map<string, number>(); // shopifyVariantId → price in cents
+    const shopifyVariantsMap = new Map<string, any[]>(); // shopifyProductId → display variants
     const shopifyProductIds = allProducts
       .filter((p) => p.shopifyProductId)
       .map((p) => p.shopifyProductId!);
@@ -95,6 +96,11 @@ export async function GET() {
             if (v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')) continue;
             shopifyVariantPriceMap.set(v.id, Math.round(parseFloat(v.price) * 100));
           }
+          // Store full variant list per product (excluding Tax=false) for enrichment
+          const displayVariants = variants.filter((v: any) =>
+            !v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')
+          );
+          shopifyVariantsMap.set(node.id, displayVariants);
         }
       } catch (err) {
         console.error('[Launches] Failed to fetch Shopify prices:', err);
@@ -144,14 +150,48 @@ export async function GET() {
           allergens: dbProduct?.allergens || [],
           serves: dbProduct?.serves || null,
           translations: dbProduct?.translations || null,
-          variantType: dbProduct?.variantType || 'none',
-          variants: (dbProduct?.variants || []).map((v: any) => ({
-            ...v,
-            // Override variant price with Shopify price if available
-            price: (v.shopifyVariantId && shopifyVariantPriceMap.has(v.shopifyVariantId))
-              ? shopifyVariantPriceMap.get(v.shopifyVariantId)!
-              : v.price,
-          })),
+          variantType: (() => {
+            if (dbProduct?.variantType && dbProduct.variantType !== 'none') return dbProduct.variantType;
+            // Auto-detect from Shopify variants
+            const shopifyVars = dbProduct?.shopifyProductId
+              ? shopifyVariantsMap.get(dbProduct.shopifyProductId) || []
+              : [];
+            return shopifyVars.length > 1 ? 'flavour' : 'none';
+          })(),
+          variants: (() => {
+            const cmsVariants = dbProduct?.variants || [];
+            // If CMS has variants with shopifyVariantIds, use them with Shopify prices
+            if (Array.isArray(cmsVariants) && cmsVariants.length > 0) {
+              return cmsVariants.map((v: any) => ({
+                ...v,
+                price: (v.shopifyVariantId && shopifyVariantPriceMap.has(v.shopifyVariantId))
+                  ? shopifyVariantPriceMap.get(v.shopifyVariantId)!
+                  : v.price,
+              }));
+            }
+            // If no CMS variants but Shopify has multiple variants, build from Shopify
+            const shopifyVars = dbProduct?.shopifyProductId
+              ? shopifyVariantsMap.get(dbProduct.shopifyProductId) || []
+              : [];
+            if (shopifyVars.length > 1) {
+              return shopifyVars.map((sv: any, idx: number) => {
+                // Build label from non-Tax, non-Title options
+                const options = (sv.selectedOptions || [])
+                  .filter((o: any) => o.name !== 'Tax' && o.name !== 'Title')
+                  .map((o: any) => o.value);
+                const label = options.join(' / ') || sv.title || `Variant ${idx + 1}`;
+                return {
+                  id: sv.id,
+                  label,
+                  price: Math.round(parseFloat(sv.price) * 100),
+                  shopifyVariantId: sv.id,
+                  available: true,
+                  sortOrder: idx,
+                };
+              });
+            }
+            return [];
+          })(),
         };
       });
 
