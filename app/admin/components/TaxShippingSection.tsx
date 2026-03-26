@@ -9,7 +9,6 @@ interface TaxShippingData {
   taxBehavior: string;
   taxThreshold: number;
   taxUnitCount: number;
-  pickupOnly: boolean;
 }
 
 interface Props {
@@ -111,15 +110,6 @@ export default function TaxShippingSection({ data, onChange, shopifyProductId }:
           </>
         )}
 
-        <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-          <input
-            type="checkbox"
-            checked={data.pickupOnly}
-            onChange={(e) => onChange({ pickupOnly: e.target.checked })}
-            className="rounded border-gray-300"
-          />
-          Pickup only
-        </label>
       </div>
     </div>
   );

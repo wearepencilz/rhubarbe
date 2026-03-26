@@ -650,7 +650,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               taxBehavior: formData.taxBehavior,
               taxThreshold: formData.taxThreshold,
               taxUnitCount: formData.taxUnitCount,
-              pickupOnly: formData.pickupOnly,
             }}
             onChange={(tax) => setFormData({ ...formData, ...tax })}
             shopifyProductId={formData.shopifyProductId || undefined}
