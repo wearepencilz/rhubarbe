@@ -1090,7 +1090,11 @@ export default function OrderPageClient() {
                           key={product.id}
                           product={product}
                           locale={locale}
-                          quantity={getQty(product.productId)}
+                          quantity={(() => {
+                            const cartKey = getCartKey(product.productId);
+                            const item = cart.find((i) => i.productId === cartKey);
+                            return item?.quantity || 0;
+                          })()}
                           maxQuantity={currentOrderingOpen ? getMaxForProduct(product.productId) : 0}
                           onAdd={() => addToCart(product)}
                           onRemove={() => {
@@ -1099,15 +1103,6 @@ export default function OrderPageClient() {
                             if (existing) {
                               if (existing.quantity <= 1) removeFromCart(cartKey);
                               else updateCartQty(cartKey, existing.quantity - 1);
-                            } else {
-                              // Selected variant not in cart — decrement the last variant of this product that is
-                              const fallback = [...cart].reverse().find(
-                                (i) => i.productId === product.productId || i.productId.startsWith(`${product.productId}::`)
-                              );
-                              if (fallback) {
-                                if (fallback.quantity <= 1) removeFromCart(fallback.productId);
-                                else updateCartQty(fallback.productId, fallback.quantity - 1);
-                              }
                             }
                           }}
                           selectedVariantId={selectedVariants[product.productId] || null}
