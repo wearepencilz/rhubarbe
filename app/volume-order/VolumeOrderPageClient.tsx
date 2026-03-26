@@ -279,7 +279,7 @@ function VolumeInlineCart({
   const minDateValue = toDateValue(earliestDateStr);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg sticky top-28">
+    <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
       <div className="px-5 py-4 border-b border-gray-100">
         <h2 className="text-xs uppercase tracking-widest text-gray-400"
           style={{ fontFamily: 'var(--font-diatype-mono)' }}>
@@ -297,7 +297,7 @@ function VolumeInlineCart({
       ) : (
         <>
           {/* Grouped line items */}
-          <div className="max-h-[30vh] overflow-y-auto">
+          <div className="max-h-[40vh] overflow-y-auto">
             {groups.map((group) => (
               <div key={group.productId} className="px-5 py-3 border-b border-gray-100 last:border-b-0">
                 <div className="flex items-start justify-between gap-2">

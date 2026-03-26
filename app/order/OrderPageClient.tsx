@@ -328,7 +328,7 @@ function InlineCart({
   const isFr = locale === 'fr';
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg sticky top-28">
+    <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
       <div className="px-5 py-4 border-b border-gray-100">
         <h2
           className="text-xs uppercase tracking-widest text-gray-400"
@@ -345,7 +345,7 @@ function InlineCart({
         </div>
       ) : (
         <>
-          <div className="divide-y divide-gray-100 max-h-[50vh] overflow-y-auto">
+          <div className="divide-y divide-gray-100 max-h-[40vh] overflow-y-auto">
             {items.map((item) => (
               <div key={item.productId} className="px-5 py-3 flex items-center gap-3">
                 {item.image && (
@@ -392,39 +392,48 @@ function InlineCart({
             ))}
           </div>
 
-          <div className="px-5 py-4 border-t border-gray-200 space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">{isFr ? 'Sous-total' : 'Subtotal'}</span>
-              <span className="font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                ${(subtotal / 100).toFixed(2)}
-              </span>
+          <div className="px-5 py-4 border-t border-gray-200 space-y-4">
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm font-semibold">
+                <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
+                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  ${(subtotal / 100).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>{isFr ? 'Articles' : 'Items'}</span>
+                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>{items.reduce((s, i) => s + i.quantity, 0)}</span>
+              </div>
             </div>
 
             {/* Pickup slot selector */}
             {pickupSlots.length > 0 && (
-              <div>
-                <label
-                  className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                >
-                  {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
-                </label>
-                <select
-                  value={selectedSlotId || ''}
-                  onChange={(e) => onSelectSlot(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
-                >
-                  <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
-                  {pickupSlots.map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.startTime} – {slot.endTime}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <>
+                <hr className="border-gray-200" />
+                <div>
+                  <label
+                    className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                  >
+                    {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
+                  </label>
+                  <select
+                    value={selectedSlotId || ''}
+                    onChange={(e) => onSelectSlot(e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
+                  >
+                    <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
+                    {pickupSlots.map((slot) => (
+                      <option key={slot.id} value={slot.id}>
+                        {slot.startTime} – {slot.endTime}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
 
-            <p className="text-xs text-gray-400">
+            <p className="text-[11px] text-gray-400">
               {isFr ? 'Taxes calculées à la caisse' : 'Taxes calculated at checkout'}
             </p>
 
