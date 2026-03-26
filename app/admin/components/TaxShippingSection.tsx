@@ -40,14 +40,14 @@ export default function TaxShippingSection({ data, onChange, shopifyProductId }:
       });
       const result = await res.json();
       if (!res.ok) {
-        setTaxOptionStatus(result.error || 'Failed to create Tax option');
+        setTaxOptionStatus(result.error || 'Failed');
       } else if (result.alreadyExists) {
-        setTaxOptionStatus('Tax option already exists on this product');
+        setTaxOptionStatus('Already exists');
       } else {
-        setTaxOptionStatus('Tax true/false variants created');
+        setTaxOptionStatus('Created');
       }
     } catch {
-      setTaxOptionStatus('Failed to create Tax option');
+      setTaxOptionStatus('Failed');
     } finally {
       setCreatingTaxOption(false);
     }
@@ -55,13 +55,12 @@ export default function TaxShippingSection({ data, onChange, shopifyProductId }:
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-3 border-b border-gray-200">
         <h2 className="text-sm font-semibold text-gray-900">Tax rules</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Quebec quantity-based tax behavior.</p>
       </div>
-      <div className="px-6 py-6 space-y-4">
+      <div className="px-6 py-4 space-y-3">
         <Select
-          label="Tax behavior"
+          label="Behavior"
           value={data.taxBehavior}
           onChange={(v) => onChange({ taxBehavior: v })}
           options={TAX_BEHAVIOR_OPTIONS}
@@ -69,26 +68,22 @@ export default function TaxShippingSection({ data, onChange, shopifyProductId }:
 
         {isThreshold && (
           <>
-            <Input
-              label="Tax threshold"
-              type="number"
-              value={String(data.taxThreshold)}
-              onChange={(v) => onChange({ taxThreshold: parseInt(v, 10) || 6 })}
-              helperText="Minimum units for tax exemption (default: 6)"
-            />
-            <Input
-              label="Units per item"
-              type="number"
-              value={String(data.taxUnitCount)}
-              onChange={(v) => onChange({ taxUnitCount: parseInt(v, 10) || 1 })}
-              helperText="How many units does 1 cart item represent? A box of 6 = 6"
-            />
-
-            {shopifyProductId ? (
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500">
-                  The checkout will automatically use the Tax=false variant when the threshold is met.
-                </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Threshold"
+                type="number"
+                value={String(data.taxThreshold)}
+                onChange={(v) => onChange({ taxThreshold: parseInt(v, 10) || 6 })}
+              />
+              <Input
+                label="Units/item"
+                type="number"
+                value={String(data.taxUnitCount)}
+                onChange={(v) => onChange({ taxUnitCount: parseInt(v, 10) || 1 })}
+              />
+            </div>
+            {shopifyProductId && (
+              <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -96,20 +91,17 @@ export default function TaxShippingSection({ data, onChange, shopifyProductId }:
                   isLoading={creatingTaxOption}
                   isDisabled={creatingTaxOption}
                 >
-                  Create Tax true/false variants
+                  Create tax variants
                 </Button>
                 {taxOptionStatus && (
-                  <p className={`text-xs ${taxOptionStatus.includes('Failed') ? 'text-red-600' : 'text-green-600'}`}>
+                  <span className={`text-xs ${taxOptionStatus === 'Failed' ? 'text-red-600' : 'text-green-600'}`}>
                     {taxOptionStatus}
-                  </p>
+                  </span>
                 )}
               </div>
-            ) : (
-              <p className="text-xs text-gray-400">Link a Shopify product first to set up tax variants.</p>
             )}
           </>
         )}
-
       </div>
     </div>
   );

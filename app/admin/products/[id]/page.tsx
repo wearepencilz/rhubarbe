@@ -565,6 +565,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                     <Button variant="danger" size="sm" onClick={() => setUnlinkConfirmOpen(true)}>Unlink</Button>
                   </div>
                 </div>
+                {!shopifyLinkBroken && (
+                  <ShopifyVariantsDisplay shopifyProductId={formData.shopifyProductId} />
+                )}
                 <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                   <p className="text-xs text-gray-500">{shopifyLinkBroken ? 'Unlink this product to re-enable Shopify sync.' : 'Changes sync to Shopify on save.'}</p>
                 </div>
@@ -603,12 +606,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             )}
           </div>
 
-          {/* Shopify variants (read-only) */}
-          {formData.shopifyProductId && (
-            <ShopifyVariantsDisplay shopifyProductId={formData.shopifyProductId} />
-          )}
-
-          {/* Tax & shipping */}
+          {/* Tax rules */}
           <TaxShippingSection
             data={{
               taxBehavior: formData.taxBehavior,

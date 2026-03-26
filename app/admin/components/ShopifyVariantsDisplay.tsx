@@ -31,7 +31,7 @@ export default function ShopifyVariantsDisplay({ shopifyProductId }: Props) {
           setVariants(data.variants || []);
         }
       } catch {
-        // Silently fail — informational only
+        // Silently fail
       } finally {
         setLoading(false);
       }
@@ -47,15 +47,9 @@ export default function ShopifyVariantsDisplay({ shopifyProductId }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-sm font-semibold text-gray-900">Shopify variants</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Synced from Shopify. Manage in Shopify Admin.</p>
-        </div>
-        <div className="px-6 py-4 flex items-center gap-2">
-          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
-          <p className="text-xs text-gray-500">Loading…</p>
-        </div>
+      <div className="px-6 py-2 flex items-center gap-2 border-t border-gray-100">
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
+        <p className="text-xs text-gray-500">Loading variants…</p>
       </div>
     );
   }
@@ -63,12 +57,11 @@ export default function ShopifyVariantsDisplay({ shopifyProductId }: Props) {
   if (displayVariants.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-sm font-semibold text-gray-900">Shopify variants</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Synced from Shopify. Manage in Shopify Admin.</p>
+    <div className="border-t border-gray-100">
+      <div className="px-6 py-2">
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Variants</p>
       </div>
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-gray-50">
         {displayVariants.map((v) => {
           const options = (v.selectedOptions || [])
             .filter((o) => o.name !== 'Tax' && o.name !== 'Title')
@@ -79,19 +72,15 @@ export default function ShopifyVariantsDisplay({ shopifyProductId }: Props) {
           const compareAt = v.compareAtPrice ? parseFloat(v.compareAtPrice).toFixed(2) : null;
 
           return (
-            <div key={v.id} className="px-6 py-3 flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-900 truncate">{options || v.title}</p>
-              </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">${price}</p>
-                  {compareAt && (
-                    <p className="text-xs text-gray-400 line-through">${compareAt}</p>
-                  )}
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${v.taxable ? 'bg-gray-100 text-gray-600' : 'bg-green-50 text-green-700'}`}>
-                  {v.taxable ? 'Taxable' : 'Exempt'}
+            <div key={v.id} className="px-6 py-1.5 flex items-center justify-between gap-2">
+              <p className="text-xs text-gray-700 truncate flex-1">{options || v.title}</p>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs text-gray-900">${price}</span>
+                {compareAt && (
+                  <span className="text-xs text-gray-400 line-through">${compareAt}</span>
+                )}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded ${v.taxable ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-600'}`}>
+                  {v.taxable ? 'Tax' : 'No tax'}
                 </span>
               </div>
             </div>
