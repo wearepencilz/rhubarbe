@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { shopifyAdminFetch } from '@/lib/shopify/admin';
+import { isTaxOption, TAX_OPTION_CREATE_NAME } from '@/lib/tax/constants';
 
 /**
  * POST /api/shopify/products/create-tax-option
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     const hasTaxOption = product.product.options.some(
-      (opt: { name: string }) => opt.name === 'Tax',
+      (opt: { name: string }) => isTaxOption(opt.name),
     );
 
     if (hasTaxOption) {
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
         variantStrategy: 'LEAVE_AS_IS',
         options: [
           {
-            name: 'Tax',
+            name: TAX_OPTION_CREATE_NAME,
             values: [{ name: 'true' }, { name: 'false' }],
           },
         ],
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     const exemptVariants = existingVariants.map((v: any) => {
       // Get all option values except "Tax", then add Tax=false
       const otherOptions = (v.selectedOptions || [])
-        .filter((o: any) => o.name !== 'Tax')
+        .filter((o: any) => !isTaxOption(o.name))
         .map((o: any) => ({ optionName: o.name, name: o.value }));
 
       return {
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
         taxable: false,
         optionValues: [
           ...otherOptions,
-          { optionName: 'Tax', name: 'false' },
+          { optionName: TAX_OPTION_CREATE_NAME, name: 'false' },
         ],
       };
     });

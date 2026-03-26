@@ -10,6 +10,7 @@
  */
 
 import { shopifyAdminFetch } from '@/lib/shopify/admin';
+import { isTaxOption } from './constants';
 
 interface ShopifyVariantNode {
   id: string;
@@ -75,7 +76,7 @@ export async function findExemptVariant(
 
   // Get the non-Tax options for matching
   const matchOptions = taxableVariant.selectedOptions
-    .filter((o) => o.name !== 'Tax')
+    .filter((o) => !isTaxOption(o.name))
     .map((o) => `${o.name}=${o.value}`);
 
   console.log(`[findExemptVariant] Looking for twin of ${taxableVariantId}, matchOptions: ${JSON.stringify(matchOptions)}`);
@@ -86,11 +87,11 @@ export async function findExemptVariant(
     if (v.id === taxableVariantId) return false;
 
     // Match by Tax option value, not the taxable boolean flag
-    const taxOption = v.selectedOptions.find((o) => o.name === 'Tax');
+    const taxOption = v.selectedOptions.find((o) => isTaxOption(o.name));
     if (!taxOption || taxOption.value !== 'false') return false;
 
     const otherOptions = v.selectedOptions
-      .filter((o) => o.name !== 'Tax')
+      .filter((o) => !isTaxOption(o.name))
       .map((o) => `${o.name}=${o.value}`);
 
     // Same non-Tax options

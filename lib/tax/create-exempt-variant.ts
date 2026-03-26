@@ -9,6 +9,7 @@
  */
 
 import { shopifyAdminFetch } from '@/lib/shopify/admin';
+import { isTaxOption, TAX_OPTION_CREATE_NAME } from './constants';
 
 export interface CreateExemptVariantResult {
   storefrontVariantId: string; // Storefront API GID for cart operations
@@ -51,7 +52,7 @@ export async function createTaxExemptVariant(
   }
 
   const hasTaxOption = product.product.options.some(
-    (opt: { name: string }) => opt.name === 'Tax',
+    (opt: { name: string }) => isTaxOption(opt.name),
   );
 
   if (hasTaxOption) {
@@ -89,7 +90,7 @@ export async function createTaxExemptVariant(
       variantStrategy: 'LEAVE_AS_IS',
       options: [
         {
-          name: 'Tax',
+          name: TAX_OPTION_CREATE_NAME,
           values: [{ name: 'true' }, { name: 'false' }],
         },
       ],
@@ -129,7 +130,7 @@ export async function createTaxExemptVariant(
         {
           price: currentPrice,
           taxable: false,
-          optionValues: [{ optionName: 'Tax', name: 'false' }],
+          optionValues: [{ optionName: TAX_OPTION_CREATE_NAME, name: 'false' }],
         },
       ],
     },

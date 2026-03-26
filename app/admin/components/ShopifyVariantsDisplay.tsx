@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { isTaxOption } from '@/lib/tax/constants';
 
 interface ShopifyVariant {
   id: string;
@@ -41,7 +42,7 @@ export default function ShopifyVariantsDisplay({ shopifyProductId }: Props) {
 
   // Show only "real" variants — filter out Tax=false duplicates
   const displayVariants = variants.filter((v) => {
-    const taxOption = v.selectedOptions?.find((o) => o.name === 'Tax');
+    const taxOption = v.selectedOptions?.find((o) => isTaxOption(o.name));
     return !taxOption || taxOption.value === 'true';
   });
 
@@ -64,7 +65,7 @@ export default function ShopifyVariantsDisplay({ shopifyProductId }: Props) {
       <div className="divide-y divide-gray-50">
         {displayVariants.map((v) => {
           const options = (v.selectedOptions || [])
-            .filter((o) => o.name !== 'Tax' && o.name !== 'Title')
+            .filter((o) => !isTaxOption(o.name) && o.name !== 'Title')
             .map((o) => o.value)
             .join(' / ');
 

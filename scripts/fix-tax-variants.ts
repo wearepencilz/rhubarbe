@@ -6,6 +6,7 @@
  */
 
 import { shopifyAdminFetch } from '../lib/shopify/admin';
+import { isTaxOption } from '../lib/tax/constants';
 
 async function main() {
   // Find all products with a "Tax" option
@@ -36,12 +37,12 @@ async function main() {
   const products = productsData.products.edges.map((e: any) => e.node);
 
   for (const product of products) {
-    const hasTaxOption = product.options.some((o: any) => o.name === 'Tax');
+    const hasTaxOption = product.options.some((o: any) => isTaxOption(o.name));
     if (!hasTaxOption) continue;
 
     const variants = product.variants.edges.map((e: any) => e.node);
     const toFix = variants.filter((v: any) => {
-      const taxOpt = v.selectedOptions.find((o: any) => o.name === 'Tax');
+      const taxOpt = v.selectedOptions.find((o: any) => isTaxOption(o.name));
       return taxOpt?.value === 'false' && v.taxable === true;
     });
 

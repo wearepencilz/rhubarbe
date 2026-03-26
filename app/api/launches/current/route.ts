@@ -4,6 +4,7 @@ import { launches, launchProducts, pickupLocations, products } from '@/lib/db/sc
 import { eq, asc, desc, and, or, gte, gt } from 'drizzle-orm';
 import { getByCategory } from '@/lib/db/queries/taxonomies';
 import { getInventoryLevels, shopifyAdminFetch } from '@/lib/shopify/admin';
+import { isTaxOption } from '@/lib/tax/constants';
 
 /**
  * GET /api/launches/current
@@ -85,7 +86,7 @@ export async function GET() {
           // Use the first non-Tax variant's price as the product price
           const variants = node.variants?.edges?.map((e: any) => e.node) || [];
           const taxableVariant = variants.find((v: any) =>
-            !v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')
+            !v.selectedOptions?.some((o: any) => isTaxOption(o.name) && o.value === 'false')
           ) || variants[0];
           if (taxableVariant?.price) {
             shopifyPriceMap.set(node.id, Math.round(parseFloat(taxableVariant.price) * 100));
@@ -93,12 +94,12 @@ export async function GET() {
           // Also store per-variant prices (keyed by Shopify variant GID)
           for (const v of variants) {
             // Skip Tax=false variants
-            if (v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')) continue;
+            if (v.selectedOptions?.some((o: any) => isTaxOption(o.name) && o.value === 'false')) continue;
             shopifyVariantPriceMap.set(v.id, Math.round(parseFloat(v.price) * 100));
           }
           // Store full variant list per product (excluding Tax=false) for enrichment
           const displayVariants = variants.filter((v: any) =>
-            !v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')
+            !v.selectedOptions?.some((o: any) => isTaxOption(o.name) && o.value === 'false')
           );
           shopifyVariantsMap.set(node.id, displayVariants);
         }
@@ -177,7 +178,7 @@ export async function GET() {
               return shopifyVars.map((sv: any, idx: number) => {
                 // Build label from non-Tax, non-Title options
                 const options = (sv.selectedOptions || [])
-                  .filter((o: any) => o.name !== 'Tax' && o.name !== 'Title')
+                  .filter((o: any) => !isTaxOption(o.name) && o.name !== 'Title')
                   .map((o: any) => o.value);
                 const label = options.join(' / ') || sv.title || `Variant ${idx + 1}`;
                 return {
