@@ -1,8 +1,8 @@
 /**
  * Creates a tax-exempt Shopify variant for Quebec tax law compliance.
  *
- * Adds a hidden "Tax" option, assigns the existing variant as "Taxable",
- * and creates a new "Exempt" variant with taxable: false at the same price.
+ * Adds a hidden "Tax" option, assigns the existing variant as "true" (taxable),
+ * and creates a new "false" (non-taxable) variant with taxable: false at the same price.
  *
  * The "Tax" option is internal — customers never see it because the
  * headless checkout picks the correct variant silently.
@@ -20,9 +20,9 @@ export interface CreateExemptVariantResult {
  *
  * Steps:
  * 1. Fetch the product to get current variant and check for existing "Tax" option
- * 2. Add "Tax" option with values ["Taxable", "Exempt"] via productOptionsCreate
- *    using LEAVE_AS_IS strategy (preserves the existing variant as "Taxable")
- * 3. Create the "Exempt" variant at the same price with taxable: false
+ * 2. Add "Tax" option with values ["true", "false"] via productOptionsCreate
+ *    using LEAVE_AS_IS strategy (preserves the existing variant as "true")
+ * 3. Create the "false" variant at the same price with taxable: false
  *    using DEFAULT strategy (keeps existing variants intact)
  * 4. Convert Admin GID → Storefront GID (base64-encoded)
  */
@@ -90,7 +90,7 @@ export async function createTaxExemptVariant(
       options: [
         {
           name: 'Tax',
-          values: [{ name: 'Taxable' }, { name: 'Exempt' }],
+          values: [{ name: 'true' }, { name: 'false' }],
         },
       ],
     },
@@ -129,7 +129,7 @@ export async function createTaxExemptVariant(
         {
           price: currentPrice,
           taxable: false,
-          optionValues: [{ optionName: 'Tax', name: 'Exempt' }],
+          optionValues: [{ optionName: 'Tax', name: 'false' }],
         },
       ],
     },
