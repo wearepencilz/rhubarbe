@@ -78,6 +78,9 @@ export async function findExemptVariant(
     .filter((o) => o.name !== 'Tax')
     .map((o) => `${o.name}=${o.value}`);
 
+  console.log(`[findExemptVariant] Looking for twin of ${taxableVariantId}, matchOptions: ${JSON.stringify(matchOptions)}`);
+  console.log(`[findExemptVariant] All variants: ${JSON.stringify(variants.map(v => ({ id: v.id, opts: v.selectedOptions })))}`);
+
   // Find the variant with same options but Tax = "false"
   const exemptVariant = variants.find((v) => {
     if (v.id === taxableVariantId) return false;
