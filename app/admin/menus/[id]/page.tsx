@@ -495,25 +495,26 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       onSave={handleSave}
       onCancel={() => router.push('/admin/menus')}
       saving={saving}
-      maxWidth="4xl"
+      maxWidth="7xl"
     >
-      <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-6">
 
-        {/* Duplicate button (only on existing menus) */}
+        {/* LEFT COLUMN */}
+        <div className="col-span-2 space-y-5">
+
+        {/* Duplicate button — only for existing menus */}
         {!isNew && (
-          <div className="flex justify-end -mt-2 mb-2">
-            <button
-              type="button"
-              onClick={handleDuplicate}
-              disabled={duplicating}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              {duplicating ? 'Duplicating…' : 'Duplicate menu'}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleDuplicate}
+            disabled={duplicating}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            {duplicating ? 'Duplicating…' : 'Duplicate menu'}
+          </button>
         )}
 
         {/* Section 1: Menu Details — side-by-side translations */}
@@ -620,40 +621,25 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Status */}
-        <SectionCard title="Status">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => set({ status: e.target.value as FormData['status'] })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
-              aria-label="Menu status"
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-        </SectionCard>
-
         {/* Section 2: Ordering Window */}
         <SectionCard title="Ordering Window" description="When customers can place orders.">
-          <AdminDateTimeField
-            label="Order Opens"
-            value={form.orderOpens}
-            onChange={(v) => set({ orderOpens: v })}
-            errorMessage={errors.orderOpens}
-            isRequired
-          />
-          <AdminDateTimeField
-            label="Order Closes"
-            value={form.orderCloses}
-            onChange={(v) => set({ orderCloses: v })}
-            description="Orders will be rejected after this time"
-            errorMessage={errors.orderCloses}
-            isRequired
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <AdminDateTimeField
+              label="Order Opens"
+              value={form.orderOpens}
+              onChange={(v) => set({ orderOpens: v })}
+              errorMessage={errors.orderOpens}
+              isRequired
+            />
+            <AdminDateTimeField
+              label="Order Closes"
+              value={form.orderCloses}
+              onChange={(v) => set({ orderCloses: v })}
+              description="Orders will be rejected after this time"
+              errorMessage={errors.orderCloses}
+              isRequired
+            />
+          </div>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -670,33 +656,31 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           </label>
         </SectionCard>
 
-        {/* Section 3: Pickup */}
+        {/* Section 3: Pickup (combined date/location + slots) */}
         <SectionCard title="Pickup" description="Pickup date, location, and time slots.">
-          <AdminDateField
-            label="Pickup Date"
-            value={form.pickupDate}
-            onChange={(v) => set({ pickupDate: v })}
-            errorMessage={errors.pickupDate}
-            isRequired
-          />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
-            <select
-              value={form.pickupLocationId}
-              onChange={(e) => set({ pickupLocationId: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
-              aria-label="Pickup location"
-            >
-              <option value="">— Select location —</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>{loc.internalName}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <AdminDateField
+              label="Pickup Date"
+              value={form.pickupDate}
+              onChange={(v) => set({ pickupDate: v })}
+              errorMessage={errors.pickupDate}
+              isRequired
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+              <select
+                value={form.pickupLocationId}
+                onChange={(e) => set({ pickupLocationId: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                aria-label="Pickup location"
+              >
+                <option value="">— Select location —</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>{loc.internalName}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </SectionCard>
-
-        {/* Section 4: Pickup Slots */}
-        <SectionCard title="Pickup Slots" description="Generate time slots for customer pickup.">
           <div className="grid grid-cols-3 gap-4">
             <AdminTimeField
               label="Start Time"
@@ -767,7 +751,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           )}
         </SectionCard>
 
-        {/* Section 5: Products in this Menu */}
+        {/* Section 4: Products in this Menu */}
         <SectionCard title="Products in this Menu" description="Add products and set per-menu overrides.">
           {/* Product quick-add */}
           <ProductPicker
@@ -858,7 +842,31 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           )}
         </SectionCard>
 
-      </div>
+        </div>{/* end left column */}
+
+        {/* RIGHT COLUMN */}
+        <div className="col-span-1 space-y-5">
+          {/* Status card */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-3 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Status</h2>
+            </div>
+            <div className="px-6 py-4">
+              <select
+                value={form.status}
+                onChange={(e) => set({ status: e.target.value as FormData['status'] })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                aria-label="Menu status"
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+        </div>{/* end right column */}
+
+      </div>{/* end grid */}
     </EditPageLayout>
   );
 }
