@@ -16,6 +16,7 @@ const SECTIONS: { key: string; label: string; nested?: { key: string; label: str
   { key: 'cart', label: 'Cart / Panier' },
   { key: 'product', label: 'Product' },
   { key: 'order', label: 'Order' },
+  { key: 'volumeOrder', label: 'Volume Order' },
   { key: 'flavours', label: 'Flavours' },
   { key: 'stories', label: 'Stories' },
   { key: 'availability', label: 'Availability' },

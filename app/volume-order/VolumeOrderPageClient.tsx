@@ -103,13 +103,14 @@ interface CartGroup {
 // ── Product Card ──
 
 function VolumeProductCard({
-  product, locale, cart, onQuantityChange, brandColor,
+  product, locale, cart, onQuantityChange, brandColor, V,
 }: {
   product: VolumeProduct;
   locale: string;
   cart: Map<string, number>;
   onQuantityChange: (variantId: string, quantity: number) => void;
   brandColor: string;
+  V: Record<string, string>;
 }) {
   const isFr = locale === 'fr';
   const description = tr(product.volumeDescription, locale);
@@ -180,7 +181,7 @@ function VolumeProductCard({
             <div className="flex items-center justify-between gap-2">
               <label htmlFor={`qty-${product.id}`} className="text-xs text-gray-600"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {isFr ? 'Quantité' : 'Quantity'}
+                {V.quantity}
               </label>
               <input id={`qty-${product.id}`} type="number" min={0}
                 value={(cart.get(product.id) ?? 0) || ''}
@@ -195,7 +196,7 @@ function VolumeProductCard({
         {/* Minimum order */}
         <p className="text-[11px] uppercase tracking-wider text-gray-400 mt-2"
           style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-          {isFr ? 'Minimum' : 'Minimum'}: {product.volumeMinOrderQuantity}
+          {V.minimum}: {product.volumeMinOrderQuantity}
         </p>
 
         {/* Lead time tiers */}
@@ -203,7 +204,7 @@ function VolumeProductCard({
           <div className="mt-1.5">
             <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-0.5"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {isFr ? 'Délai selon quantité' : 'Lead time by quantity'}
+              {V.leadTimeTitle}
             </p>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5">
               {product.leadTimeTiers
@@ -252,7 +253,7 @@ function VolumeInlineCart({
   onDateChange, onTimeChange,
   onFulfillmentTypeChange, onAllergenNoteChange,
   onCheckout, checkoutLoading, checkoutError,
-  locale, hasMinViolation,
+  locale, hasMinViolation, V,
 }: {
   groups: CartGroup[];
   totalQuantity: number;
@@ -273,6 +274,7 @@ function VolumeInlineCart({
   checkoutError: string | null;
   locale: string;
   hasMinViolation: boolean;
+  V: Record<string, string>;
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
@@ -282,15 +284,15 @@ function VolumeInlineCart({
       <div className="px-5 py-4 border-b border-gray-100">
         <h2 className="text-xs uppercase tracking-widest text-gray-400"
           style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-          {isFr ? 'Votre commande' : 'Your order'}
+          {V.yourOrder}
         </h2>
       </div>
 
       {totalQuantity === 0 ? (
         <div className="px-5 py-8 text-center">
-          <p className="text-sm text-gray-400">{isFr ? 'Aucun article' : 'No items yet'}</p>
+          <p className="text-sm text-gray-400">{V.noItems}</p>
           <p className="text-xs text-gray-300 mt-1">
-            {isFr ? 'Ajustez les quantités pour commencer' : 'Adjust quantities to get started'}
+            {V.startHint}
           </p>
         </div>
       ) : (
@@ -341,17 +343,17 @@ function VolumeInlineCart({
             {/* Totals */}
             <div className="space-y-1">
               <div className="flex justify-between text-sm font-semibold">
-                <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
+                <span>{V.estTotal}</span>
                 <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                   {subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '—'}
                 </span>
               </div>
               <div className="flex justify-between text-xs text-gray-400">
-                <span>{isFr ? 'Articles' : 'Items'}</span>
+                <span>{V.items}</span>
                 <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>{totalQuantity}</span>
               </div>
               <p className="text-[11px] text-gray-400">
-                {isFr ? 'Taxes calculées à la caisse' : 'Taxes calculated at checkout'}
+                {V.taxNote}
               </p>
             </div>
 
@@ -360,7 +362,7 @@ function VolumeInlineCart({
             {/* Pickup / Delivery toggle */}
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
-                {isFr ? 'Mode de réception' : 'Fulfillment'}
+                {V.fulfillment}
               </p>
               <div className="flex rounded overflow-hidden border border-gray-300">
                 {(['pickup', 'delivery'] as const).map((type) => (
@@ -372,9 +374,7 @@ function VolumeInlineCart({
                         : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                     style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {type === 'pickup'
-                      ? (isFr ? 'Cueillette' : 'Pickup')
-                      : (isFr ? 'Livraison' : 'Delivery')}
+                    {type === 'pickup' ? V.pickup : V.delivery}
                   </button>
                 ))}
               </div>
@@ -384,7 +384,7 @@ function VolumeInlineCart({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <DatePickerField
-                  label={isFr ? 'Date' : 'Date'}
+                  label={V.date}
                   value={toDateValue(fulfillmentDate)}
                   minValue={minDateValue ?? today(getLocalTimeZone())}
                   onChange={(val: DateValue | null) => {
@@ -401,7 +401,7 @@ function VolumeInlineCart({
               </div>
               <div>
                 <TimeField
-                  label={isFr ? 'Heure' : 'Time'}
+                  label={V.time}
                   value={fulfillmentTime ? { hour: parseInt(fulfillmentTime.split(':')[0], 10), minute: parseInt(fulfillmentTime.split(':')[1], 10) } as unknown as TimeValue : null}
                   onChange={(val: TimeValue | null) => {
                     if (val) {
@@ -419,7 +419,7 @@ function VolumeInlineCart({
             {maxLeadTimeDays > 0 && (
               <p className="text-[11px] text-gray-400 -mt-2"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {isFr ? 'Dès le' : 'Earliest'}{' '}
+                {V.earliest}{' '}
                 <span className="text-gray-600">{formatDateHuman(earliestDateStr, locale)}</span>
                 {' '}({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
               </p>
@@ -431,20 +431,18 @@ function VolumeInlineCart({
             {/* Allergen note */}
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 uppercase tracking-wide">
-                {isFr ? 'Note allergènes' : 'Allergen note'}
+                {V.allergenNote}
               </label>
               <textarea value={allergenNote}
                 onChange={(e) => onAllergenNoteChange(e.target.value)}
                 rows={2}
                 className="w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
-                placeholder={isFr ? 'Ex. : Sans arachides…' : 'E.g. No peanuts…'} />
+                placeholder={V.allergenPlaceholder} />
             </div>
 
             {hasMinViolation && (
               <p className="text-xs text-amber-600">
-                {isFr
-                  ? 'Certains produits n\'atteignent pas le minimum requis'
-                  : 'Some products are below minimum order quantity'}
+                {V.minWarning}
               </p>
             )}
 
@@ -457,8 +455,8 @@ function VolumeInlineCart({
               className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
               {checkoutLoading
-                ? (isFr ? 'Chargement…' : 'Loading…')
-                : (isFr ? 'Passer à la caisse' : 'Checkout')}
+                ? V.loading
+                : V.checkout}
             </button>
           </div>
         </>
@@ -470,8 +468,9 @@ function VolumeInlineCart({
 // ── Main Page Component ──
 
 export default function VolumeOrderPageClient() {
-  const { locale } = useT();
+  const { T, locale } = useT();
   const isFr = locale === 'fr';
+  const V = T.volumeOrder;
   const { setVolumeCount } = useOrderItems();
 
   const [products, setProducts] = useState<VolumeProduct[]>([]);
@@ -638,14 +637,14 @@ export default function VolumeOrderPageClient() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setCheckoutError(data.error || (isFr ? 'Erreur. Réessayez.' : 'Error. Please retry.'));
+        setCheckoutError(data.error || V.checkoutError);
         return;
       }
       // Clear persisted cart before redirect
       try { localStorage.removeItem('rhubarbe:volume:cart'); } catch {}
       window.location.href = data.checkoutUrl;
     } catch {
-      setCheckoutError(isFr ? 'Erreur. Réessayez.' : 'Error. Please retry.');
+      setCheckoutError(V.checkoutError);
     } finally {
       setCheckoutLoading(false);
     }
@@ -655,7 +654,7 @@ export default function VolumeOrderPageClient() {
     fetch('/api/storefront/volume-products')
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: VolumeProduct[]) => setProducts(data))
-      .catch(() => setError(isFr ? 'Impossible de charger les produits.' : 'Unable to load products.'))
+      .catch(() => setError(V.loadError))
       .finally(() => setLoading(false));
   }, [isFr]);
 
@@ -666,12 +665,10 @@ export default function VolumeOrderPageClient() {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl uppercase tracking-widest mb-2"
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
-            {isFr ? 'Commande en volume' : 'Volume Order'}
+            {V.title}
           </h1>
           <p className="text-sm text-gray-500 mb-10 max-w-xl">
-            {isFr
-              ? 'Ajustez les quantités directement — votre commande se met à jour automatiquement.'
-              : 'Adjust quantities directly — your order updates automatically.'}
+            {V.subtitle}
           </p>
 
           {loading && (
@@ -683,7 +680,7 @@ export default function VolumeOrderPageClient() {
           {!loading && !error && products.length === 0 && (
             <div className="text-center py-20">
               <p className="text-sm text-gray-400">
-                {isFr ? 'Aucun produit disponible.' : 'No products available.'}
+                {V.noProducts}
               </p>
             </div>
           )}
@@ -691,7 +688,7 @@ export default function VolumeOrderPageClient() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-10">
               {products.map((product) => (
                 <VolumeProductCard key={product.id} product={product} locale={locale}
-                  cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} />
+                  cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
               ))}
             </div>
           )}
@@ -711,6 +708,7 @@ export default function VolumeOrderPageClient() {
             onCheckout={handleCheckout} checkoutLoading={checkoutLoading}
             checkoutError={checkoutError} locale={locale}
             hasMinViolation={hasMinViolation}
+            V={V}
           />
         </div>
       </div>
@@ -722,7 +720,7 @@ export default function VolumeOrderPageClient() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {totalQuantity} {isFr ? 'articles' : 'items'}
+                {totalQuantity} {V.items}
                 {subtotal > 0 && ` · $${(subtotal / 100).toFixed(2)}`}
               </p>
             </div>
@@ -730,7 +728,7 @@ export default function VolumeOrderPageClient() {
               disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation}
               className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {checkoutLoading ? (isFr ? '…' : '…') : (isFr ? 'Caisse' : 'Checkout')}
+              {checkoutLoading ? '…' : V.mobileCheckout}
             </button>
           </div>
         </div>

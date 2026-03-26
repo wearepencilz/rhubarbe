@@ -45,6 +45,34 @@ const fr = {
     daysLeft: (n: number) => `${n}j restants`,
     timeLeft: (h: number, m: number) => `${h}h ${m}m restants`,
   },
+  volumeOrder: {
+    title: 'Commande en volume',
+    subtitle: 'Ajustez les quantités directement — votre commande se met à jour automatiquement.',
+    quantity: 'Quantité',
+    minimum: 'Minimum',
+    leadTimeTitle: 'Délai selon quantité',
+    yourOrder: 'Votre commande',
+    noItems: 'Aucun article',
+    startHint: 'Ajustez les quantités pour commencer',
+    estTotal: 'Total estimé',
+    items: 'Articles',
+    taxNote: 'Taxes calculées à la caisse',
+    fulfillment: 'Mode de réception',
+    pickup: 'Cueillette',
+    delivery: 'Livraison',
+    date: 'Date',
+    time: 'Heure',
+    earliest: 'Dès le',
+    allergenNote: 'Note allergènes',
+    allergenPlaceholder: 'Ex. : Sans arachides…',
+    checkout: 'Passer à la caisse',
+    loading: 'Chargement…',
+    minWarning: 'Certains produits n\'atteignent pas le minimum requis',
+    noProducts: 'Aucun produit disponible.',
+    loadError: 'Impossible de charger les produits.',
+    checkoutError: 'Erreur. Réessayez.',
+    mobileCheckout: 'Caisse',
+  },
   flavours: {
     title: '[SAVEURS]',
     ingredients: '[INGRÉDIENTS]',
@@ -165,6 +193,7 @@ export type Translations = {
   cart: { open: string; openWithItems: (n: number) => string; title: string; close: string; empty: string; remove: string; subtotal: string; checkout: string; taxNote: string };
   product: { addToCart: string; adding: string; soldOut: string; preorder: string; quantity: string; inStock: string; noImage: string; orderComingSoon: string; serves: (n: string) => string };
   order: { title: string; preordersOnly: string; pickup: string; sweet: string; savory: string; other: string; pickupLabel: string; orderEnded: string; ended: string; daysLeft: (n: number) => string; timeLeft: (h: number, m: number) => string };
+  volumeOrder: { title: string; subtitle: string; quantity: string; minimum: string; leadTimeTitle: string; yourOrder: string; noItems: string; startHint: string; estTotal: string; items: string; taxNote: string; fulfillment: string; pickup: string; delivery: string; date: string; time: string; earliest: string; allergenNote: string; allergenPlaceholder: string; checkout: string; loading: string; minWarning: string; noProducts: string; loadError: string; checkoutError: string; mobileCheckout: string };
   flavours: { title: string; ingredients: string; ingredientsLabel: string };
   stories: { read: string; moreStories: string; nothingYet: string; wordBy: (name: string) => string };
   availability: { inStock: string; preorder: string; soldOut: string; ships: (date: string) => string; loading: string; unavailableInfo: string; notAvailable: string; available: string; orderBy: string; pickupDate: string; pickupLocation: string; timeSlot: string; quantity: string; decreaseQty: string; increaseQty: string; multiples: (n: number) => string };
