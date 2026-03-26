@@ -1,8 +1,11 @@
 /**
  * Creates a tax-exempt Shopify variant for Quebec tax law compliance.
  *
- * Adds a "Tax Mode" option with "Standard" / "Exempt" values, creates the
- * exempt variant at the same price, and disables tax collection on it.
+ * Adds a hidden "Tax" option, assigns the existing variant as "Taxable",
+ * and creates a new "Exempt" variant with taxable: false at the same price.
+ *
+ * The "Tax" option is internal — customers never see it because the
+ * headless checkout picks the correct variant silently.
  */
 
 import { shopifyAdminFetch } from '@/lib/shopify/admin';
@@ -16,32 +19,26 @@ export interface CreateExemptVariantResult {
  * Creates a tax-exempt variant on an existing Shopify product.
  *
  * Steps:
- * 1. Fetch the product to get its current price and check for existing "Tax Mode" option
- * 2. Add "Tax Mode" option with values ["Standard", "Exempt"] via productOptionsCreate
- * 3. Create "Exempt" variant at the same price via productVariantsBulkCreate
- * 4. Set taxable: false on the new variant via productVariantUpdate
- * 5. Convert Admin GID → Storefront GID (base64-encoded)
+ * 1. Fetch the product to get current variant and check for existing "Tax" option
+ * 2. Add "Tax" option with values ["Taxable", "Exempt"] via productOptionsCreate
+ *    using LEAVE_AS_IS strategy (preserves the existing variant as "Taxable")
+ * 3. Create the "Exempt" variant at the same price with taxable: false
+ *    using DEFAULT strategy (keeps existing variants intact)
+ * 4. Convert Admin GID → Storefront GID (base64-encoded)
  */
 export async function createTaxExemptVariant(
   shopifyProductId: string,
   currentPrice: string,
 ): Promise<CreateExemptVariantResult> {
-  // Step 1: Fetch product to verify state and check for existing "Tax Mode" option
+  // Step 1: Fetch product to verify state
   const product = await shopifyAdminFetch(
     `query getProduct($id: ID!) {
       product(id: $id) {
         id
-        options {
-          id
-          name
-          values
-        }
-        variants(first: 1) {
+        options { id name values }
+        variants(first: 10) {
           edges {
-            node {
-              id
-              price
-            }
+            node { id price taxable }
           }
         }
       }
@@ -53,17 +50,19 @@ export async function createTaxExemptVariant(
     throw new Error(`Product not found: ${shopifyProductId}`);
   }
 
-  const hasTaxModeOption = product.product.options.some(
-    (opt: { name: string }) => opt.name === 'Tax Mode',
+  const hasTaxOption = product.product.options.some(
+    (opt: { name: string }) => opt.name === 'Tax',
   );
 
-  if (hasTaxModeOption) {
+  if (hasTaxOption) {
     throw new Error(
-      `Product ${shopifyProductId} already has a "Tax Mode" option`,
+      `Product ${shopifyProductId} already has a "Tax" option. Exempt variant may already exist.`,
     );
   }
 
-  // Step 2: Add "Tax Mode" option with LEAVE_AS_IS strategy
+  // Step 2: Add "Tax" option with LEAVE_AS_IS strategy
+  // This assigns the existing variant(s) to the first value ("Taxable")
+  // without creating any new variants
   const optionData = await shopifyAdminFetch(
     `mutation productOptionsCreate(
       $productId: ID!,
@@ -78,6 +77,9 @@ export async function createTaxExemptVariant(
         product {
           id
           options { id name values }
+          variants(first: 10) {
+            edges { node { id title selectedOptions { name value } } }
+          }
         }
         userErrors { field message }
       }
@@ -87,8 +89,8 @@ export async function createTaxExemptVariant(
       variantStrategy: 'LEAVE_AS_IS',
       options: [
         {
-          name: 'Tax Mode',
-          values: [{ name: 'Standard' }, { name: 'Exempt' }],
+          name: 'Tax',
+          values: [{ name: 'Taxable' }, { name: 'Exempt' }],
         },
       ],
     },
@@ -96,26 +98,26 @@ export async function createTaxExemptVariant(
 
   if (optionData.productOptionsCreate.userErrors.length > 0) {
     throw new Error(
-      `Failed to create Tax Mode option: ${JSON.stringify(optionData.productOptionsCreate.userErrors)}`,
+      `Failed to create Tax option: ${JSON.stringify(optionData.productOptionsCreate.userErrors)}`,
     );
   }
 
-  // Step 3: Create "Exempt" variant at the same price
+  // Step 3: Create "Exempt" variant with taxable: false directly
+  // Using DEFAULT strategy to keep existing variants intact
   const bulkCreateData = await shopifyAdminFetch(
     `mutation productVariantsBulkCreate(
       $productId: ID!,
-      $variants: [ProductVariantsBulkInput!]!,
-      $strategy: ProductVariantsBulkCreateStrategy
+      $variants: [ProductVariantsBulkInput!]!
     ) {
       productVariantsBulkCreate(
         productId: $productId,
-        variants: $variants,
-        strategy: $strategy
+        variants: $variants
       ) {
         productVariants {
           id
           title
           price
+          taxable
           selectedOptions { name value }
         }
         userErrors { field message }
@@ -123,11 +125,11 @@ export async function createTaxExemptVariant(
     }`,
     {
       productId: shopifyProductId,
-      strategy: 'REMOVE_STANDALONE_VARIANT',
       variants: [
         {
           price: currentPrice,
-          optionValues: [{ optionName: 'Tax Mode', name: 'Exempt' }],
+          taxable: false,
+          optionValues: [{ optionName: 'Tax', name: 'Exempt' }],
         },
       ],
     },
@@ -147,34 +149,7 @@ export async function createTaxExemptVariant(
 
   const adminVariantId = createdVariants[0].id;
 
-  // Step 4: Set taxable: false on the new variant
-  const updateData = await shopifyAdminFetch(
-    `mutation productVariantUpdate($input: ProductVariantInput!) {
-      productVariantUpdate(input: $input) {
-        productVariant {
-          id
-          taxable
-        }
-        userErrors { field message }
-      }
-    }`,
-    {
-      input: {
-        id: adminVariantId,
-        taxable: false,
-      },
-    },
-  );
-
-  if (updateData.productVariantUpdate.userErrors.length > 0) {
-    throw new Error(
-      `Failed to set taxable=false: ${JSON.stringify(updateData.productVariantUpdate.userErrors)}`,
-    );
-  }
-
-  // Step 5: Convert Admin GID to Storefront GID
-  // Admin GID format: gid://shopify/ProductVariant/12345
-  // Storefront GID: base64 encode the same string
+  // Step 4: Convert Admin GID to Storefront GID
   const storefrontVariantId = Buffer.from(adminVariantId).toString('base64');
 
   return {
