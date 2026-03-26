@@ -27,6 +27,7 @@ export async function GET(
                 id
                 title
                 price
+                compareAtPrice
                 taxable
                 selectedOptions { name value }
               }

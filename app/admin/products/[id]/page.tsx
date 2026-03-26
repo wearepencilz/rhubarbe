@@ -436,30 +436,11 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 description="Used to group products on the order page"
                 placeholder="Select a category"
               />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-                  {formData.shopifyProductId ? (
-                    <>
-                      <p className="text-sm text-gray-900 py-2">{formData.price ? `$${parseFloat(formData.price).toFixed(2)}` : '—'}</p>
-                      <p className="text-xs text-gray-400">Managed in Shopify</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-400 py-2">$10.00 default — update in Shopify after linking</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Compare at price ($)</label>
-                  {formData.shopifyProductId ? (
-                    <>
-                      <p className="text-sm text-gray-900 py-2">{formData.compareAtPrice ? `$${parseFloat(formData.compareAtPrice).toFixed(2)}` : '—'}</p>
-                      <p className="text-xs text-gray-400">Managed in Shopify</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-400 py-2">—</p>
-                  )}
-                </div>
-              </div>
+              {formData.shopifyProductId ? (
+                <p className="text-xs text-gray-400">Pricing managed in Shopify — see variants below.</p>
+              ) : (
+                <p className="text-xs text-gray-400">Products are created with a $10 default price. Update pricing in Shopify after linking.</p>
+              )}
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
               <div className="flex items-center gap-6 pt-1">
                 <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
@@ -604,22 +585,22 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                     <p className="text-xs text-gray-500">Verifying Shopify link…</p>
                   </div>
                 )}
-                <div className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="px-6 py-4 flex items-center justify-between gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${shopifyLinkBroken ? 'bg-red-100' : 'bg-gray-100'}`}>
                       <svg className={`w-5 h-5 ${shopifyLinkBroken ? 'text-red-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     </div>
-                    <div>
-                      <p className={`text-sm font-medium font-mono ${shopifyLinkBroken ? 'text-red-700 line-through' : 'text-gray-900'}`}>{formData.shopifyProductHandle}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">ID: {formData.shopifyProductId}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium font-mono truncate ${shopifyLinkBroken ? 'text-red-700 line-through' : 'text-gray-900'}`}>{formData.shopifyProductHandle}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">ID: {formData.shopifyProductId}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {formData.shopifyProductHandle && !shopifyLinkBroken && (
                       <a href={`${shopifyAdminBase}/products/${formData.shopifyProductHandle}`} target="_blank" rel="noopener noreferrer">
-                        <Button variant="secondary" size="sm">View in Shopify</Button>
+                        <Button variant="secondary" size="sm">View</Button>
                       </a>
                     )}
                     <Button variant="danger" size="sm" onClick={() => setUnlinkConfirmOpen(true)}>Unlink</Button>
