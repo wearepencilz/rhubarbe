@@ -53,7 +53,7 @@ export default function EditPageLayout({
     <div className={maxWidthClass}>
       {/* Unsaved changes bar */}
       {isDirty && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 bg-gray-900 px-6 py-3 lg:left-64">
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 bg-gray-900 px-6 py-3 lg:left-[240px]">
           <p className="text-sm text-white">Unsaved changes</p>
           <div className="flex items-center gap-3">
             <button
@@ -76,6 +76,9 @@ export default function EditPageLayout({
           </div>
         </div>
       )}
+
+      {/* Spacer when unsaved bar is visible */}
+      {isDirty && <div className="h-12" />}
 
       {/* Header */}
       <div className="mb-6">
