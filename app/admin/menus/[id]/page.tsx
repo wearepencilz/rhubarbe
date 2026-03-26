@@ -671,7 +671,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
               <select
                 value={form.pickupLocationId}
                 onChange={(e) => set({ pickupLocationId: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                 aria-label="Pickup location"
               >
                 <option value="">— Select location —</option>
@@ -855,7 +855,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
               <select
                 value={form.status}
                 onChange={(e) => set({ status: e.target.value as FormData['status'] })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                 aria-label="Menu status"
               >
                 <option value="draft">Draft</option>

@@ -277,7 +277,7 @@ export default function UsersPage() {
             <Field label="Email"><TextInput value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" placeholder="email@example.com" /></Field>
             <Field label="Password"><TextInput value={form.password} onChange={(v) => setForm({ ...form, password: v })} type="password" placeholder="Min. 6 characters" autoComplete="new-password" /></Field>
             <Field label="Role">
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 {ROLES.filter((r) => r.value !== 'super_admin' || sessionRole === 'super_admin').map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
@@ -300,7 +300,7 @@ export default function UsersPage() {
             <Field label="Username"><TextInput value={form.username} onChange={(v) => setForm({ ...form, username: v })} placeholder="username" autoComplete="off" /></Field>
             <Field label="Email"><TextInput value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" placeholder="email@example.com" /></Field>
             <Field label="Role">
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={modal.user.id === sessionId}>
+              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={modal.user.id === sessionId}>
                 {ROLES.filter((r) => r.value !== 'super_admin' || sessionRole === 'super_admin').map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
@@ -308,7 +308,7 @@ export default function UsersPage() {
               {modal.user.id === sessionId && <p className="text-xs text-gray-400 mt-1">You cannot change your own role.</p>}
             </Field>
             <Field label="Status">
-              <select value={String(editActive)} onChange={(e) => setEditActive(e.target.value === 'true')} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={modal.user.id === sessionId}>
+              <select value={String(editActive)} onChange={(e) => setEditActive(e.target.value === 'true')} className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={modal.user.id === sessionId}>
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
