@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client';
 import { launches, launchProducts, pickupLocations, products } from '@/lib/db/schema';
 import { eq, asc, desc, and, or, gte, gt } from 'drizzle-orm';
 import { getByCategory } from '@/lib/db/queries/taxonomies';
+import { getInventoryLevels, shopifyAdminFetch } from '@/lib/shopify/admin';
 
 /**
  * GET /api/launches/current
@@ -50,6 +51,44 @@ export async function GET() {
       categoryLabelMap.set(t.value, t.label);
     }
 
+    // Fetch Shopify prices for linked products
+    const shopifyPriceMap = new Map<string, number>(); // shopifyProductId → price in cents
+    const shopifyProductIds = allProducts
+      .filter((p) => p.shopifyProductId)
+      .map((p) => p.shopifyProductId!);
+
+    if (shopifyProductIds.length > 0) {
+      try {
+        const data = await shopifyAdminFetch(
+          `query getProductPrices($ids: [ID!]!) {
+            nodes(ids: $ids) {
+              ... on Product {
+                id
+                variants(first: 1) {
+                  edges {
+                    node {
+                      price
+                    }
+                  }
+                }
+              }
+            }
+          }`,
+          { ids: shopifyProductIds },
+        );
+        for (const node of (data.nodes || [])) {
+          if (!node?.id) continue;
+          const priceStr = node.variants?.edges?.[0]?.node?.price;
+          if (priceStr) {
+            shopifyPriceMap.set(node.id, Math.round(parseFloat(priceStr) * 100));
+          }
+        }
+      } catch (err) {
+        console.error('[Launches] Failed to fetch Shopify prices:', err);
+        // Fall back to CMS prices
+      }
+    }
+
     const results = [];
 
     for (const launch of activeLaunches) {
@@ -79,7 +118,10 @@ export async function GET() {
           quantityStepOverride: lp.quantityStepOverride,
           // Enriched from Postgres
           image: dbProduct?.image || null,
-          price: dbProduct?.price || null,
+          // Use Shopify price if available, fall back to CMS price
+          price: (dbProduct?.shopifyProductId && shopifyPriceMap.has(dbProduct.shopifyProductId))
+            ? shopifyPriceMap.get(dbProduct.shopifyProductId)!
+            : (dbProduct?.price || null),
           description: dbProduct?.description || null,
           category: catSlug,
           categoryLabel: catSlug ? (categoryLabelMap.get(catSlug) || catSlug) : null,
