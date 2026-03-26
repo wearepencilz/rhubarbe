@@ -673,6 +673,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               pickupOnly: formData.pickupOnly,
             }}
             onChange={(tax) => setFormData({ ...formData, ...tax })}
+            shopifyProductId={formData.shopifyProductId || undefined}
           />
 
           {/* Volume ordering */}
