@@ -5,11 +5,10 @@ import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-state';
 import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
-import type { DateValue, TimeValue } from 'react-aria-components';
+import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
-const TimeField = dynamic(() => import('@/components/ui/TimeField'), { ssr: false });
 
 // ── Types ──
 
@@ -380,40 +379,23 @@ function VolumeInlineCart({
               </div>
             </div>
 
-            {/* Date + Time — single row like CMS forms */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <DatePickerField
-                  label={V.date}
-                  value={toDateValue(fulfillmentDate)}
-                  minValue={minDateValue ?? today(getLocalTimeZone())}
-                  onChange={(val: DateValue | null) => {
-                    if (val) {
-                      const y = val.year;
-                      const m = String(val.month).padStart(2, '0');
-                      const d = String(val.day).padStart(2, '0');
-                      onDateChange(`${y}-${m}-${d}`);
-                    } else {
-                      onDateChange('');
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <TimeField
-                  label={V.time}
-                  value={fulfillmentTime ? { hour: parseInt(fulfillmentTime.split(':')[0], 10), minute: parseInt(fulfillmentTime.split(':')[1], 10) } as unknown as TimeValue : null}
-                  onChange={(val: TimeValue | null) => {
-                    if (val) {
-                      const h = String((val as any).hour).padStart(2, '0');
-                      const m = String((val as any).minute).padStart(2, '0');
-                      onTimeChange(`${h}:${m}`);
-                    } else {
-                      onTimeChange('');
-                    }
-                  }}
-                />
-              </div>
+            {/* Date */}
+            <div>
+              <DatePickerField
+                label={V.date}
+                value={toDateValue(fulfillmentDate)}
+                minValue={minDateValue ?? today(getLocalTimeZone())}
+                onChange={(val: DateValue | null) => {
+                  if (val) {
+                    const y = val.year;
+                    const m = String(val.month).padStart(2, '0');
+                    const d = String(val.day).padStart(2, '0');
+                    onDateChange(`${y}-${m}-${d}`);
+                  } else {
+                    onDateChange('');
+                  }
+                }}
+              />
             </div>
             {/* Dynamic earliest date helper */}
             {maxLeadTimeDays > 0 && (
@@ -436,7 +418,7 @@ function VolumeInlineCart({
               <textarea value={allergenNote}
                 onChange={(e) => onAllergenNoteChange(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 text-sm border-b border-gray-300 focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
                 placeholder={V.allergenPlaceholder} />
             </div>
 
