@@ -67,7 +67,9 @@ export async function POST(request: NextRequest) {
       lineItems.push(item);
     }
 
-    // Convention-based tax variant resolution
+    // Convention-based tax variant resolution (clear cache to ensure fresh data)
+    const { clearVariantCache } = await import('@/lib/tax/find-exempt-variant');
+    clearVariantCache();
     const productIds = lineItems.map((item) => item.productId);
     console.log(`[Checkout Tax] Product IDs for tax lookup: ${JSON.stringify(productIds)}`);
     const taxConfigs = await getTaxConfigByIds(productIds);
