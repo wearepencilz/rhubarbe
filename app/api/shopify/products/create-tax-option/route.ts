@@ -143,9 +143,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // productVariantsBulkCreate may not set taxable:false — update explicitly
+    const createdVariants = bulkCreateData.productVariantsBulkCreate.productVariants || [];
+    if (createdVariants.length > 0) {
+      const taxableUpdates = createdVariants.map((v: any) => ({
+        id: v.id,
+        taxable: false,
+      }));
+      try {
+        await shopifyAdminFetch(
+          `mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+            productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+              productVariants { id taxable }
+              userErrors { field message }
+            }
+          }`,
+          { productId: shopifyProductId, variants: taxableUpdates },
+        );
+      } catch (err) {
+        console.warn('[Tax Option] Failed to set taxable=false on exempt variants:', err);
+      }
+    }
+
     return NextResponse.json({
       message: 'Tax option created with exempt variants',
-      createdVariants: bulkCreateData.productVariantsBulkCreate.productVariants,
+      createdVariants,
     });
   } catch (error) {
     console.error('[Tax Option] Error:', error);

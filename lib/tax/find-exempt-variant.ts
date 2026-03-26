@@ -81,7 +81,10 @@ export async function findExemptVariant(
   // Find the variant with same options but Tax = "false"
   const exemptVariant = variants.find((v) => {
     if (v.id === taxableVariantId) return false;
-    if (v.taxable) return false; // Must be non-taxable
+
+    // Match by Tax option value, not the taxable boolean flag
+    const taxOption = v.selectedOptions.find((o) => o.name === 'Tax');
+    if (!taxOption || taxOption.value !== 'false') return false;
 
     const otherOptions = v.selectedOptions
       .filter((o) => o.name !== 'Tax')

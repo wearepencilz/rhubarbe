@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
 
     // Convention-based tax variant resolution
     const productIds = lineItems.map((item) => item.productId);
+    console.log(`[Checkout Tax] Product IDs for tax lookup: ${JSON.stringify(productIds)}`);
     const taxConfigs = await getTaxConfigByIds(productIds);
+    console.log(`[Checkout Tax] Tax configs found: ${taxConfigs.size} of ${productIds.length}`);
 
     for (let i = 0; i < lines.length; i++) {
       const item = lineItems[i];
