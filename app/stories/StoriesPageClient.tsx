@@ -29,7 +29,7 @@ export default function StoriesPageClient({ stories }: { stories: any[] }) {
             <div className="absolute inset-0 bg-[#333112]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-          <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-4 md:px-8 pt-[100px] md:pt-[120px]">
+          <div className="absolute top-0 left-0 right-0 flex items-start justify-between px-4 md:px-8 pt-20">
             <p className="text-white/60 text-[11px] tracking-[0.22px] uppercase" style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}>
               [{locale === 'fr' ? 'Récits' : 'Stories'}]
             </p>
@@ -63,7 +63,7 @@ export default function StoriesPageClient({ stories }: { stories: any[] }) {
           </div>
         </Link>
       ) : (
-        <div className="px-4 md:px-8 pt-[100px] md:pt-[120px] pb-12">
+        <div className="px-4 md:px-8 pt-20 pb-12">
           <p className="text-[#333112] text-[13px] tracking-[0.26px] uppercase" style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}>
             [{locale === 'fr' ? 'Récits' : 'Stories'}]
           </p>

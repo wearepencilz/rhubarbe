@@ -1,26 +1,59 @@
 'use client';
 
 import Link from 'next/link';
-import { useLocale } from '@/contexts/LocaleContext';
-import { getT } from '@/lib/i18n';
-import CartButton from '@/components/CartButton';
+import { useT } from '@/lib/i18n/useT';
+import { useOrderItems } from '@/contexts/OrderItemsContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useState, useEffect } from 'react';
 
-export default function SiteNav({ color }: { color?: string }) {
-  const { locale } = useLocale();
-  const T = getT(locale);
+interface NavLabels {
+  en: Record<string, string>;
+  fr: Record<string, string>;
+}
+
+export default function SiteNav() {
+  const { T, locale } = useT();
+  const { orderCount, volumeCount } = useOrderItems();
+  const [navLabels, setNavLabels] = useState<NavLabels | null>(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.navLabels) setNavLabels(data.navLabels);
+      })
+      .catch(() => {});
+  }, []);
+
+  const label = (key: string, fallback: string) => {
+    const override = navLabels?.[locale as 'en' | 'fr']?.[key];
+    return override || fallback;
+  };
 
   return (
     <nav
-      className="pointer-events-auto flex flex-col items-end gap-[8px] md:gap-[10px] text-[12px] md:text-[14px] tracking-[0.28px] uppercase leading-none"
-      style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500, color }}
+      className="flex items-center gap-4 md:gap-6 text-[11px] md:text-[13px] tracking-[0.28px] uppercase leading-none"
+      style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500, color: '#333112' }}
     >
-      <Link href="/order" className="hover:opacity-60 transition-opacity">{T.nav.order}</Link>
-      <Link href="/traiteur" className="hover:opacity-60 transition-opacity">{T.nav.catering}</Link>
-      <Link href="/gateaux-signatures" className="hover:opacity-60 transition-opacity">{T.nav.signatureCakes}</Link>
-      <Link href="/about" className="hover:opacity-60 transition-opacity">{T.nav.about}</Link>
-      <CartButton color={color} />
-      <LanguageSwitcher color={color} />
+      <Link href="/order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
+        {label('order', T.nav.order)}
+        {orderCount > 0 && (
+          <span className="text-[10px] opacity-50">({orderCount})</span>
+        )}
+      </Link>
+      <Link href="/volume-order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
+        {label('volumeOrder', T.nav.volumeOrder)}
+        {volumeCount > 0 && (
+          <span className="text-[10px] opacity-50">({volumeCount})</span>
+        )}
+      </Link>
+      <Link href="/catering" className="hover:opacity-60 transition-opacity">
+        {label('cateringAndCakes', T.nav.cateringAndCakes)}
+      </Link>
+      <Link href="/about" className="hover:opacity-60 transition-opacity">
+        {label('about', T.nav.about)}
+      </Link>
+      <LanguageSwitcher />
     </nav>
   );
 }

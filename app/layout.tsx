@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import '../src/styles/globals.css';
 import { CartProvider } from '@/contexts/CartContext';
+import { OrderItemsProvider } from '@/contexts/OrderItemsContext';
 import { Providers } from './providers';
 import CartModal from '@/components/CartModal';
 import SiteHeader from '@/components/SiteHeader';
@@ -45,10 +46,12 @@ export default function RootLayout({
       <body>
         <Providers>
           <CartProvider>
-            <PublicLayout header={<SiteHeader />} footer={<SiteFooter />}>
-              {children}
-            </PublicLayout>
-            <CartModal />
+            <OrderItemsProvider>
+              <PublicLayout header={<SiteHeader />} footer={<SiteFooter />}>
+                {children}
+              </PublicLayout>
+              <CartModal />
+            </OrderItemsProvider>
           </CartProvider>
         </Providers>
       </body>

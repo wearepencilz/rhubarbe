@@ -1,13 +1,5 @@
-import RequestForm from '@/components/RequestForm';
-import * as pageQueries from '@/lib/db/queries/pages';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Traiteur / Catering – Rhubarbe',
-  description: "Service traiteur pour tous types d'événements.",
-};
-
-export default async function TraiteurPage() {
-  const page = await pageQueries.getByName('traiteur').catch(() => null);
-  const content = (page?.content as any) ?? {};
-  return <RequestForm type="traiteur" content={content} />;
+export default function TraiteurPage() {
+  redirect('/catering');
 }

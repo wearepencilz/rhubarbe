@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useT } from '@/lib/i18n/useT';
+import { useOrderItems } from '@/contexts/OrderItemsContext';
+import { usePersistedState } from '@/lib/hooks/use-persisted-state';
 
 interface LaunchProduct {
   id: string;
@@ -450,21 +452,28 @@ function InlineCart({
 export default function OrderPageClient() {
   const { T, locale } = useT();
   const isFr = locale === 'fr';
+  const { setOrderCount } = useOrderItems();
 
   const [launches, setLaunches] = useState<Launch[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLaunchIdx, setActiveLaunchIdx] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartLaunchId, setCartLaunchId] = useState<string | null>(null);
+  const [cart, setCart] = usePersistedState<CartItem[]>('rhubarbe:order:cart', []);
+  const [cartLaunchId, setCartLaunchId] = usePersistedState<string | null>('rhubarbe:order:launchId', null);
   const [pendingSwitchIdx, setPendingSwitchIdx] = useState<number | null>(null);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = usePersistedState<string | null>('rhubarbe:order:slotId', null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [shopifyStock, setShopifyStock] = useState<Record<string, number | null>>({});
+
+  // Report cart count to nav
+  useEffect(() => {
+    const total = cart.reduce((s, i) => s + i.quantity, 0);
+    setOrderCount(total);
+  }, [cart, setOrderCount]);
 
   useEffect(() => {
     fetch('/api/launches/current')
@@ -743,7 +752,7 @@ export default function OrderPageClient() {
     const locationAddress = launch.pickupLocation?.address || '';
 
     return (
-      <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-lg mx-auto">
+      <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
         <button
           onClick={() => setShowConfirmation(false)}
           className="text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 mb-8 flex items-center gap-1"
@@ -872,6 +881,12 @@ export default function OrderPageClient() {
                   subtotal,
                 }));
               } catch {}
+              // Clear persisted cart
+              try {
+                localStorage.removeItem('rhubarbe:order:cart');
+                localStorage.removeItem('rhubarbe:order:launchId');
+                localStorage.removeItem('rhubarbe:order:slotId');
+              } catch {}
             }}
             className="inline-block px-10 py-3.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
             style={{ fontFamily: 'var(--font-diatype-mono)' }}
@@ -888,7 +903,7 @@ export default function OrderPageClient() {
 
   if (loading) {
     return (
-      <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-xl mx-auto">
+      <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
         <div className="flex justify-center py-24">
           <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#333112]" />
         </div>
@@ -901,7 +916,7 @@ export default function OrderPageClient() {
 
   if (launches.length === 0) {
     return (
-      <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-xl mx-auto">
+      <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
         <div className="text-center py-24">
           <p
             className="text-xs uppercase tracking-widest text-gray-400 mb-4"
@@ -923,7 +938,7 @@ export default function OrderPageClient() {
   const currentOrderingOpen = launch?.orderingOpen ?? false;
 
   return (
-    <main className="pt-28 pb-24 px-4 md:px-8 max-w-screen-xl mx-auto">
+    <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
       <div className="flex gap-8">
         {/* Left: Menu content (3/4) */}
         <div className="flex-1 min-w-0">

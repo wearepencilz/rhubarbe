@@ -67,7 +67,7 @@ export default function ThankYouClient({ en, fr }: ThankYouClientProps) {
   }, [clearCart]);
 
   return (
-    <main className="pt-32 pb-24 px-4 md:px-8 max-w-screen-md mx-auto">
+    <main className="pt-20 pb-24 px-4 md:px-8 max-w-screen-md mx-auto">
       {/* Checkmark */}
       <div className="flex justify-center mb-8">
         <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">

@@ -218,7 +218,7 @@ export default async function StoryPage({ params }: { params: { slug: string } }
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
 
         {/* Breadcrumb */}
-        <div className="absolute top-0 left-0 right-0 px-4 md:px-8 pt-[100px] md:pt-[120px]">
+        <div className="absolute top-0 left-0 right-0 px-4 md:px-8 pt-20">
           <div className="flex items-center gap-2">
             <Link
               href="/stories"

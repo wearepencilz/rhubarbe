@@ -36,7 +36,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
 
   return (
     <main className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1600px] mx-auto">
         {/* Collection Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">{collection.title}</h1>
@@ -85,6 +85,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl font-bold">
                       ${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}
+                      {product.priceRange.minVariantPrice.amount !== product.priceRange.maxVariantPrice.amount && '+'}
                     </span>
                     {product.compareAtPriceRange && (
                       <span className="text-sm text-gray-500 line-through">

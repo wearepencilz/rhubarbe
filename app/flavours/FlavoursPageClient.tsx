@@ -20,7 +20,7 @@ export default function FlavoursPageClient({
 
   return (
     <main className="bg-white min-h-screen">
-      <div className="px-4 md:px-8 pt-[100px] md:pt-[120px] pb-24">
+      <div className="px-4 md:px-8 pt-20 pb-24">
         <p
           className="text-[#333112] text-[16px] tracking-[0.32px] mb-16"
           style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500 }}

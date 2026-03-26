@@ -2,8 +2,10 @@
 const fr = {
   nav: {
     order: 'Commander',
+    volumeOrder: 'Commande en volume',
     catering: 'Traiteur',
     signatureCakes: 'Gâteaux signatures',
+    cateringAndCakes: 'Traiteur & Gâteaux',
     about: 'À propos',
     cart: 'Panier',
     cartCount: (n: number) => `Panier (${n})`,
@@ -159,7 +161,7 @@ const fr = {
 export default fr;
 
 export type Translations = {
-  nav: { order: string; catering: string; signatureCakes: string; about: string; cart: string; cartCount: (n: number) => string };
+  nav: { order: string; volumeOrder: string; catering: string; signatureCakes: string; cateringAndCakes: string; about: string; cart: string; cartCount: (n: number) => string };
   cart: { open: string; openWithItems: (n: number) => string; title: string; close: string; empty: string; remove: string; subtotal: string; checkout: string; taxNote: string };
   product: { addToCart: string; adding: string; soldOut: string; preorder: string; quantity: string; inStock: string; noImage: string; orderComingSoon: string; serves: (n: string) => string };
   order: { title: string; preordersOnly: string; pickup: string; sweet: string; savory: string; other: string; pickupLabel: string; orderEnded: string; ended: string; daysLeft: (n: number) => string; timeLeft: (h: number, m: number) => string };

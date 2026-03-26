@@ -29,6 +29,9 @@ export function ShopifyProductView({ product }: { product: any }) {
     ) || product.variants[0];
   }, [selectedOptions, product.variants, hasOptions]);
 
+  const hasMultiplePrices = product.priceRange.minVariantPrice.amount !== product.priceRange.maxVariantPrice.amount;
+  const showPricePlus = hasMultiplePrices && !selectedVariant?.price?.amount;
+
   const displayPrice = selectedVariant?.price?.amount
     ? parseFloat(selectedVariant.price.amount).toFixed(2)
     : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2);
@@ -40,8 +43,8 @@ export function ShopifyProductView({ product }: { product: any }) {
       : null;
 
   return (
-    <main className="min-h-screen pt-32 pb-16 px-4 md:px-8">
-      <div className="max-w-5xl mx-auto">
+    <main className="min-h-screen pt-20 pb-16 px-4 md:px-8">
+      <div className="max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="space-y-4">
             {product.images.length > 0 ? (
@@ -73,7 +76,7 @@ export function ShopifyProductView({ product }: { product: any }) {
               </h1>
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                  ${displayPrice}
+                  ${displayPrice}{showPricePlus && '+'}
                 </span>
                 {comparePrice && parseFloat(comparePrice) > parseFloat(displayPrice) && (
                   <span className="text-lg text-gray-400 line-through" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
@@ -150,8 +153,8 @@ export function DbProductView({ product }: { product: any }) {
   const description = t(product, 'description', locale as any);
 
   return (
-    <main className="min-h-screen pt-32 pb-16 px-4 md:px-8">
-      <div className="max-w-5xl mx-auto">
+    <main className="min-h-screen pt-20 pb-16 px-4 md:px-8">
+      <div className="max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
             {product.image ? (

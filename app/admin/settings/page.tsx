@@ -24,14 +24,26 @@ interface FooterSettings {
   contact?: string;
 }
 
+interface NavLabels {
+  en: Record<string, string>;
+  fr: Record<string, string>;
+}
+
 interface Settings {
   logo: string;
   email: string;
   phone: string;
   companyName: string;
+  brandColor: string;
   footer: FooterSettings;
+  navLabels: NavLabels;
   formatEligibilityRules?: { [flavourTypeId: string]: string[] };
 }
+
+const defaultNavLabels: NavLabels = {
+  en: { order: '', volumeOrder: '', cateringAndCakes: '', about: '' },
+  fr: { order: '', volumeOrder: '', cateringAndCakes: '', about: '' },
+};
 
 const defaultFooter: FooterSettings = {
   addressUrl: '',
@@ -47,7 +59,9 @@ export default function SettingsPage() {
     email: '',
     phone: '',
     companyName: '',
+    brandColor: '#144437',
     footer: defaultFooter,
+    navLabels: defaultNavLabels,
     formatEligibilityRules: {},
   });
   const [loading, setLoading] = useState(true);
@@ -71,7 +85,9 @@ export default function SettingsPage() {
           email: data.email || '',
           phone: data.phone || '',
           companyName: data.companyName || '',
+          brandColor: data.brandColor || '#144437',
           footer,
+          navLabels: data.navLabels ?? defaultNavLabels,
           formatEligibilityRules: data.formatEligibilityRules || {},
         });
       })
@@ -84,6 +100,15 @@ export default function SettingsPage() {
 
   const setFooterFr = (k: keyof FooterLocale, v: string) =>
     setFormData((p) => ({ ...p, footer: { ...p.footer, fr: { ...p.footer.fr, [k]: v } } }));
+
+  const setNavLabel = (locale: 'en' | 'fr', key: string, value: string) =>
+    setFormData((p) => ({
+      ...p,
+      navLabels: {
+        ...p.navLabels,
+        [locale]: { ...p.navLabels[locale], [key]: value },
+      },
+    }));
 
   const uploadFile = async (
     file: File,
@@ -203,6 +228,67 @@ export default function SettingsPage() {
               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
             />
             {uploading && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-gray-900">Brand Color</label>
+            <p className="text-xs text-gray-500 mb-2">Used as fallback background for products without images.</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={formData.brandColor}
+                onChange={(e) => setFormData((p) => ({ ...p, brandColor: e.target.value }))}
+                className="h-10 w-10 rounded border border-gray-300 cursor-pointer p-0.5"
+              />
+              <Input
+                type="text"
+                value={formData.brandColor}
+                onChange={(v) => {
+                  const val = v.startsWith('#') ? v : `#${v}`;
+                  setFormData((p) => ({ ...p, brandColor: val }));
+                }}
+                placeholder="#144437"
+              />
+              <div
+                className="h-10 w-20 rounded border border-gray-200"
+                style={{ backgroundColor: formData.brandColor }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Labels */}
+        <div className="space-y-3 max-w-5xl">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Navigation Labels</h2>
+            <p className="text-gray-600 text-sm mt-0.5">Customize the main menu link labels. Leave blank to use defaults.</p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* French */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                <span className="text-base">🇫🇷</span>
+                <h3 className="text-sm font-semibold text-gray-900">Français</h3>
+              </div>
+              <div className="px-6 py-6 space-y-4">
+                <Input label="Commander" value={formData.navLabels.fr.order ?? ''} onChange={(v) => setNavLabel('fr', 'order', v)} placeholder="Commander" />
+                <Input label="Commande en volume" value={formData.navLabels.fr.volumeOrder ?? ''} onChange={(v) => setNavLabel('fr', 'volumeOrder', v)} placeholder="Commande en volume" />
+                <Input label="Traiteur & Gâteaux" value={formData.navLabels.fr.cateringAndCakes ?? ''} onChange={(v) => setNavLabel('fr', 'cateringAndCakes', v)} placeholder="Traiteur & Gâteaux" />
+                <Input label="À propos" value={formData.navLabels.fr.about ?? ''} onChange={(v) => setNavLabel('fr', 'about', v)} placeholder="À propos" />
+              </div>
+            </div>
+            {/* English */}
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                <span className="text-base">🇬🇧</span>
+                <h3 className="text-sm font-semibold text-gray-900">English</h3>
+              </div>
+              <div className="px-6 py-6 space-y-4">
+                <Input label="Order" value={formData.navLabels.en.order ?? ''} onChange={(v) => setNavLabel('en', 'order', v)} placeholder="Order" />
+                <Input label="Volume Order" value={formData.navLabels.en.volumeOrder ?? ''} onChange={(v) => setNavLabel('en', 'volumeOrder', v)} placeholder="Volume Order" />
+                <Input label="Catering & Cakes" value={formData.navLabels.en.cateringAndCakes ?? ''} onChange={(v) => setNavLabel('en', 'cateringAndCakes', v)} placeholder="Catering & Cakes" />
+                <Input label="About" value={formData.navLabels.en.about ?? ''} onChange={(v) => setNavLabel('en', 'about', v)} placeholder="About" />
+              </div>
+            </div>
           </div>
         </div>
 

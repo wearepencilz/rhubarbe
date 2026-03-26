@@ -7,8 +7,8 @@ export default function LanguageSwitcher({ color }: { color?: string }) {
 
   return (
     <div
-      className="flex items-center gap-1 text-[12px] md:text-[14px] tracking-[0.28px] uppercase leading-none font-[500]"
-      style={{ fontFamily: 'var(--font-diatype-mono)', color }}
+      className="flex items-center gap-1 text-[11px] md:text-[13px] tracking-[0.28px] uppercase leading-none font-[500]"
+      style={{ fontFamily: 'var(--font-diatype-mono)' }}
     >
       <button
         onClick={() => setLocale('fr')}

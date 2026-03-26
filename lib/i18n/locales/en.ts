@@ -4,8 +4,10 @@ import type { Translations } from './fr';
 const en: Translations = {
   nav: {
     order: 'Order',
+    volumeOrder: 'Volume Order',
     catering: 'Catering',
     signatureCakes: 'Signature Cakes',
+    cateringAndCakes: 'Catering & Cakes',
     about: 'About',
     cart: 'Cart',
     cartCount: (n: number) => `Cart (${n})`,

@@ -14,7 +14,7 @@ export default async function AllProductsPage() {
 
   return (
     <main className="min-h-screen">
-      <div className="container mx-auto px-4 py-12">
+      <div className="max-w-[1600px] mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">All Products</h1>
 
         {products.length === 0 ? (
@@ -65,6 +65,7 @@ export default async function AllProductsPage() {
                 <div className="flex items-baseline gap-2">
                   <span className="font-bold">
                     ${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}
+                    {product.priceRange.minVariantPrice.amount !== product.priceRange.maxVariantPrice.amount && '+'}
                   </span>
                   {product.compareAtPriceRange && (
                     <span className="text-sm text-gray-500 line-through">

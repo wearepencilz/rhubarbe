@@ -23,9 +23,11 @@ interface RequestFormProps {
   /** CMS-managed page content — falls back to locale defaults if not provided */
   content?: PageContent;
   onSuccess?: () => void;
+  /** When true, renders without the <main> wrapper (for embedding in a parent page) */
+  embedded?: boolean;
 }
 
-export default function RequestForm({ type, content, onSuccess }: RequestFormProps) {
+export default function RequestForm({ type, content, onSuccess, embedded }: RequestFormProps) {
   const { T, locale } = useT();
   const F = T.form.fields;
 
@@ -70,15 +72,16 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
   };
 
   if (status === 'sent') {
-    return (
-      <main className="max-w-2xl mx-auto px-6 py-32 flex items-center justify-center min-h-[60vh]">
+    const successContent = (
+      <div className={embedded ? "py-16 flex items-center justify-center" : "max-w-2xl mx-auto px-6 py-32 flex items-center justify-center min-h-[60vh]"}>
         <p className="text-sm text-gray-600 text-center">{F.success}</p>
-      </main>
+      </div>
     );
+    return embedded ? successContent : <main>{successContent}</main>;
   }
 
-  return (
-    <main className="max-w-2xl mx-auto px-6 py-16 space-y-10">
+  const formContent = (
+    <div className={embedded ? "space-y-10" : "max-w-2xl mx-auto px-6 py-16 space-y-10"}>
       <div className="space-y-3">
         <h1 className="text-2xl font-semibold">{heading}</h1>
         <p className="text-gray-600 leading-relaxed">{intro}</p>
@@ -156,8 +159,10 @@ export default function RequestForm({ type, content, onSuccess }: RequestFormPro
           </button>
         </form>
       </div>
-    </main>
+    </div>
   );
+
+  return embedded ? formContent : <main>{formContent}</main>;
 }
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
