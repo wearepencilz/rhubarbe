@@ -17,6 +17,7 @@ interface Product {
   title: string;
   slug: string;
   status: string;
+  category?: string;
   shortCardCopy?: string;
   image?: string;
   price: number;
@@ -39,6 +40,8 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', name: '' });
   const [brokenLinks, setBrokenLinks] = useState<Set<string>>(new Set());
 
@@ -102,15 +105,55 @@ export default function ProductsPage() {
 
   const getFormatName = (formatId: string) => formatId || '—';
 
+  // Client-side filtering
+  const filteredProducts = products.filter((p) => {
+    if (categoryFilter !== 'all' && (p.category || '') !== categoryFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const name = (p.title || (p as any).name || '').toLowerCase();
+      const slug = (p.slug || '').toLowerCase();
+      if (!name.includes(q) && !slug.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Extract unique categories from products
+  const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[];
+
   return (
     <>
       <TableCard.Root>
         <TableCard.Header
           title="Products"
-          badge={products.length}
+          badge={filteredProducts.length}
           description="Manage sellable menu items"
           contentTrailing={
             <div className="flex items-center gap-3">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 w-48"
+                />
+              </div>
+              {categories.length > 0 && (
+                <Select
+                  placeholder="All categories"
+                  selectedKey={categoryFilter}
+                  onSelectionChange={(key) => setCategoryFilter(key as string)}
+                  items={[
+                    { id: 'all', label: 'All categories' },
+                    ...categories.map((c) => ({ id: c, label: c })),
+                  ]}
+                >
+                  {(item) => <Select.Item id={item.id} label={item.label} />}
+                </Select>
+              )}
               <Select
                 placeholder="All statuses"
                 selectedKey={statusFilter}
@@ -137,12 +180,14 @@ export default function ProductsPage() {
           <div className="flex items-center justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
           </div>
-        ) : products.length === 0 ? (
+        ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <p className="text-sm text-tertiary">No products found</p>
-            <Link href="/admin/products/create">
-              <Button color="secondary" size="sm">Create your first product</Button>
-            </Link>
+            <p className="text-sm text-tertiary">{search || categoryFilter !== 'all' ? 'No matching products' : 'No products found'}</p>
+            {!search && categoryFilter === 'all' && (
+              <Link href="/admin/products/create">
+                <Button color="secondary" size="sm">Create your first product</Button>
+              </Link>
+            )}
           </div>
         ) : (
           <Table aria-label="Products">
@@ -153,7 +198,7 @@ export default function ProductsPage() {
               <Table.Head label="Shopify" />
               <Table.Head label="" />
             </Table.Header>
-            <Table.Body items={products}>
+            <Table.Body items={filteredProducts}>
               {(product) => (
                 <Table.Row
                   key={product.id}
