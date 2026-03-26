@@ -68,7 +68,10 @@ export async function findExemptVariant(
 
   // Find the taxable variant to get its options
   const taxableVariant = variants.find((v) => v.id === taxableVariantId);
-  if (!taxableVariant) return null;
+  if (!taxableVariant) {
+    console.warn(`[findExemptVariant] Taxable variant ${taxableVariantId} not found among ${variants.length} variants: ${variants.map(v => v.id).join(', ')}`);
+    return null;
+  }
 
   // Get the non-Tax options for matching
   const matchOptions = taxableVariant.selectedOptions

@@ -74,16 +74,22 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < lines.length; i++) {
       const item = lineItems[i];
       const taxConfig = taxConfigs.get(item.productId);
-      if (!taxConfig || !item.shopifyProductId) continue;
+      if (!taxConfig) {
+        console.log(`[Checkout Tax] No tax config for product ${item.productName} (${item.productId})`);
+        continue;
+      }
+      if (!item.shopifyProductId) continue;
 
       if (taxConfig.taxBehavior === 'quantity_threshold') {
         const effectiveUnits = item.quantity * taxConfig.taxUnitCount;
+        console.log(`[Checkout Tax] ${item.productName}: qty=${item.quantity}, unitCount=${taxConfig.taxUnitCount}, effective=${effectiveUnits}, threshold=${taxConfig.taxThreshold}, variantId=${lines[i].merchandiseId}`);
         if (effectiveUnits >= taxConfig.taxThreshold) {
           // Find the exempt twin variant via convention
           const exemptId = await findExemptVariant(
             item.shopifyProductId,
             lines[i].merchandiseId,
           );
+          console.log(`[Checkout Tax] ${item.productName}: exempt variant found: ${exemptId}`);
           if (exemptId) {
             lines[i].merchandiseId = exemptId;
           } else {
