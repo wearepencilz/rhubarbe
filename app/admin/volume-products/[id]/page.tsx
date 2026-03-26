@@ -272,11 +272,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         <SectionCard
           title="Order Rules"
           description="Minimum order quantity and lead time tiers."
-          action={
-            <Button variant="secondary" size="sm" onClick={addTier} iconLeading={Plus}>
-              Add Tier
-            </Button>
-          }
         >
           <Input
             label="Minimum Order Quantity"
@@ -290,14 +285,16 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Lead Time Tiers</label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Lead Time Tiers</label>
+              <Button variant="secondary" size="sm" onClick={addTier} iconLeading={Plus}>
+                Add Tier
+              </Button>
+            </div>
             {tiers.length === 0 ? (
               <p className="text-sm text-gray-500">No tiers configured. Add at least one tier for volume ordering to work.</p>
             ) : (
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500">{tiers.length} tier{tiers.length !== 1 ? 's' : ''}</p>
-                </div>
                 {tiers.map((tier, index) => (
                   <div key={index} className="flex items-center gap-3 py-1.5 px-3 bg-gray-50 rounded-lg text-sm">
                     <span className="text-xs text-gray-400 w-4">{index + 1}</span>
