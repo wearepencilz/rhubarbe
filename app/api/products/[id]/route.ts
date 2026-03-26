@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as productQueries from '@/lib/db/queries/products';
 import { availabilityCache } from '@/lib/cache/availability-cache';
 import { updateProduct as syncToShopify } from '@/lib/shopify/admin';
+import { createTaxExemptVariant } from '@/lib/tax/create-exempt-variant';
+import { syncExemptVariantPrice } from '@/lib/tax/sync-exempt-variant-price';
 
 // GET /api/products/[id]
 export async function GET(
@@ -47,6 +49,17 @@ export async function PUT(
       }
     }
 
+    // Validate taxBehavior if provided
+    if (body.taxBehavior !== undefined) {
+      const validBehaviors = ['always_taxable', 'always_exempt', 'quantity_threshold'];
+      if (!validBehaviors.includes(body.taxBehavior)) {
+        return NextResponse.json(
+          { error: `Invalid taxBehavior. Must be one of: ${validBehaviors.join(', ')}` },
+          { status: 400 },
+        );
+      }
+    }
+
     // Validate quantity rules if provided
     if (body.defaultMinQuantity !== undefined && body.defaultMinQuantity < 1) {
       return NextResponse.json({ error: 'default_min_quantity must be at least 1' }, { status: 400 });
@@ -66,6 +79,26 @@ export async function PUT(
 
     if (!saved) {
       return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+    }
+
+    // Create tax-exempt variant in Shopify if needed
+    if (
+      saved.taxBehavior === 'quantity_threshold' &&
+      saved.shopifyProductId &&
+      !saved.shopifyTaxExemptVariantId
+    ) {
+      try {
+        const currentPrice = saved.price ? (saved.price / 100).toFixed(2) : '0.00';
+        const result = await createTaxExemptVariant(saved.shopifyProductId, currentPrice);
+        // Store the Storefront GID for checkout use
+        await productQueries.update(params.id, {
+          shopifyTaxExemptVariantId: result.storefrontVariantId,
+        });
+      } catch (err: any) {
+        console.error('[Tax] Failed to create exempt variant:', err.message);
+        // Don't fail the save — just log the error
+        // The admin will see "Not linked" in the UI and can retry
+      }
     }
 
     // Update product_ingredients if provided
@@ -127,6 +160,20 @@ export async function PUT(
             },
           ],
         });
+
+        // Sync exempt variant price if it exists and price changed
+        if (saved.shopifyTaxExemptVariantId && saved.price !== existing.price) {
+          try {
+            // We need the Admin GID, but we stored the Storefront GID.
+            // The Admin GID can be derived by base64-decoding the Storefront GID.
+            const adminVariantId = Buffer.from(saved.shopifyTaxExemptVariantId, 'base64').toString('utf-8');
+            const newPrice = saved.price ? (saved.price / 100).toFixed(2) : '0.00';
+            await syncExemptVariantPrice(saved.shopifyProductId, adminVariantId, newPrice);
+          } catch (err: any) {
+            console.error('[Tax] Failed to sync exempt variant price:', err.message);
+            // Non-blocking — log warning but don't fail the save
+          }
+        }
 
         // Update sync status
         await productQueries.update(params.id, {

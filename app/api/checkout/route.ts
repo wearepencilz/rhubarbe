@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
+import { getTaxConfigByIds } from '@/lib/db/queries/products';
+import { resolveVariant } from '@/lib/tax/resolve-variant';
 
 interface CheckoutItem {
   productId: string;
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
     // Resolve Shopify variant IDs for each item
     const lines: Array<{ merchandiseId: string; quantity: number }> = [];
     const skippedItems: string[] = [];
+    // Track which item produced each line (parallel to `lines`)
+    const lineItems: CheckoutItem[] = [];
 
     for (const item of items) {
       if (!item.shopifyProductId) {
@@ -65,6 +69,26 @@ export async function POST(request: NextRequest) {
         continue;
       }
       lines.push({ merchandiseId: variantId, quantity: item.quantity });
+      lineItems.push(item);
+    }
+
+    // Resolve tax variants — swap merchandiseId to exempt variant when applicable
+    const productIds = lineItems.map((item) => item.productId);
+    const taxConfigs = await getTaxConfigByIds(productIds);
+
+    for (let i = 0; i < lines.length; i++) {
+      const item = lineItems[i];
+      const taxConfig = taxConfigs.get(item.productId);
+      if (!taxConfig) continue;
+
+      const resolution = resolveVariant(taxConfig, item.quantity, lines[i].merchandiseId);
+      lines[i].merchandiseId = resolution.variantId;
+
+      if (resolution.fallback) {
+        console.warn(
+          `[Checkout] Tax variant fallback for product ${item.productName} — exempt variant not configured`,
+        );
+      }
     }
 
     if (lines.length === 0) {

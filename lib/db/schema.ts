@@ -69,6 +69,12 @@ export const products = pgTable('products', {
   volumeDescription: customJsonb<{ en: string; fr: string }>('volume_description'),
   volumeInstructions: customJsonb<{ en: string; fr: string }>('volume_instructions'),
   volumeMinOrderQuantity: integer('volume_min_order_quantity'),
+
+  // Tax fields
+  taxBehavior: text('tax_behavior').notNull().default('always_taxable'),
+  taxThreshold: integer('tax_threshold').notNull().default(6),
+  taxUnitCount: integer('tax_unit_count').notNull().default(1),
+  shopifyTaxExemptVariantId: text('shopify_tax_exempt_variant_id'),
   
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

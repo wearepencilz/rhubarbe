@@ -1,6 +1,7 @@
 import { db } from '@/lib/db/client';
 import { products, productIngredients, ingredients } from '@/lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, inArray } from 'drizzle-orm';
+import { TaxConfig } from '@/lib/tax/resolve-variant';
 
 /**
  * List all products with optional in-memory filters.
@@ -120,4 +121,34 @@ export async function setProductIngredients(
   }));
 
   return db.insert(productIngredients).values(rows).returning();
+}
+
+/**
+ * Fetch tax configuration for multiple products in a single query.
+ * Used by checkout APIs to resolve tax variants for all cart items at once.
+ */
+export async function getTaxConfigByIds(productIds: string[]): Promise<Map<string, TaxConfig>> {
+  if (productIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      id: products.id,
+      taxBehavior: products.taxBehavior,
+      taxThreshold: products.taxThreshold,
+      taxUnitCount: products.taxUnitCount,
+      shopifyTaxExemptVariantId: products.shopifyTaxExemptVariantId,
+    })
+    .from(products)
+    .where(inArray(products.id, productIds));
+
+  const map = new Map<string, TaxConfig>();
+  for (const row of rows) {
+    map.set(row.id, {
+      taxBehavior: row.taxBehavior as TaxConfig['taxBehavior'],
+      taxThreshold: row.taxThreshold,
+      taxUnitCount: row.taxUnitCount,
+      shopifyTaxExemptVariantId: row.shopifyTaxExemptVariantId,
+    });
+  }
+  return map;
 }

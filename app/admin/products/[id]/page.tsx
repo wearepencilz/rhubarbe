@@ -19,6 +19,7 @@ import TagPicker from '@/app/admin/components/TagPicker';
 import ImageUploader from '@/app/admin/components/ImageUploader';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 import ProductAvailabilityTab from '@/app/admin/components/ProductAvailabilityTab';
+import TaxShippingSection from '../../components/TaxShippingSection';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
 import VariantEditor from '../../components/VariantEditor';
 import type { FlavourIngredient, ContentTranslations, ProductVariant } from '@/types';
@@ -77,6 +78,10 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     slotSelectionType: 'none',
     variantType: 'none' as 'none' | 'flavour' | 'size',
     variants: [] as ProductVariant[],
+    taxBehavior: 'always_taxable',
+    taxThreshold: 6,
+    taxUnitCount: 1,
+    shopifyTaxExemptVariantId: null as string | null,
   });
 
   useEffect(() => { fetchData(); }, [params.id]);
@@ -153,6 +158,10 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           slotSelectionType: offeringData.slotSelectionType || 'none',
           variantType: offeringData.variantType || 'none',
           variants: offeringData.variants || [],
+          taxBehavior: offeringData.taxBehavior || 'always_taxable',
+          taxThreshold: offeringData.taxThreshold ?? 6,
+          taxUnitCount: offeringData.taxUnitCount ?? 1,
+          shopifyTaxExemptVariantId: offeringData.shopifyTaxExemptVariantId || null,
         });
       }
     } catch (error) {
@@ -208,6 +217,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         slotSelectionType: formData.slotSelectionType,
         variantType: formData.variantType !== 'none' ? formData.variantType : undefined,
         variants: formData.variantType !== 'none' ? formData.variants : undefined,
+        taxBehavior: formData.taxBehavior,
+        taxThreshold: formData.taxThreshold,
+        taxUnitCount: formData.taxUnitCount,
       };
       const response = await fetch(`/api/products/${params.id}`, {
         method: 'PUT',
@@ -650,6 +662,18 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               </>
             )}
           </div>
+
+          {/* Tax & shipping */}
+          <TaxShippingSection
+            data={{
+              taxBehavior: formData.taxBehavior,
+              taxThreshold: formData.taxThreshold,
+              taxUnitCount: formData.taxUnitCount,
+              shopifyTaxExemptVariantId: formData.shopifyTaxExemptVariantId,
+              pickupOnly: formData.pickupOnly,
+            }}
+            onChange={(tax) => setFormData({ ...formData, ...tax })}
+          />
 
           {/* Volume ordering */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">

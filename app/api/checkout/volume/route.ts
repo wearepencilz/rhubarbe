@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
 import { getProductVariantId } from '@/lib/shopify/admin';
+import { getTaxConfigByIds } from '@/lib/db/queries/products';
+import { resolveVariant } from '@/lib/tax/resolve-variant';
 
 interface VolumeCheckoutItem {
   productId: string;
@@ -83,6 +85,25 @@ export async function POST(request: NextRequest) {
       merchandiseId: item.shopifyVariantId,
       quantity: item.quantity,
     }));
+
+    // Resolve tax variants — swap merchandiseId to exempt variant when applicable
+    const productIds = items.map((item) => item.productId);
+    const taxConfigs = await getTaxConfigByIds(productIds);
+
+    for (let i = 0; i < lines.length; i++) {
+      const item = items[i];
+      const taxConfig = taxConfigs.get(item.productId);
+      if (!taxConfig) continue;
+
+      const resolution = resolveVariant(taxConfig, item.quantity, lines[i].merchandiseId);
+      lines[i].merchandiseId = resolution.variantId;
+
+      if (resolution.fallback) {
+        console.warn(
+          `[Volume Checkout] Tax variant fallback for product ${item.productName} — exempt variant not configured`,
+        );
+      }
+    }
 
     // Derive a product identifier from the first item (volume orders are per-product)
     const volumeProductId = items[0].productId;
