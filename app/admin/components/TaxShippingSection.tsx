@@ -56,8 +56,8 @@ export default function TaxShippingSection({ data, onChange, shopifyProductId }:
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-sm font-semibold text-gray-900">Tax &amp; shipping</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Quebec tax behavior and shipping rules.</p>
+        <h2 className="text-sm font-semibold text-gray-900">Tax rules</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Quebec quantity-based tax behavior.</p>
       </div>
       <div className="px-6 py-6 space-y-4">
         <Select
