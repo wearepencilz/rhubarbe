@@ -4,7 +4,7 @@ export default function GateauxAdmin() {
   return (
     <FormPageEditor
       pageKey="gateaux"
-      label="Gâteaux signatures / Signature Cakes"
+      label="Signature Cakes (tab on /catering)"
       defaults={{
         heading: 'Gâteaux signatures / Signature Cakes',
         intro: 'Rhubarbe offre un service de gâteaux signatures pour les mariages et occasions spéciales.',

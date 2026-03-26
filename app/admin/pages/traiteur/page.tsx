@@ -4,7 +4,7 @@ export default function TraiteurAdmin() {
   return (
     <FormPageEditor
       pageKey="traiteur"
-      label="Traiteur / Catering"
+      label="Catering (tab on /catering)"
       defaults={{
         heading: 'Traiteur / Catering',
         intro: 'Rhubarbe offre un service de traiteur pour tous types d\'événements.',

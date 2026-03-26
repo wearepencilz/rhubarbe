@@ -25,10 +25,10 @@ const SECTIONS: { key: string; label: string; nested?: { key: string; label: str
   { key: 'thankYou', label: 'Thank You' },
   {
     key: 'form',
-    label: 'Forms',
+    label: 'Forms (Catering & Cakes)',
     nested: [
-      { key: 'traiteur', label: 'Traiteur / Catering' },
-      { key: 'gateaux', label: 'Gâteaux / Signature Cakes' },
+      { key: 'traiteur', label: 'Catering' },
+      { key: 'gateaux', label: 'Signature Cakes' },
       { key: 'fields', label: 'Form Fields' },
     ],
   },

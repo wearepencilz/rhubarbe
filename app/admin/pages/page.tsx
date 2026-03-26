@@ -21,14 +21,14 @@ const PAGES = [
   },
   {
     key: 'traiteur',
-    label: 'Traiteur / Catering',
-    description: 'The /traiteur page — heading, intro, notes (FR & EN)',
+    label: 'Catering',
+    description: 'Catering tab on /catering — heading, intro, notes (FR & EN)',
     href: '/admin/pages/traiteur',
   },
   {
     key: 'gateaux',
-    label: 'Gâteaux signatures / Signature Cakes',
-    description: 'The /gateaux-signatures page — heading, intro, notes (FR & EN)',
+    label: 'Signature Cakes',
+    description: 'Signature Cakes tab on /catering — heading, intro, notes (FR & EN)',
     href: '/admin/pages/gateaux',
   },
   {
