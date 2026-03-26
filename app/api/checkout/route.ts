@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
-import { resolveVariant } from '@/lib/tax/resolve-variant';
+import { findExemptVariant } from '@/lib/tax/find-exempt-variant';
 
 interface CheckoutItem {
   productId: string;
@@ -23,9 +23,6 @@ interface CheckoutRequest {
   locale: string;
 }
 
-/**
- * Resolve the first variant GID via Admin API.
- */
 async function getAdminVariantId(shopifyProductId: string): Promise<string | null> {
   try {
     const { getProductVariantId } = await import('@/lib/shopify/admin');
@@ -51,7 +48,6 @@ export async function POST(request: NextRequest) {
     // Resolve Shopify variant IDs for each item
     const lines: Array<{ merchandiseId: string; quantity: number }> = [];
     const skippedItems: string[] = [];
-    // Track which item produced each line (parallel to `lines`)
     const lineItems: CheckoutItem[] = [];
 
     for (const item of items) {
@@ -59,7 +55,6 @@ export async function POST(request: NextRequest) {
         skippedItems.push(item.productName);
         continue;
       }
-      // Use the specific variant ID if provided, otherwise fall back to first variant
       let variantId = item.shopifyVariantId || null;
       if (!variantId) {
         variantId = await getAdminVariantId(item.shopifyProductId);
@@ -72,23 +67,42 @@ export async function POST(request: NextRequest) {
       lineItems.push(item);
     }
 
-    // Resolve tax variants — swap merchandiseId to exempt variant when applicable
+    // Convention-based tax variant resolution
     const productIds = lineItems.map((item) => item.productId);
     const taxConfigs = await getTaxConfigByIds(productIds);
 
     for (let i = 0; i < lines.length; i++) {
       const item = lineItems[i];
       const taxConfig = taxConfigs.get(item.productId);
-      if (!taxConfig) continue;
+      if (!taxConfig || !item.shopifyProductId) continue;
 
-      const resolution = resolveVariant(taxConfig, item.quantity, lines[i].merchandiseId);
-      lines[i].merchandiseId = resolution.variantId;
-
-      if (resolution.fallback) {
-        console.warn(
-          `[Checkout] Tax variant fallback for product ${item.productName} — exempt variant not configured`,
+      if (taxConfig.taxBehavior === 'quantity_threshold') {
+        const effectiveUnits = item.quantity * taxConfig.taxUnitCount;
+        if (effectiveUnits >= taxConfig.taxThreshold) {
+          // Find the exempt twin variant via convention
+          const exemptId = await findExemptVariant(
+            item.shopifyProductId,
+            lines[i].merchandiseId,
+          );
+          if (exemptId) {
+            lines[i].merchandiseId = exemptId;
+          } else {
+            console.warn(
+              `[Checkout] No exempt variant found for ${item.productName} — using taxable variant`,
+            );
+          }
+        }
+      } else if (taxConfig.taxBehavior === 'always_exempt') {
+        // For always_exempt, find any non-taxable variant
+        const exemptId = await findExemptVariant(
+          item.shopifyProductId,
+          lines[i].merchandiseId,
         );
+        if (exemptId) {
+          lines[i].merchandiseId = exemptId;
+        }
       }
+      // always_taxable: keep the default variant (no change)
     }
 
     if (lines.length === 0) {
@@ -98,7 +112,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Cart attributes — appear as "Additional details" on the Shopify order
+    // Cart attributes
     const attributes: Array<{ key: string; value: string }> = [
       { key: 'Menu', value: launchTitle },
       { key: 'Menu ID', value: launchId },
@@ -110,7 +124,6 @@ export async function POST(request: NextRequest) {
       attributes.push({ key: 'Pickup Slot', value: `${pickupSlot.startTime} – ${pickupSlot.endTime}` });
     }
 
-    // Human-readable order note
     const isFr = locale === 'fr';
     const noteLines = [
       `Menu: ${launchTitle}`,
@@ -130,7 +143,6 @@ export async function POST(request: NextRequest) {
     }
     const note = noteLines.join('\n');
 
-    // Create Shopify cart via Storefront API
     const cart = await createCart({ lines, attributes, note });
 
     return NextResponse.json({
@@ -142,7 +154,6 @@ export async function POST(request: NextRequest) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error('Checkout error:', errMsg, error);
 
-    // Provide actionable error message for common issues
     if (errMsg.includes('does not exist') || errMsg.includes('not be published')) {
       return NextResponse.json(
         { error: 'One or more products are not published to the Storefront sales channel. Please publish them in Shopify Admin → Products → [Product] → Publishing.' },

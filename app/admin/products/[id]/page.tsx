@@ -20,8 +20,8 @@ import ImageUploader from '@/app/admin/components/ImageUploader';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 import ProductAvailabilityTab from '@/app/admin/components/ProductAvailabilityTab';
 import TaxShippingSection from '../../components/TaxShippingSection';
+import ShopifyVariantsDisplay from '../../components/ShopifyVariantsDisplay';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
-import VariantEditor from '../../components/VariantEditor';
 import type { FlavourIngredient, ContentTranslations, ProductVariant } from '@/types';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
@@ -81,7 +81,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     taxBehavior: 'always_taxable',
     taxThreshold: 6,
     taxUnitCount: 1,
-    shopifyTaxExemptVariantId: null as string | null,
   });
 
   useEffect(() => { fetchData(); }, [params.id]);
@@ -161,7 +160,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           taxBehavior: offeringData.taxBehavior || 'always_taxable',
           taxThreshold: offeringData.taxThreshold ?? 6,
           taxUnitCount: offeringData.taxUnitCount ?? 1,
-          shopifyTaxExemptVariantId: offeringData.shopifyTaxExemptVariantId || null,
         });
       }
     } catch (error) {
@@ -456,22 +454,10 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
-          {/* Tasting notes */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Variants</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Define flavour or size options for this product.</p>
-            </div>
-            <div className="px-6 py-6">
-              <VariantEditor
-                variantType={formData.variantType}
-                variants={formData.variants}
-                basePrice={formData.price}
-                onVariantTypeChange={(type) => setFormData({ ...formData, variantType: type })}
-                onVariantsChange={(variants) => setFormData({ ...formData, variants })}
-              />
-            </div>
-          </div>
+          {/* Shopify variants (read-only) */}
+          {formData.shopifyProductId && (
+            <ShopifyVariantsDisplay shopifyProductId={formData.shopifyProductId} />
+          )}
 
           {/* Tasting notes */}
           <div className="bg-white rounded-lg border border-gray-200">
@@ -669,7 +655,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               taxBehavior: formData.taxBehavior,
               taxThreshold: formData.taxThreshold,
               taxUnitCount: formData.taxUnitCount,
-              shopifyTaxExemptVariantId: formData.shopifyTaxExemptVariantId,
               pickupOnly: formData.pickupOnly,
             }}
             onChange={(tax) => setFormData({ ...formData, ...tax })}
