@@ -446,6 +446,10 @@ function VolumeInlineCart({
               </p>
             )}
 
+            {!fulfillmentDate && totalQuantity > 0 && (
+              <p className="text-xs text-amber-600">{V.noDateError}</p>
+            )}
+
             {checkoutError && (
               <p className="text-xs text-red-600">{checkoutError}</p>
             )}
