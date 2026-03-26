@@ -39,16 +39,9 @@ export async function POST(
       );
     }
 
-    // Validate price
-    if (!product.price || product.price <= 0) {
-      return NextResponse.json(
-        { 
-          error: 'Product must have a valid price greater than 0',
-          details: { price: product.price }
-        },
-        { status: 400 }
-      );
-    }
+    // Use CMS price if set, otherwise default to $10.00
+    const DEFAULT_PRICE_CENTS = 1000; // $10.00
+    const productPrice = (product.price && product.price > 0) ? product.price : DEFAULT_PRICE_CENTS;
 
     // Build product title from CMS data directly
     const productTitle = product.title || product.slug || product.id;
@@ -74,13 +67,13 @@ export async function POST(
       ...(hasVariants && optionName ? {
         options: [optionName],
         variants: product.variants.map((v: any) => ({
-          price: ((v.price || product.price) / 100).toFixed(2),
+          price: ((v.price || productPrice) / 100).toFixed(2),
           sku: v.sku || `${product.slug || product.id}-${v.id}`,
           optionValues: [{ optionName, name: v.labelFr || v.label }],
         })),
       } : {
         variants: [{
-          price: (product.price / 100).toFixed(2),
+          price: (productPrice / 100).toFixed(2),
           sku: product.slug || product.id,
           ...(product.inventoryTracked && product.inventoryQuantity ? {
             inventoryQuantities: [{

@@ -257,10 +257,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   }
 
   async function handleCreateShopifyProduct() {
-    const validationErrors: string[] = [];
-    const currentPrice = formData.price ? parseFloat(formData.price) : 0;
-    if (!currentPrice || currentPrice <= 0) validationErrors.push('Price must be greater than $0 to create a Shopify product');
-    if (validationErrors.length > 0) { setErrors(validationErrors); return; }
     setShopifyConfirmOpen(true);
   }
 
@@ -441,25 +437,28 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 placeholder="Select a category"
               />
               <div className="grid grid-cols-2 gap-4">
-                {formData.shopifyProductId ? (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                  {formData.shopifyProductId ? (
+                    <>
                       <p className="text-sm text-gray-900 py-2">{formData.price ? `$${parseFloat(formData.price).toFixed(2)}` : '—'}</p>
                       <p className="text-xs text-gray-400">Managed in Shopify</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Compare at price ($)</label>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 py-2">$10.00 default — update in Shopify after linking</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Compare at price ($)</label>
+                  {formData.shopifyProductId ? (
+                    <>
                       <p className="text-sm text-gray-900 py-2">{formData.compareAtPrice ? `$${parseFloat(formData.compareAtPrice).toFixed(2)}` : '—'}</p>
                       <p className="text-xs text-gray-400">Managed in Shopify</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Input label="Price ($)" type="number" value={formData.price} onChange={(v) => setFormData({ ...formData, price: v })} />
-                    <Input label="Compare at price ($)" type="number" value={formData.compareAtPrice} onChange={(v) => setFormData({ ...formData, compareAtPrice: v })} />
-                  </>
-                )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 py-2">—</p>
+                  )}
+                </div>
               </div>
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
               <div className="flex items-center gap-6 pt-1">
@@ -636,14 +635,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                   <div>
                     <p className="text-sm font-medium text-gray-900">Create new</p>
                     <p className="text-xs text-gray-500 mt-0.5">Generate from this product's details.</p>
-                    {(!formData.price || parseFloat(formData.price) <= 0) && (
-                      <p className="text-xs text-amber-600 mt-1">Price required.</p>
-                    )}
+                    <p className="text-xs text-gray-400 mt-1">Created with a default $10 price. Update in Shopify after.</p>
                   </div>
                   <Button
                     variant="primary" size="sm"
                     onClick={handleCreateShopifyProduct}
-                    isDisabled={creatingShopifyProduct || !formData.price || parseFloat(formData.price) <= 0}
+                    isDisabled={creatingShopifyProduct}
                     isLoading={creatingShopifyProduct}
                     className="flex-shrink-0"
                   >
