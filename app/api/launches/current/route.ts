@@ -53,6 +53,7 @@ export async function GET() {
 
     // Fetch Shopify prices for linked products
     const shopifyPriceMap = new Map<string, number>(); // shopifyProductId → price in cents
+    const shopifyVariantPriceMap = new Map<string, number>(); // shopifyVariantId → price in cents
     const shopifyProductIds = allProducts
       .filter((p) => p.shopifyProductId)
       .map((p) => p.shopifyProductId!);
@@ -64,10 +65,12 @@ export async function GET() {
             nodes(ids: $ids) {
               ... on Product {
                 id
-                variants(first: 1) {
+                variants(first: 100) {
                   edges {
                     node {
+                      id
                       price
+                      selectedOptions { name value }
                     }
                   }
                 }
@@ -78,9 +81,19 @@ export async function GET() {
         );
         for (const node of (data.nodes || [])) {
           if (!node?.id) continue;
-          const priceStr = node.variants?.edges?.[0]?.node?.price;
-          if (priceStr) {
-            shopifyPriceMap.set(node.id, Math.round(parseFloat(priceStr) * 100));
+          // Use the first non-Tax variant's price as the product price
+          const variants = node.variants?.edges?.map((e: any) => e.node) || [];
+          const taxableVariant = variants.find((v: any) =>
+            !v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')
+          ) || variants[0];
+          if (taxableVariant?.price) {
+            shopifyPriceMap.set(node.id, Math.round(parseFloat(taxableVariant.price) * 100));
+          }
+          // Also store per-variant prices (keyed by Shopify variant GID)
+          for (const v of variants) {
+            // Skip Tax=false variants
+            if (v.selectedOptions?.some((o: any) => o.name === 'Tax' && o.value === 'false')) continue;
+            shopifyVariantPriceMap.set(v.id, Math.round(parseFloat(v.price) * 100));
           }
         }
       } catch (err) {
@@ -132,7 +145,13 @@ export async function GET() {
           serves: dbProduct?.serves || null,
           translations: dbProduct?.translations || null,
           variantType: dbProduct?.variantType || 'none',
-          variants: dbProduct?.variants || [],
+          variants: (dbProduct?.variants || []).map((v: any) => ({
+            ...v,
+            // Override variant price with Shopify price if available
+            price: (v.shopifyVariantId && shopifyVariantPriceMap.has(v.shopifyVariantId))
+              ? shopifyVariantPriceMap.get(v.shopifyVariantId)!
+              : v.price,
+          })),
         };
       });
 
