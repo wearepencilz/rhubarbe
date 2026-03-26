@@ -27,6 +27,7 @@ const sections: NavSectionType[] = [
         label: 'Ordering',
         items: [
             { label: 'Menus', href: '/admin/menus', icon: '📅' },
+            { label: 'Volume', href: '/admin/volume-products', icon: '📦' },
             { label: 'Orders', href: '/admin/orders', icon: '🧾' },
             { label: 'Pickup Locations', href: '/admin/pickup-locations', icon: '📍' },
         ],

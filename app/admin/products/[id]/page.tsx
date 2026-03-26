@@ -37,6 +37,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [verifyingShopifyLink, setVerifyingShopifyLink] = useState(false);
   const toast = useToast();
 
+  const [volumeEnabled, setVolumeEnabled] = useState(false);
+  const [enablingVolume, setEnablingVolume] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -105,6 +108,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         const ingredientsData = await ingredientsRes.json();
         setOffering(offeringData);
         setIngredients(ingredientsData.data || ingredientsData);
+        setVolumeEnabled(offeringData.volumeEnabled ?? false);
 
         // Verify Shopify link if product is linked
         if (offeringData.shopifyProductId) {
@@ -645,6 +649,63 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 </div>
               </>
             )}
+          </div>
+
+          {/* Volume ordering */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">Volume ordering</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Enable bulk/volume sales for this product.</p>
+              </div>
+              <Badge color={volumeEnabled ? 'success' : 'gray'}>
+                {volumeEnabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+            <div className="px-6 py-4">
+              {volumeEnabled ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">This product is available for volume ordering.</p>
+                  <a href={`/admin/volume-products/${params.id}`}>
+                    <Button variant="secondary" size="sm" className="w-full">Configure volume settings</Button>
+                  </a>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500">Enable volume ordering to allow customers to place bulk orders for this product with lead time tiers and variant options.</p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    isDisabled={enablingVolume}
+                    isLoading={enablingVolume}
+                    onClick={async () => {
+                      setEnablingVolume(true);
+                      try {
+                        const res = await fetch(`/api/volume-products/${params.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ volumeEnabled: true, leadTimeTiers: [], volumeVariants: [] }),
+                        });
+                        if (res.ok) {
+                          setVolumeEnabled(true);
+                          toast.success('Volume ordering enabled', 'Configure lead time tiers and variants to complete setup.');
+                        } else {
+                          const err = await res.json();
+                          toast.error('Failed', err.error || 'Could not enable volume ordering');
+                        }
+                      } catch {
+                        toast.error('Failed', 'An unexpected error occurred');
+                      } finally {
+                        setEnablingVolume(false);
+                      }
+                    }}
+                  >
+                    Enable volume ordering
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>

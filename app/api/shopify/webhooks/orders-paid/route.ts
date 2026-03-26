@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as crypto from 'crypto';
 import * as ordersQuery from '@/lib/db/queries/orders';
+import { sendVolumeOrderConfirmation, OrderWithItems } from '@/lib/email/volume-order-confirmation';
 
 /**
  * Shopify Webhook: orders/paid
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * Parse a Shopify order webhook payload and insert into our DB.
- * Cart attributes (Menu, Pickup Date, etc.) are set during checkout.
+ * Cart attributes (Menu, Pickup Date, Order Type, etc.) are set during checkout.
  */
 async function processShopifyOrder(shopifyOrder: any) {
   const shopifyOrderId = String(shopifyOrder.id);
@@ -70,12 +71,21 @@ async function processShopifyOrder(shopifyOrder: any) {
     attrs.set(attr.name, attr.value);
   }
 
+  // Determine order type — default to "launch" for backward compatibility
+  const orderTypeAttr = attrs.get('Order Type');
+  const orderType: 'launch' | 'volume' = orderTypeAttr === 'volume' ? 'volume' : 'launch';
+
   const pickupDate = attrs.get('Pickup Date');
   const pickupLocation = attrs.get('Pickup Location');
   const pickupAddress = attrs.get('Pickup Address');
   const pickupSlotRaw = attrs.get('Pickup Slot');
   const launchId = attrs.get('Menu ID') || null;
   const launchTitle = attrs.get('Menu') || null;
+
+  // Volume order specific attributes
+  const fulfillmentDateRaw = attrs.get('Fulfillment Date') || null;
+  const allergenNotes = attrs.get('Allergen Note') || null;
+  const fulfillmentDate = fulfillmentDateRaw ? new Date(fulfillmentDateRaw) : null;
 
   // Parse pickup slot "10:00 – 10:30" format
   let pickupSlot: { startTime: string; endTime: string } | undefined;
@@ -110,22 +120,55 @@ async function processShopifyOrder(shopifyOrder: any) {
     status: 'confirmed' as const,
     paymentStatus: 'paid' as const,
     orderDate: new Date(shopifyOrder.created_at || Date.now()),
+    orderType,
+    fulfillmentDate: fulfillmentDate ?? undefined,
+    allergenNotes,
   };
 
   // Build order items from line items
-  const itemsData = (shopifyOrder.line_items || []).map((li: any) => ({
-    orderId: '', // will be set by create()
-    productId: '00000000-0000-0000-0000-000000000000', // placeholder UUID — Shopify doesn't map 1:1
-    productName: li.title + (li.variant_title ? ` — ${li.variant_title}` : ''),
-    quantity: li.quantity,
-    unitPrice: toCents(li.price),
-    subtotal: toCents(li.price) * li.quantity,
-    pickupDate: pickupDate ? new Date(pickupDate) : new Date(),
-    pickupLocationId: '00000000-0000-0000-0000-000000000000', // placeholder
-    pickupLocationName: pickupLocation ? `${pickupLocation}${pickupAddress ? ' — ' + pickupAddress : ''}` : 'TBD',
-    pickupSlot: pickupSlot || null,
-  }));
+  // For volume orders, the Shopify line item title contains the variant label
+  const itemsData = (shopifyOrder.line_items || []).map((li: any) => {
+    // For volume orders, li.title is the product name and li.variant_title is the variant label
+    // We store the full label as "Product — Variant" to preserve the variant label
+    const productName = li.title + (li.variant_title ? ` — ${li.variant_title}` : '');
+
+    return {
+      orderId: '', // will be set by create()
+      productId: '00000000-0000-0000-0000-000000000000', // placeholder UUID — Shopify doesn't map 1:1
+      productName,
+      quantity: li.quantity,
+      unitPrice: toCents(li.price),
+      subtotal: toCents(li.price) * li.quantity,
+      pickupDate: pickupDate ? new Date(pickupDate) : (fulfillmentDate ?? new Date()),
+      pickupLocationId: '00000000-0000-0000-0000-000000000000', // placeholder
+      pickupLocationName: pickupLocation ? `${pickupLocation}${pickupAddress ? ' — ' + pickupAddress : ''}` : 'TBD',
+      pickupSlot: pickupSlot || null,
+    };
+  });
 
   const created = await ordersQuery.create(orderData, itemsData);
-  console.log(`[Webhook] Created order ${created.orderNumber} (Shopify #${shopifyOrderId})`);
+  console.log(`[Webhook] Created order ${created.orderNumber} (Shopify #${shopifyOrderId}, type=${orderType})`);
+
+  // Send confirmation email for volume orders (non-blocking)
+  if (orderType === 'volume') {
+    try {
+      const locale = (attrs.get('Locale') as 'en' | 'fr') || 'en';
+      const emailOrder: OrderWithItems = {
+        id: created.id,
+        orderNumber: created.orderNumber,
+        customerName,
+        customerEmail,
+        fulfillmentDate,
+        allergenNotes,
+        items: itemsData.map((item: { productName: string; quantity: number }) => ({
+          productName: item.productName,
+          quantity: item.quantity,
+        })),
+      };
+      await sendVolumeOrderConfirmation(emailOrder, locale);
+    } catch (err) {
+      console.error('[Webhook] Email send failed for order', created.orderNumber, err);
+      // Don't fail the webhook — email failure is non-blocking
+    }
+  }
 }

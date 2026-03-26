@@ -46,8 +46,8 @@ export default function CreateProductPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          internalName: formData.internalName,
-          publicName: formData.publicName,
+          name: formData.internalName,
+          title: formData.publicName,
           description: formData.description,
           shortCardCopy: formData.shortCardCopy,
           category: formData.category || undefined,

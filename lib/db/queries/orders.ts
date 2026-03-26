@@ -5,13 +5,16 @@ import { eq, desc, and, inArray } from 'drizzle-orm';
 type OrderStatus = 'pending' | 'confirmed' | 'fulfilled' | 'cancelled';
 
 /**
- * List orders with optional status filter.
+ * List orders with optional status and orderType filters.
  * Returns the shape the admin orders page expects.
  */
-export async function list(filters?: { status?: string }) {
+export async function list(filters?: { status?: string; orderType?: string }) {
   const conditions = [];
   if (filters?.status) {
     conditions.push(eq(orders.status, filters.status as OrderStatus));
+  }
+  if (filters?.orderType) {
+    conditions.push(eq(orders.orderType, filters.orderType));
   }
 
   const rows = await db
@@ -35,6 +38,8 @@ export async function list(filters?: { status?: string }) {
 
   return rows.map((row) => {
     const firstItem = itemsByOrder.get(row.id)?.[0];
+    const items = itemsByOrder.get(row.id) || [];
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     return {
       id: row.id,
       orderNumber: row.orderNumber,
@@ -44,6 +49,10 @@ export async function list(filters?: { status?: string }) {
       pickupLocation: firstItem?.pickupLocationName ?? null,
       status: row.status,
       totalAmount: row.total,
+      orderType: row.orderType,
+      fulfillmentDate: row.fulfillmentDate?.toISOString() ?? null,
+      allergenNotes: row.allergenNotes ?? null,
+      totalQuantity,
     };
   });
 }

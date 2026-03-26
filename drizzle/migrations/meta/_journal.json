@@ -71,6 +71,13 @@
       "when": 1774272925865,
       "tag": "0009_calm_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774391950332,
+      "tag": "0010_purple_glorian",
+      "breakpoints": true
     }
   ]
 }

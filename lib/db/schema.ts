@@ -44,9 +44,9 @@ export const products = pgTable('products', {
 
   // Availability & selection
   inventoryTracked: boolean('inventory_tracked').default(false),
-  availabilityMode: text('availability_mode'),
-  dateSelectionType: text('date_selection_type'),
-  slotSelectionType: text('slot_selection_type'),
+  availabilityMode: text('availability_mode').notNull().default('always_available'),
+  dateSelectionType: text('date_selection_type').notNull().default('none'),
+  slotSelectionType: text('slot_selection_type').notNull().default('none'),
   variantType: text('variant_type'),
 
   // Sync fields
@@ -63,6 +63,12 @@ export const products = pgTable('products', {
   defaultPickupRequired: boolean('default_pickup_required').notNull().default(false),
   onlineOrderable: boolean('online_orderable').notNull().default(true),
   pickupOnly: boolean('pickup_only').notNull().default(false),
+
+  // Volume sales fields
+  volumeEnabled: boolean('volume_enabled').notNull().default(false),
+  volumeDescription: customJsonb<{ en: string; fr: string }>('volume_description'),
+  volumeInstructions: customJsonb<{ en: string; fr: string }>('volume_instructions'),
+  volumeMinOrderQuantity: integer('volume_min_order_quantity'),
   
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -70,6 +76,31 @@ export const products = pgTable('products', {
   slugIdx: index('products_slug_idx').on(table.slug),
   legacyIdIdx: index('products_legacy_id_idx').on(table.legacyId),
   categoryIdx: index('products_category_idx').on(table.category),
+}));
+
+// Volume Lead Time Tiers — per-product lead time rules based on quantity
+export const volumeLeadTimeTiers = pgTable('volume_lead_time_tiers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  minQuantity: integer('min_quantity').notNull(),
+  leadTimeDays: integer('lead_time_days').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  productIdIdx: index('volume_lead_time_tiers_product_id_idx').on(table.productId),
+}));
+
+// Volume Variants — volume-specific variants with bilingual labels and Shopify mapping
+export const volumeVariants = pgTable('volume_variants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  label: customJsonb<{ en: string; fr: string }>('label').notNull(),
+  shopifyVariantId: text('shopify_variant_id'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  productIdIdx: index('volume_variants_product_id_idx').on(table.productId),
+  sortOrderIdx: index('volume_variants_sort_order_idx').on(table.sortOrder),
 }));
 
 // Pickup Locations
@@ -177,6 +208,11 @@ export const orders = pgTable('orders', {
     enum: ['pending', 'paid', 'refunded'] 
   }).notNull().default('pending'),
   
+  // Volume order fields
+  orderType: text('order_type').notNull().default('launch'),  // "launch" | "volume"
+  fulfillmentDate: timestamp('fulfillment_date'),
+  allergenNotes: text('allergen_notes'),
+
   orderDate: timestamp('order_date').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -185,6 +221,7 @@ export const orders = pgTable('orders', {
   shopifyOrderIdIdx: index('orders_shopify_order_id_idx').on(table.shopifyOrderId),
   statusIdx: index('orders_status_idx').on(table.status),
   orderDateIdx: index('orders_order_date_idx').on(table.orderDate),
+  orderTypeIdx: index('orders_order_type_idx').on(table.orderType),
 }));
 
 // Order Items
@@ -383,3 +420,23 @@ export const requests = pgTable('requests', {
   typeIdx: index('requests_type_idx').on(table.type),
   statusIdx: index('requests_status_idx').on(table.status),
 }));
+
+// Email Templates — admin-configurable bilingual email templates
+export const emailTemplates = pgTable('email_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  templateKey: text('template_key').notNull().unique(),
+  subject: customJsonb<{ en: string; fr: string }>('subject').notNull(),
+  body: customJsonb<{ en: string; fr: string }>('body').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Email Logs — audit trail for all transactional emails
+export const emailLogs = pgTable('email_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  recipientEmail: text('recipient_email').notNull(),
+  templateKey: text('template_key').notNull(),
+  orderId: text('order_id'),
+  status: text('status').notNull(),  // "sent" | "failed"
+  errorMessage: text('error_message'),
+  sentAt: timestamp('sent_at').notNull().defaultNow(),
+});

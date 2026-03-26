@@ -19,6 +19,10 @@ interface Order {
   pickupLocation: string | null;
   status: string;
   totalAmount: number;
+  orderType: string;
+  fulfillmentDate: string | null;
+  allergenNotes: string | null;
+  totalQuantity: number;
 }
 
 export default function OrdersPage() {
@@ -28,15 +32,17 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [orderTypeFilter, setOrderTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => { fetchData(); }, [statusFilter]);
+  useEffect(() => { fetchData(); }, [statusFilter, orderTypeFilter]);
 
   async function fetchData() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (orderTypeFilter !== 'all') params.append('orderType', orderTypeFilter);
       const res = await fetch(`/api/orders?${params}`);
       if (res.ok) setOrders(await res.json());
     } catch {
@@ -111,6 +117,18 @@ export default function OrdersPage() {
             >
               {(item) => <Select.Item id={item.id} label={item.label} />}
             </Select>
+            <Select
+              placeholder="All types"
+              selectedKey={orderTypeFilter}
+              onSelectionChange={(key) => setOrderTypeFilter(key as string)}
+              items={[
+                { id: 'all', label: 'All types' },
+                { id: 'launch', label: 'Launch' },
+                { id: 'volume', label: 'Volume' },
+              ]}
+            >
+              {(item) => <Select.Item id={item.id} label={item.label} />}
+            </Select>
             <Button color="secondary" size="sm" onClick={() => router.push('/admin/orders/prep-sheet')}>
               Prep Sheet
             </Button>
@@ -140,7 +158,15 @@ export default function OrdersPage() {
             <Table.Head isRowHeader label="Order #" />
             <Table.Head label="Customer" />
             <Table.Head label="Date" />
-            <Table.Head label="Pickup" />
+            {orderTypeFilter === 'volume' ? (
+              <>
+                <Table.Head label="Fulfillment Date" />
+                <Table.Head label="Total Qty" />
+                <Table.Head label="Allergen Notes" />
+              </>
+            ) : (
+              <Table.Head label="Pickup" />
+            )}
             <Table.Head label="Status" />
             <Table.Head label="Total" />
           </Table.Header>
@@ -156,10 +182,26 @@ export default function OrdersPage() {
                 <Table.Cell>
                   <p className="text-sm text-primary">{order.orderDate}</p>
                 </Table.Cell>
-                <Table.Cell>
-                  <p className="text-sm text-primary">{order.pickupDate || '—'}</p>
-                  {order.pickupLocation && <p className="text-xs text-tertiary">{order.pickupLocation}</p>}
-                </Table.Cell>
+                {orderTypeFilter === 'volume' ? (
+                  <>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.fulfillmentDate || '—'}</p>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.totalQuantity}</p>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <p className="text-sm text-primary truncate max-w-[200px]" title={order.allergenNotes || ''}>
+                        {order.allergenNotes || '—'}
+                      </p>
+                    </Table.Cell>
+                  </>
+                ) : (
+                  <Table.Cell>
+                    <p className="text-sm text-primary">{order.pickupDate || '—'}</p>
+                    {order.pickupLocation && <p className="text-xs text-tertiary">{order.pickupLocation}</p>}
+                  </Table.Cell>
+                )}
                 <Table.Cell>
                   <Badge color={statusColor(order.status)}>{order.status}</Badge>
                 </Table.Cell>

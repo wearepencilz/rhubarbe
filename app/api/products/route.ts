@@ -66,13 +66,13 @@ export async function POST(request: NextRequest) {
       category: body.category ?? null,
       serves: body.serves ?? null,
       variants: body.variants || [],
-      availabilityMode: body.availabilityMode ?? null,
+      availabilityMode: body.availabilityMode ?? undefined,
       defaultMinQuantity: body.defaultMinQuantity ?? 1,
       defaultQuantityStep: body.defaultQuantityStep ?? 1,
       defaultMaxQuantity: body.defaultMaxQuantity ?? null,
       defaultPickupRequired: body.defaultPickupRequired ?? false,
-      dateSelectionType: body.dateSelectionType ?? null,
-      slotSelectionType: body.slotSelectionType ?? null,
+      dateSelectionType: body.dateSelectionType ?? undefined,
+      slotSelectionType: body.slotSelectionType ?? undefined,
     });
 
     // If ingredients were provided, link them
@@ -89,8 +89,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(newProduct, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating product:', error);
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+    const msg = error?.message || 'Unknown error';
+    const cause = error?.cause?.message || error?.cause || '';
+    const code = error?.code || '';
+    return NextResponse.json({ error: 'Failed to create product', details: msg, cause: String(cause), code }, { status: 500 });
   }
 }
