@@ -441,8 +441,25 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 placeholder="Select a category"
               />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Price ($)" type="number" value={formData.price} onChange={(v) => setFormData({ ...formData, price: v })} />
-                <Input label="Compare at price ($)" type="number" value={formData.compareAtPrice} onChange={(v) => setFormData({ ...formData, compareAtPrice: v })} />
+                {formData.shopifyProductId ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                      <p className="text-sm text-gray-900 py-2">{formData.price ? `$${parseFloat(formData.price).toFixed(2)}` : '—'}</p>
+                      <p className="text-xs text-gray-400">Managed in Shopify</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Compare at price ($)</label>
+                      <p className="text-sm text-gray-900 py-2">{formData.compareAtPrice ? `$${parseFloat(formData.compareAtPrice).toFixed(2)}` : '—'}</p>
+                      <p className="text-xs text-gray-400">Managed in Shopify</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Input label="Price ($)" type="number" value={formData.price} onChange={(v) => setFormData({ ...formData, price: v })} />
+                    <Input label="Compare at price ($)" type="number" value={formData.compareAtPrice} onChange={(v) => setFormData({ ...formData, compareAtPrice: v })} />
+                  </>
+                )}
               </div>
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
               <div className="flex items-center gap-6 pt-1">
