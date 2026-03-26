@@ -406,11 +406,11 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
-          {/* Pricing, status & options */}
+          {/* Product details */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Pricing & options</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Pricing, status, and inventory settings.</p>
+              <h2 className="text-sm font-semibold text-gray-900">Product details</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Slug, status, category, and tags.</p>
             </div>
             <div className="px-6 py-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -436,11 +436,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 description="Used to group products on the order page"
                 placeholder="Select a category"
               />
-              {formData.shopifyProductId ? (
-                <p className="text-xs text-gray-400">Pricing managed in Shopify — see variants below.</p>
-              ) : (
-                <p className="text-xs text-gray-400">Products are created with a $10 default price. Update pricing in Shopify after linking.</p>
-              )}
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
               <div className="flex items-center gap-6 pt-1">
                 <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
@@ -450,11 +445,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               )}
             </div>
           </div>
-
-          {/* Shopify variants (read-only) */}
-          {formData.shopifyProductId && (
-            <ShopifyVariantsDisplay shopifyProductId={formData.shopifyProductId} />
-          )}
 
           {/* Tasting notes */}
           <div className="bg-white rounded-lg border border-gray-200">
@@ -492,37 +482,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               <FlavourIngredientSelector
                 selectedIngredients={formData.ingredients}
                 onChange={(ing: FlavourIngredient[]) => setFormData({ ...formData, ingredients: ing })}
-              />
-            </div>
-          </div>
-
-          {/* Availability */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Availability</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Selling mode, order rules, pickup configuration, and scheduling windows.</p>
-            </div>
-            <div className="px-6 py-6">
-              <ProductAvailabilityTab
-                productId={params.id}
-                data={{
-                  defaultMinQuantity: formData.defaultMinQuantity,
-                  defaultQuantityStep: formData.defaultQuantityStep,
-                  defaultMaxQuantity: formData.defaultMaxQuantity ? parseInt(formData.defaultMaxQuantity) : null,
-                  defaultPickupRequired: formData.defaultPickupRequired,
-                  onlineOrderable: formData.onlineOrderable,
-                  pickupOnly: formData.pickupOnly,
-                }}
-                onChange={(avail) => {
-                  const { defaultMaxQuantity, ...rest } = avail as any;
-                  setFormData({
-                    ...formData,
-                    ...rest,
-                    ...(defaultMaxQuantity !== undefined
-                      ? { defaultMaxQuantity: defaultMaxQuantity != null ? String(defaultMaxQuantity) : '' }
-                      : {}),
-                  });
-                }}
               />
             </div>
           </div>
@@ -644,6 +603,11 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             )}
           </div>
 
+          {/* Shopify variants (read-only) */}
+          {formData.shopifyProductId && (
+            <ShopifyVariantsDisplay shopifyProductId={formData.shopifyProductId} />
+          )}
+
           {/* Tax & shipping */}
           <TaxShippingSection
             data={{
@@ -654,6 +618,37 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             onChange={(tax) => setFormData({ ...formData, ...tax })}
             shopifyProductId={formData.shopifyProductId || undefined}
           />
+
+          {/* Availability */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Availability</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Selling mode, order rules, pickup configuration, and scheduling windows.</p>
+            </div>
+            <div className="px-6 py-6">
+              <ProductAvailabilityTab
+                productId={params.id}
+                data={{
+                  defaultMinQuantity: formData.defaultMinQuantity,
+                  defaultQuantityStep: formData.defaultQuantityStep,
+                  defaultMaxQuantity: formData.defaultMaxQuantity ? parseInt(formData.defaultMaxQuantity) : null,
+                  defaultPickupRequired: formData.defaultPickupRequired,
+                  onlineOrderable: formData.onlineOrderable,
+                  pickupOnly: formData.pickupOnly,
+                }}
+                onChange={(avail) => {
+                  const { defaultMaxQuantity, ...rest } = avail as any;
+                  setFormData({
+                    ...formData,
+                    ...rest,
+                    ...(defaultMaxQuantity !== undefined
+                      ? { defaultMaxQuantity: defaultMaxQuantity != null ? String(defaultMaxQuantity) : '' }
+                      : {}),
+                  });
+                }}
+              />
+            </div>
+          </div>
 
           {/* Volume ordering */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
