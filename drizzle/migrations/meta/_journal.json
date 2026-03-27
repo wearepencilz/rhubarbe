@@ -92,6 +92,20 @@
       "when": 1774569965861,
       "tag": "0012_thin_bloodstorm",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1774570000000,
+      "tag": "0013_cake_pricing_tiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1774570100000,
+      "tag": "0014_add_cake_pricing_shopify_variant",
+      "breakpoints": true
     }
   ]
 }
