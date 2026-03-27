@@ -15,6 +15,7 @@ interface LaunchProduct {
   image: string | null;
   price: number | null;
   description: string | null;
+  shortCardCopy: string | null;
   category: string | null;
   categoryLabel: string | null;
   slug: string;
@@ -106,6 +107,9 @@ function ProductCard({
   const displayName = product.translations?.fr?.title && locale === 'fr'
     ? product.translations.fr.title
     : product.productName;
+  const shortCopy = product.translations?.fr?.shortCardCopy && locale === 'fr'
+    ? product.translations.fr.shortCardCopy
+    : product.shortCardCopy;
   const description = product.translations?.fr?.description && locale === 'fr'
     ? product.translations.fr.description
     : product.description;
@@ -189,6 +193,9 @@ function ProductCard({
             </span>
           )}
         </div>
+        {shortCopy && (
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{shortCopy}</p>
+        )}
         {description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{description}</p>
         )}

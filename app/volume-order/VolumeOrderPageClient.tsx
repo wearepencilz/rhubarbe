@@ -39,6 +39,7 @@ interface VolumeProduct {
   volumeDescription: TranslationObject;
   volumeInstructions: TranslationObject;
   volumeMinOrderQuantity: number;
+  shortCardCopy: string | null;
   allergens: string[];
   leadTimeTiers: LeadTimeTier[];
   variants: VolumeVariant[];
@@ -142,6 +143,10 @@ function VolumeProductCard({
             {product.name}
           </h3>
         </div>
+
+        {product.shortCardCopy && (
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{product.shortCardCopy}</p>
+        )}
 
         {description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{description}</p>

@@ -37,6 +37,7 @@ interface CakeProduct {
   cakeDescription: TranslationObject;
   cakeInstructions: TranslationObject;
   cakeMinPeople: number;
+  shortCardCopy: string | null;
   allergens: string[];
   leadTimeTiers: LeadTimeTier[];
   pricingTiers: PricingTier[];
@@ -144,6 +145,10 @@ function CakeProductCard({
           style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
           {product.name}
         </h3>
+
+        {product.shortCardCopy && (
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{product.shortCardCopy}</p>
+        )}
 
         {description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{description}</p>

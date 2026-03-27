@@ -143,6 +143,7 @@ export async function GET() {
             ? shopifyPriceMap.get(dbProduct.shopifyProductId)!
             : (dbProduct?.price || null),
           description: dbProduct?.description || null,
+          shortCardCopy: dbProduct?.shortCardCopy || null,
           category: catSlug,
           categoryLabel: catSlug ? (categoryLabelMap.get(catSlug) || catSlug) : null,
           slug: dbProduct?.slug || lp.productId,

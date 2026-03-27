@@ -26,6 +26,7 @@ export async function GET() {
         cakeDescription: products.cakeDescription,
         cakeInstructions: products.cakeInstructions,
         cakeMinPeople: products.cakeMinPeople,
+        shortCardCopy: products.shortCardCopy,
         allergens: products.allergens,
       })
       .from(products)
@@ -157,6 +158,7 @@ export async function GET() {
         cakeDescription: p.cakeDescription ?? { en: '', fr: '' },
         cakeInstructions: p.cakeInstructions ?? { en: '', fr: '' },
         cakeMinPeople: p.cakeMinPeople ?? 1,
+        shortCardCopy: p.shortCardCopy ?? null,
         allergens: p.allergens ?? [],
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         pricingTiers,
