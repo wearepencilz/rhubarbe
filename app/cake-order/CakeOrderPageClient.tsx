@@ -377,7 +377,7 @@ function CakeInlineCart({
             {deliveryUnavailable && (
               <p className="text-xs text-red-600" role="alert">
                 {isFr
-                  ? 'La livraison n'est pas disponible pour ce gâteau.'
+                  ? "La livraison n'est pas disponible pour ce gâteau."
                   : 'Delivery is not available for this cake.'}
               </p>
             )}
