@@ -2,7 +2,7 @@
 
 import Badge from './ui/badge';
 
-export const ORDER_TYPE_CONFIG = {
+export const ORDER_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   launch: { label: 'Menu', color: 'info' },
   volume: { label: 'Catering', color: 'purple' },
   cake:   { label: 'Cake', color: 'pink' },
