@@ -309,7 +309,7 @@ function VolumeInlineCart({
             {groups.map((group) => (
               <div key={group.productId} className="px-5 py-3 border-b border-gray-100 last:border-b-0">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-gray-900 truncate">{group.productName}</p>
+                  <p className="text-sm font-medium text-gray-900">{group.productName}</p>
                   {group.totalPrice > 0 && (
                     <span className="text-sm text-gray-900 font-medium shrink-0"
                       style={{ fontFamily: 'var(--font-diatype-mono)' }}>

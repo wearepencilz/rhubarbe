@@ -248,13 +248,13 @@ function CakeInlineCart({
           {/* Selected product */}
           <div className="px-5 py-3 border-b border-gray-100">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-medium text-gray-900 truncate">{selectedProduct.name}</p>
-              <button onClick={onRemove}
-                className="text-[11px] text-gray-400 hover:text-red-500 uppercase tracking-wider shrink-0"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {C.removeCake}
-              </button>
+              <p className="text-sm font-medium text-gray-900">{selectedProduct.name}</p>
             </div>
+            <button onClick={onRemove}
+              className="text-[11px] text-gray-400 underline hover:text-red-500 mt-1"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              {isFr ? 'retirer' : 'remove'}
+            </button>
             {calculatedPrice != null && (
               <p className="text-sm text-gray-900 font-medium mt-1"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}>
@@ -488,8 +488,19 @@ export default function CakeOrderPageClient() {
   }, [selectedProduct, numberOfPeople]);
 
   const handleSelectProduct = useCallback((productId: string) => {
-    setSelectedProductId((prev) => prev === productId ? null : productId);
-  }, []);
+    setSelectedProductId((prev) => {
+      if (prev === productId) return null;
+      // Auto-set numberOfPeople to the minimum from the first pricing tier
+      const product = products.find((p) => p.id === productId);
+      if (product && product.pricingTiers.length > 0) {
+        const minPeople = product.pricingTiers
+          .slice()
+          .sort((a, b) => a.minPeople - b.minPeople)[0].minPeople;
+        setNumberOfPeople(minPeople);
+      }
+      return productId;
+    });
+  }, [products]);
 
   const handleRemove = useCallback(() => {
     setSelectedProductId(null);
