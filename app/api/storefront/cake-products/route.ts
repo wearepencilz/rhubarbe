@@ -28,6 +28,9 @@ export async function GET() {
         cakeMinPeople: products.cakeMinPeople,
         shortCardCopy: products.shortCardCopy,
         allergens: products.allergens,
+        cakeFlavourNotes: products.cakeFlavourNotes,
+        cakeDeliveryAvailable: products.cakeDeliveryAvailable,
+        serves: products.serves,
       })
       .from(products)
       .where(
@@ -160,6 +163,9 @@ export async function GET() {
         cakeMinPeople: p.cakeMinPeople ?? 1,
         shortCardCopy: p.shortCardCopy ?? null,
         allergens: p.allergens ?? [],
+        cakeFlavourNotes: p.cakeFlavourNotes ?? null,
+        cakeDeliveryAvailable: p.cakeDeliveryAvailable ?? true,
+        serves: p.serves ?? null,
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         pricingTiers,
       };

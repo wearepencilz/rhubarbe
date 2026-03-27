@@ -66,12 +66,16 @@ export async function PUT(
       cakeDescription?: { en: string; fr: string } | null;
       cakeInstructions?: { en: string; fr: string } | null;
       cakeMinPeople?: number | null;
+      cakeFlavourNotes?: { en: string; fr: string } | null;
+      cakeDeliveryAvailable?: boolean;
     } = {};
 
     if (body.cakeEnabled !== undefined) configFields.cakeEnabled = body.cakeEnabled;
     if (body.cakeDescription !== undefined) configFields.cakeDescription = body.cakeDescription;
     if (body.cakeInstructions !== undefined) configFields.cakeInstructions = body.cakeInstructions;
     if (body.cakeMinPeople !== undefined) configFields.cakeMinPeople = body.cakeMinPeople;
+    if (body.cakeFlavourNotes !== undefined) configFields.cakeFlavourNotes = body.cakeFlavourNotes;
+    if (body.cakeDeliveryAvailable !== undefined) configFields.cakeDeliveryAvailable = body.cakeDeliveryAvailable;
 
     if (Object.keys(configFields).length > 0) {
       await cakeProductQueries.updateCakeConfig(params.id, configFields);

@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
         orderOpens: launches.orderOpens,
         orderCloses: launches.orderCloses,
         pickupDate: launches.pickupDate,
+        pickupWindowStart: launches.pickupWindowStart,
+        pickupWindowEnd: launches.pickupWindowEnd,
         pickupLocationId: launches.pickupLocationId,
         createdAt: launches.createdAt,
         updatedAt: launches.updatedAt,

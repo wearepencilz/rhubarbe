@@ -28,7 +28,14 @@ interface VolumeProduct {
   shopifyProductId: string | null;
   shopifyProductHandle: string | null;
   leadTimeTiers: LeadTimeTier[];
-  variants: Array<{ id?: string; name?: string; label?: string; shopifyVariantId?: string; [key: string]: unknown }>;
+  volumeVariants: Array<{
+    id?: string;
+    label: { en: string; fr: string };
+    shopifyVariantId?: string | null;
+    sortOrder?: number;
+    active?: boolean;
+    description?: { en: string; fr: string } | null;
+  }>;
 }
 
 function SectionCard({
@@ -75,6 +82,13 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const [instructionsFr, setInstructionsFr] = useState('');
   const [tiers, setTiers] = useState<LeadTimeTier[]>([]);
   const [tierErrors, setTierErrors] = useState<string | null>(null);
+  const [volumeVariants, setVolumeVariantsState] = useState<Array<{
+    label: { en: string; fr: string };
+    shopifyVariantId?: string | null;
+    sortOrder?: number;
+    active?: boolean;
+    description: { en: string; fr: string };
+  }>>([]);
 
   useEffect(() => {
     fetchProduct();
@@ -96,6 +110,15 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setInstructionsEn(data.volumeInstructions?.en ?? '');
       setInstructionsFr(data.volumeInstructions?.fr ?? '');
       setTiers(data.leadTimeTiers.map((t) => ({ minQuantity: t.minQuantity, leadTimeDays: t.leadTimeDays })));
+      setVolumeVariantsState(
+        (data.volumeVariants || []).map((v) => ({
+          label: v.label || { en: '', fr: '' },
+          shopifyVariantId: v.shopifyVariantId ?? null,
+          sortOrder: v.sortOrder ?? 0,
+          active: v.active ?? true,
+          description: v.description || { en: '', fr: '' },
+        }))
+      );
     } catch {
       setError('Failed to load catering product');
     } finally {
@@ -160,8 +183,32 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   }
 
   // --- Variants ---
-  // Variant state is managed via the product's existing variants
-  // The variants state holds catering variant mappings (active toggle + shopify ID)
+  function addVariant() {
+    setVolumeVariantsState((prev) => [
+      ...prev,
+      { label: { en: '', fr: '' }, description: { en: '', fr: '' }, active: true, sortOrder: prev.length },
+    ]);
+    markDirty();
+  }
+
+  function updateVariantLabel(index: number, locale: 'en' | 'fr', value: string) {
+    setVolumeVariantsState((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, label: { ...v.label, [locale]: value } } : v))
+    );
+    markDirty();
+  }
+
+  function updateVariantDescription(index: number, locale: 'en' | 'fr', value: string) {
+    setVolumeVariantsState((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, description: { ...v.description, [locale]: value } } : v))
+    );
+    markDirty();
+  }
+
+  function removeVariant(index: number) {
+    setVolumeVariantsState((prev) => prev.filter((_, i) => i !== index));
+    markDirty();
+  }
 
   // --- Save ---
   async function handleSave() {
@@ -187,6 +234,13 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           : null,
         volumeMinOrderQuantity: tiers.length > 0 ? tiers[0].minQuantity : null,
         leadTimeTiers: tiers,
+        volumeVariants: volumeVariants.map((v, idx) => ({
+          label: v.label,
+          shopifyVariantId: v.shopifyVariantId ?? null,
+          sortOrder: idx,
+          active: v.active ?? true,
+          description: (v.description.en || v.description.fr) ? v.description : null,
+        })),
       };
 
       const res = await fetch(`/api/volume-products/${params.id}`, {
@@ -352,6 +406,71 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               { key: 'instructions', label: 'Ordering Instructions', type: 'textarea', rows: 3, placeholder: 'e.g., Minimum 48h notice for orders over 20 units...' },
             ]}
           />
+        </SectionCard>
+
+        {/* Variants */}
+        <SectionCard
+          title="Variants"
+          description="Catering variants with bilingual labels and descriptions."
+          action={
+            <Button variant="secondary" size="sm" onClick={addVariant} iconLeading={Plus}>
+              Add Variant
+            </Button>
+          }
+        >
+          {volumeVariants.length === 0 ? (
+            <p className="text-sm text-gray-500">No variants configured.</p>
+          ) : (
+            <div className="space-y-4">
+              {volumeVariants.map((variant, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-500">Variant {index + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(index)}
+                      className="text-gray-400 hover:text-red-500 text-xs"
+                      aria-label={`Remove variant ${index + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Label (EN)"
+                      value={variant.label.en}
+                      onChange={(v) => updateVariantLabel(index, 'en', v)}
+                      placeholder="English label"
+                      size="sm"
+                    />
+                    <Input
+                      label="Label (FR)"
+                      value={variant.label.fr}
+                      onChange={(v) => updateVariantLabel(index, 'fr', v)}
+                      placeholder="Libellé en français"
+                      size="sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Description (EN)"
+                      value={variant.description.en}
+                      onChange={(v) => updateVariantDescription(index, 'en', v)}
+                      placeholder="English description"
+                      size="sm"
+                    />
+                    <Input
+                      label="Description (FR)"
+                      value={variant.description.fr}
+                      onChange={(v) => updateVariantDescription(index, 'fr', v)}
+                      placeholder="Description en français"
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </SectionCard>
 
         </div>

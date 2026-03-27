@@ -7,6 +7,7 @@ import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-stat
 import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
+import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -20,6 +21,7 @@ interface TranslationObject {
 interface VolumeVariant {
   id: string;
   label: TranslationObject;
+  description: TranslationObject | null;
   price: number | null;
   shopifyVariantId: string | null;
 }
@@ -44,6 +46,7 @@ interface VolumeProduct {
   leadTimeTiers: LeadTimeTier[];
   variants: VolumeVariant[];
   pickupOnly: boolean;
+  servesPerUnit: number | null;
 }
 
 // ── Helpers ──
@@ -172,24 +175,30 @@ function VolumeProductCard({
           {product.variants.length > 0 ? (
             product.variants.map((v) => {
               const variantPrice = v.price ?? product.price;
+              const variantDesc = tr(v.description, locale);
               return (
-                <div key={v.id} className="flex items-center gap-2">
-                  <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {tr(v.label, locale)}
-                  </label>
-                  {variantPrice != null && variantPrice > 0 && (
-                    <span className="text-[10px] text-gray-400 shrink-0"
+                <div key={v.id} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1"
                       style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                      ${(variantPrice / 100).toFixed(2)}
-                    </span>
+                      {tr(v.label, locale)}
+                    </label>
+                    {variantPrice != null && variantPrice > 0 && (
+                      <span className="text-[10px] text-gray-400 shrink-0"
+                        style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                        ${(variantPrice / 100).toFixed(2)}
+                      </span>
+                    )}
+                    <input id={`qty-${v.id}`} type="number" min={0}
+                      value={(cart.get(v.id) ?? 0) || ''}
+                      placeholder="0"
+                      onChange={(e) => onQuantityChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                      className="w-16 px-2 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
+                      aria-label={`${tr(v.label, locale)} quantity`} />
+                  </div>
+                  {variantDesc && (
+                    <p className="text-xs text-gray-500 leading-relaxed ml-0">{variantDesc}</p>
                   )}
-                  <input id={`qty-${v.id}`} type="number" min={0}
-                    value={(cart.get(v.id) ?? 0) || ''}
-                    placeholder="0"
-                    onChange={(e) => onQuantityChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                    className="w-16 px-2 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
-                    aria-label={`${tr(v.label, locale)} quantity`} />
                 </div>
               );
             })
@@ -260,6 +269,7 @@ function VolumeInlineCart({
   fulfillmentDate, fulfillmentTime,
   fulfillmentType, allergenNote,
   dateWarning, earliestDateStr, maxLeadTimeDays,
+  servesEstimate,
   onDateChange, onTimeChange,
   onFulfillmentTypeChange, onAllergenNoteChange,
   onCheckout, onRemoveProduct, checkoutLoading, checkoutError,
@@ -275,6 +285,7 @@ function VolumeInlineCart({
   dateWarning: string | null;
   earliestDateStr: string;
   maxLeadTimeDays: number;
+  servesEstimate: number;
   onDateChange: (d: string) => void;
   onTimeChange: (t: string) => void;
   onFulfillmentTypeChange: (t: 'pickup' | 'delivery') => void;
@@ -399,6 +410,13 @@ function VolumeInlineCart({
                 <span>{V.items}</span>
                 <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>{totalQuantity}</span>
               </div>
+              {servesEstimate > 0 && (
+                <p className="text-xs text-gray-500">
+                  {isFr
+                    ? `Pour environ ${servesEstimate} personnes`
+                    : `Serves approx. ${servesEstimate} people`}
+                </p>
+              )}
               <p className="text-[11px] text-gray-400">
                 {V.taxNote}
               </p>
@@ -436,6 +454,9 @@ function VolumeInlineCart({
                 label={V.date}
                 value={toDateValue(fulfillmentDate)}
                 minValue={minDateValue ?? today(getLocalTimeZone())}
+                isDateUnavailable={(date: DateValue) =>
+                  isSundayUnavailable(date.toDate(getLocalTimeZone()))
+                }
                 onChange={(val: DateValue | null) => {
                   if (val) {
                     const y = val.year;
@@ -447,6 +468,11 @@ function VolumeInlineCart({
                   }
                 }}
               />
+              <p className="text-[11px] text-gray-400 mt-1">
+                {isFr
+                  ? "Nous n'acceptons pas les commandes traiteur le dimanche"
+                  : "We don't take catering orders on Sundays"}
+              </p>
             </div>
             {/* Dynamic earliest date helper */}
             {maxLeadTimeDays > 0 && (
@@ -459,6 +485,15 @@ function VolumeInlineCart({
             )}
             {dateWarning && (
               <p className="text-[11px] text-red-500 -mt-2" role="alert">{dateWarning}</p>
+            )}
+
+            {/* Date confirmation line */}
+            {fulfillmentDate && !dateWarning && (
+              <p className="text-xs text-gray-600 font-medium -mt-2">
+                {fulfillmentType === 'pickup'
+                  ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(fulfillmentDate, locale)}`
+                  : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(fulfillmentDate, locale)}`}
+              </p>
             )}
 
             {/* Allergen note */}
@@ -647,6 +682,18 @@ export default function VolumeOrderPageClient() {
     [cartGroups],
   );
 
+  // Calculate serves estimate from cart items
+  const servesEstimate = useMemo(() => {
+    const items: Array<{ quantity: number; servesPerUnit: number | null }> = [];
+    for (const product of products) {
+      const totalQty = getTotalQuantity(product, cart);
+      if (totalQty > 0) {
+        items.push({ quantity: totalQty, servesPerUnit: product.servesPerUnit });
+      }
+    }
+    return calculateServesEstimate(items);
+  }, [products, cart]);
+
   const hasMinViolation = useMemo(() => {
     return products.some((p) => {
       const qty = getTotalQuantity(p, cart);
@@ -772,6 +819,7 @@ export default function VolumeOrderPageClient() {
             fulfillmentType={fulfillmentType} allergenNote={allergenNote}
             dateWarning={dateWarning} earliestDateStr={earliestDateStr}
             maxLeadTimeDays={maxLeadTimeDays}
+            servesEstimate={servesEstimate}
             onDateChange={setFulfillmentDate} onTimeChange={setFulfillmentTime}
             onFulfillmentTypeChange={setFulfillmentType}
             onAllergenNoteChange={setAllergenNote}

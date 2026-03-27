@@ -25,6 +25,8 @@ interface CakeProduct {
   cakeDescription: { en: string; fr: string } | null;
   cakeInstructions: { en: string; fr: string } | null;
   cakeMinPeople: number | null;
+  cakeFlavourNotes: { en: string; fr: string } | null;
+  cakeDeliveryAvailable: boolean;
   shopifyProductId: string | null;
   shopifyProductHandle: string | null;
   leadTimeTiers: LeadTimeTier[];
@@ -75,6 +77,9 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const [instructionsFr, setInstructionsFr] = useState('');
   const [tiers, setTiers] = useState<LeadTimeTier[]>([]);
   const [tierErrors, setTierErrors] = useState<string | null>(null);
+  const [flavourNotesEn, setFlavourNotesEn] = useState('');
+  const [flavourNotesFr, setFlavourNotesFr] = useState('');
+  const [cakeDeliveryAvailable, setCakeDeliveryAvailable] = useState(true);
 
   useEffect(() => {
     fetchProduct();
@@ -96,6 +101,9 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setInstructionsEn(data.cakeInstructions?.en ?? '');
       setInstructionsFr(data.cakeInstructions?.fr ?? '');
       setTiers(data.leadTimeTiers.map((t) => ({ minPeople: t.minPeople, leadTimeDays: t.leadTimeDays })));
+      setFlavourNotesEn(data.cakeFlavourNotes?.en ?? '');
+      setFlavourNotesFr(data.cakeFlavourNotes?.fr ?? '');
+      setCakeDeliveryAvailable(data.cakeDeliveryAvailable ?? true);
     } catch {
       setError('Failed to load cake product');
     } finally {
@@ -183,6 +191,10 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
           : null,
         cakeMinPeople: tiers.length > 0 ? tiers[0].minPeople : null,
         leadTimeTiers: tiers,
+        cakeFlavourNotes: flavourNotesEn || flavourNotesFr
+          ? { en: flavourNotesEn, fr: flavourNotesFr }
+          : null,
+        cakeDeliveryAvailable,
       };
 
       const res = await fetch(`/api/cake-products/${params.id}`, {
@@ -350,6 +362,24 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
           />
         </SectionCard>
 
+        {/* Flavour Notes */}
+        <SectionCard title="Flavour Notes" description="Bilingual flavour teaser shown on cake cards.">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Flavour Notes (EN)"
+              value={flavourNotesEn}
+              onChange={(v) => { setFlavourNotesEn(v); markDirty(); }}
+              placeholder="e.g. Rich chocolate with hazelnut praline"
+            />
+            <Input
+              label="Notes de saveur (FR)"
+              value={flavourNotesFr}
+              onChange={(v) => { setFlavourNotesFr(v); markDirty(); }}
+              placeholder="ex. Chocolat riche avec praliné noisette"
+            />
+          </div>
+        </SectionCard>
+
         </div>
 
         {/* Right column */}
@@ -384,6 +414,30 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                 </span>
               </div>
             )}
+          </SectionCard>
+
+          {/* Delivery */}
+          <SectionCard title="Delivery" description="Whether delivery is available for this cake.">
+            <label className="inline-flex items-center gap-3 cursor-pointer">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={cakeDeliveryAvailable}
+                onClick={() => { setCakeDeliveryAvailable(!cakeDeliveryAvailable); markDirty(); }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  cakeDeliveryAvailable ? 'bg-brand-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    cakeDeliveryAvailable ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-gray-700">
+                {cakeDeliveryAvailable ? 'Delivery available' : 'Pickup only'}
+              </span>
+            </label>
           </SectionCard>
 
           {/* Links */}

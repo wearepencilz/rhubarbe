@@ -20,6 +20,9 @@ vi.mock('@/lib/db/schema', () => ({
     cakeInstructions: 'cakeInstructions',
     cakeMinPeople: 'cakeMinPeople',
     allergens: 'allergens',
+    cakeFlavourNotes: 'cakeFlavourNotes',
+    cakeDeliveryAvailable: 'cakeDeliveryAvailable',
+    serves: 'serves',
   },
   cakeLeadTimeTiers: {
     productId: 'productId',
@@ -71,6 +74,9 @@ const sampleProduct = {
   cakeInstructions: { en: 'Order 3 days ahead', fr: 'Commandez 3 jours à l\'avance' },
   cakeMinPeople: 8,
   allergens: ['dairy', 'gluten'],
+  cakeFlavourNotes: { en: 'Rich cocoa notes', fr: 'Notes de cacao riches' },
+  cakeDeliveryAvailable: true,
+  serves: '8-10',
 };
 
 const sampleTiers = [
@@ -96,6 +102,9 @@ describe('GET /api/storefront/cake-products', () => {
     expect(data[0].name).toBe('Chocolate Cake');
     expect(data[0].cakeMinPeople).toBe(8);
     expect(data[0].allergens).toEqual(['dairy', 'gluten']);
+    expect(data[0].cakeFlavourNotes).toEqual({ en: 'Rich cocoa notes', fr: 'Notes de cacao riches' });
+    expect(data[0].cakeDeliveryAvailable).toBe(true);
+    expect(data[0].serves).toBe('8-10');
     expect(data[0].leadTimeTiers).toHaveLength(3);
     // pricingTiers come from Shopify (mocked as empty)
     expect(data[0].pricingTiers).toEqual([]);
@@ -122,6 +131,9 @@ describe('GET /api/storefront/cake-products', () => {
       cakeInstructions: null,
       cakeMinPeople: null,
       allergens: null,
+      cakeFlavourNotes: null,
+      cakeDeliveryAvailable: null,
+      serves: null,
     };
 
     mockSelect
@@ -138,6 +150,9 @@ describe('GET /api/storefront/cake-products', () => {
     expect(data[0].cakeInstructions).toEqual({ en: '', fr: '' });
     expect(data[0].cakeMinPeople).toBe(1);
     expect(data[0].allergens).toEqual([]);
+    expect(data[0].cakeFlavourNotes).toBeNull();
+    expect(data[0].cakeDeliveryAvailable).toBe(true);
+    expect(data[0].serves).toBeNull();
     expect(data[0].leadTimeTiers).toEqual([]);
   });
 

@@ -150,6 +150,7 @@ export async function setVolumeVariants(
     shopifyVariantId?: string | null;
     sortOrder?: number;
     active?: boolean;
+    description?: { en: string; fr: string } | null;
   }[],
 ) {
   return db.transaction(async (tx) => {
@@ -165,6 +166,7 @@ export async function setVolumeVariants(
       shopifyVariantId: variant.shopifyVariantId ?? null,
       sortOrder: variant.sortOrder ?? idx,
       active: variant.active ?? true,
+      description: variant.description ?? null,
     }));
 
     return tx.insert(volumeVariants).values(rows).returning();

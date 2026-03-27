@@ -23,6 +23,7 @@ interface LaunchProduct {
   shopifyProductHandle: string | null;
   allergens: string[];
   serves: string | null;
+  nextAvailableDate: string | null;
   translations: any;
   variantType: 'none' | 'flavour' | 'size';
   variants: Array<{
@@ -144,6 +145,12 @@ function ProductCard({
               >
                 {isFr ? 'Épuisé' : 'Sold out'}
               </p>
+              {product.nextAvailableDate && (
+                <p className="text-center text-[10px] text-white/80 mt-1">
+                  {isFr ? 'Prochaine disponibilité\u00a0: ' : 'Next available: '}
+                  {formatDate(product.nextAvailableDate, locale)}
+                </p>
+              )}
             </div>
           ) : (
           /* Quick-add overlay */
@@ -193,6 +200,14 @@ function ProductCard({
             </span>
           )}
         </div>
+        {product.serves && (
+          <p
+            className="text-[10px] uppercase tracking-wider text-gray-400"
+            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+          >
+            {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
+          </p>
+        )}
         {shortCopy && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{shortCopy}</p>
         )}
@@ -334,6 +349,8 @@ function InlineCart({
   onCheckout,
   checkoutLoading,
   checkoutError,
+  pickupDate,
+  orderCloses,
 }: {
   items: CartItem[];
   onUpdateQty: (productId: string, qty: number) => void;
@@ -346,6 +363,8 @@ function InlineCart({
   onCheckout: () => void;
   checkoutLoading: boolean;
   checkoutError: string | null;
+  pickupDate?: string | null;
+  orderCloses?: string | null;
 }) {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const isFr = locale === 'fr';
@@ -360,6 +379,30 @@ function InlineCart({
           {isFr ? 'Votre commande' : 'Your order'}
         </h2>
       </div>
+
+      {/* Pickup date and cut-off reminder (Task 6.3 & 6.4) */}
+      {(pickupDate || orderCloses) && (
+        <div className="px-5 py-3 border-b border-gray-100 space-y-1">
+          {pickupDate && (
+            <p className="text-xs text-gray-600 font-medium">
+              {isFr ? 'Cueillette\u00a0: ' : 'Pickup: '}{formatDate(pickupDate, locale)}
+            </p>
+          )}
+          {orderCloses && (
+            <p
+              className="text-[10px] uppercase tracking-wider text-gray-400"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+            >
+              {isFr ? 'Commander avant ' : 'Order by '}{formatDatetime(orderCloses, locale)}
+            </p>
+          )}
+          {selectedSlotId && pickupDate && (
+            <p className="text-xs text-gray-600 font-medium">
+              {isFr ? 'Créneau confirmé' : 'Slot confirmed'} ✓
+            </p>
+          )}
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="px-5 py-8 text-center">
@@ -1184,6 +1227,8 @@ export default function OrderPageClient() {
             onCheckout={handleCheckout}
             checkoutLoading={checkoutLoading}
             checkoutError={checkoutError}
+            pickupDate={launch?.pickupDate || null}
+            orderCloses={launch?.orderCloses || null}
           />
         </div>
       </div>

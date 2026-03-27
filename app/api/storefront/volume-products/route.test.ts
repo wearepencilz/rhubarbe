@@ -19,6 +19,7 @@ vi.mock('@/lib/db/schema', () => ({
     volumeInstructions: 'volumeInstructions',
     volumeMinOrderQuantity: 'volumeMinOrderQuantity',
     allergens: 'allergens',
+    servesPerUnit: 'servesPerUnit',
   },
   volumeLeadTimeTiers: {
     productId: 'productId',
@@ -32,6 +33,7 @@ vi.mock('@/lib/db/schema', () => ({
     shopifyVariantId: 'shopifyVariantId',
     active: 'active',
     sortOrder: 'sortOrder',
+    description: 'description',
   },
 }));
 
@@ -72,6 +74,7 @@ const sampleProduct = {
   volumeInstructions: { en: 'Order 2 days ahead', fr: 'Commandez 2 jours à l\'avance' },
   volumeMinOrderQuantity: 10,
   allergens: ['nuts', 'dairy'],
+  servesPerUnit: 4,
 };
 
 const sampleTiers = [
@@ -80,8 +83,8 @@ const sampleTiers = [
 ];
 
 const sampleVariants = [
-  { id: 'var-1', productId: 'prod-1', label: { en: "Chef's Choice", fr: 'Choix du chef' }, shopifyVariantId: 'gid://shopify/1' },
-  { id: 'var-2', productId: 'prod-1', label: { en: 'Vegetarian', fr: 'Végétarien' }, shopifyVariantId: null },
+  { id: 'var-1', productId: 'prod-1', label: { en: "Chef's Choice", fr: 'Choix du chef' }, shopifyVariantId: 'gid://shopify/1', active: true, sortOrder: 0, description: { en: 'A curated selection', fr: 'Une sélection organisée' } },
+  { id: 'var-2', productId: 'prod-1', label: { en: 'Vegetarian', fr: 'Végétarien' }, shopifyVariantId: null, active: true, sortOrder: 1, description: null },
 ];
 
 describe('GET /api/storefront/volume-products', () => {
@@ -109,9 +112,12 @@ describe('GET /api/storefront/volume-products', () => {
     expect(data[0].volumeDescription).toEqual({ en: 'Bulk lunch boxes', fr: 'Boîtes à lunch en gros' });
     expect(data[0].volumeMinOrderQuantity).toBe(10);
     expect(data[0].allergens).toEqual(['nuts', 'dairy']);
+    expect(data[0].servesPerUnit).toBe(4);
     expect(data[0].leadTimeTiers).toHaveLength(2);
     expect(data[0].variants).toHaveLength(2);
     expect(data[0].variants[0].label).toEqual({ en: "Chef's Choice", fr: 'Choix du chef' });
+    expect(data[0].variants[0].description).toEqual({ en: 'A curated selection', fr: 'Une sélection organisée' });
+    expect(data[0].variants[1].description).toBeNull();
   });
 
   it('should return empty array when no volume products exist', async () => {
@@ -133,6 +139,7 @@ describe('GET /api/storefront/volume-products', () => {
       volumeInstructions: null,
       volumeMinOrderQuantity: null,
       allergens: null,
+      servesPerUnit: null,
     };
 
     mockSelect
@@ -149,6 +156,7 @@ describe('GET /api/storefront/volume-products', () => {
     expect(data[0].volumeInstructions).toEqual({ en: '', fr: '' });
     expect(data[0].volumeMinOrderQuantity).toBe(1);
     expect(data[0].allergens).toEqual([]);
+    expect(data[0].servesPerUnit).toBeNull();
     expect(data[0].leadTimeTiers).toEqual([]);
     expect(data[0].variants).toEqual([]);
   });

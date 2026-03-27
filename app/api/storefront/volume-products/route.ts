@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { products, volumeLeadTimeTiers } from '@/lib/db/schema';
+import { products, volumeLeadTimeTiers, volumeVariants } from '@/lib/db/schema';
 import { eq, asc, sql, and } from 'drizzle-orm';
 import { shopifyFetch } from '@/lib/shopify/client';
 import { isTaxOption } from '@/lib/tax/constants';
@@ -30,6 +30,7 @@ export async function GET() {
         allergens: products.allergens,
         variants: products.variants,
         pickupOnly: products.pickupOnly,
+        servesPerUnit: products.servesPerUnit,
       })
       .from(products)
       .where(
@@ -59,6 +60,44 @@ export async function GET() {
       const list = tiersByProduct.get(tier.productId) ?? [];
       list.push({ minQuantity: tier.minQuantity, leadTimeDays: tier.leadTimeDays });
       tiersByProduct.set(tier.productId, list);
+    }
+
+    // Fetch volume variants from the database
+    const allVolumeVariants = productIds.length > 0
+      ? await db
+          .select({
+            id: volumeVariants.id,
+            productId: volumeVariants.productId,
+            label: volumeVariants.label,
+            shopifyVariantId: volumeVariants.shopifyVariantId,
+            active: volumeVariants.active,
+            sortOrder: volumeVariants.sortOrder,
+            description: volumeVariants.description,
+          })
+          .from(volumeVariants)
+          .where(sql`${volumeVariants.productId} IN ${productIds}`)
+          .orderBy(asc(volumeVariants.sortOrder))
+      : [];
+
+    const dbVariantsByProduct = new Map<string, Array<{
+      id: string;
+      label: { en: string; fr: string };
+      shopifyVariantId: string | null;
+      active: boolean;
+      sortOrder: number;
+      description: { en: string; fr: string } | null;
+    }>>();
+    for (const v of allVolumeVariants) {
+      const list = dbVariantsByProduct.get(v.productId) ?? [];
+      list.push({
+        id: v.id,
+        label: v.label as { en: string; fr: string },
+        shopifyVariantId: v.shopifyVariantId,
+        active: v.active,
+        sortOrder: v.sortOrder,
+        description: v.description as { en: string; fr: string } | null,
+      });
+      dbVariantsByProduct.set(v.productId, list);
     }
 
     // Fetch Shopify variants for products that need them
@@ -143,16 +182,28 @@ export async function GET() {
     }
 
     const result = volumeProducts.map((p) => {
-      // Use CMS variants if available, otherwise fall back to Shopify
+      // Use DB volume variants if available, then CMS variants, then Shopify
+      const dbVars = dbVariantsByProduct.get(p.id) ?? [];
       const cmsVariants = (p.variants ?? []) as any[];
       let productVariants: Array<{
         id: string;
         label: { en: string; fr: string };
         price: number | null;
         shopifyVariantId: string | null;
+        description: { en: string; fr: string } | null;
       }>;
 
-      if (cmsVariants.length > 0) {
+      if (dbVars.length > 0) {
+        productVariants = dbVars
+          .filter((v) => v.active)
+          .map((v) => ({
+            id: v.id,
+            label: v.label,
+            price: null,
+            shopifyVariantId: v.shopifyVariantId,
+            description: v.description ?? null,
+          }));
+      } else if (cmsVariants.length > 0) {
         productVariants = cmsVariants.map((v: any) => ({
           id: v.id || v.label || `${p.id}-${v.sortOrder ?? 0}`,
           label: {
@@ -161,9 +212,14 @@ export async function GET() {
           },
           price: v.price ?? null,
           shopifyVariantId: v.shopifyVariantId ?? null,
+          description: null,
         }));
       } else if (p.shopifyProductId) {
-        productVariants = shopifyVariantsByGid.get(p.shopifyProductId) ?? [];
+        const shopifyVars = shopifyVariantsByGid.get(p.shopifyProductId) ?? [];
+        productVariants = shopifyVars.map((v) => ({
+          ...v,
+          description: null,
+        }));
       } else {
         productVariants = [];
       }
@@ -181,6 +237,7 @@ export async function GET() {
         shortCardCopy: p.shortCardCopy ?? null,
         allergens: p.allergens ?? [],
         pickupOnly: p.pickupOnly ?? false,
+        servesPerUnit: p.servesPerUnit ?? null,
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         variants: productVariants,
       };

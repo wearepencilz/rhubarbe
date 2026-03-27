@@ -126,6 +126,23 @@ describe('PUT /api/cake-products/[id]', () => {
     expect(data.details).toContain('strictly ascending');
   });
 
+  it('should pass cakeFlavourNotes and cakeDeliveryAvailable to updateCakeConfig', async () => {
+    const flavourNotes = { en: 'Citrus and vanilla', fr: 'Agrumes et vanille' };
+    const res = await PUT(
+      makeRequest('PUT', {
+        cakeFlavourNotes: flavourNotes,
+        cakeDeliveryAvailable: false,
+      }),
+      routeParams,
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateConfig).toHaveBeenCalledWith(PRODUCT_ID, {
+      cakeFlavourNotes: flavourNotes,
+      cakeDeliveryAvailable: false,
+    });
+  });
+
   it('should return 400 for duplicate minPeople values', async () => {
     mockSetTiers.mockRejectedValue(
       new Error(

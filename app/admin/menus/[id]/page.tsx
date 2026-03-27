@@ -179,6 +179,8 @@ interface FormData {
   slotEndTime: string;
   slotInterval: string;
   pickupSlots: PickupSlot[];
+  pickupWindowStart: string;
+  pickupWindowEnd: string;
 }
 
 const EMPTY_FORM: FormData = {
@@ -192,6 +194,8 @@ const EMPTY_FORM: FormData = {
   pickupInstructionsEn: '', pickupInstructionsFr: '',
   slotStartTime: '09:00', slotEndTime: '17:00', slotInterval: '30',
   pickupSlots: [],
+  pickupWindowStart: '',
+  pickupWindowEnd: '',
 };
 
 export default function EditLaunchPage({ params }: { params: { id: string } }) {
@@ -255,6 +259,8 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
         slotEndTime: slotConfig.endTime || '17:00',
         slotInterval: String(slotConfig.intervalMinutes || 30),
         pickupSlots: d.pickupSlots || [],
+        pickupWindowStart: toLocalDate(d.pickupWindowStart),
+        pickupWindowEnd: toLocalDate(d.pickupWindowEnd),
       });
       setLinkedProducts(
         (d.products || []).map((p: any) => ({
@@ -373,6 +379,13 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       if (closes >= pickup) e.orderCloses = 'Order close must be before pickup date';
     }
 
+    // Validate pickup window: end must be >= start when both provided
+    if (form.pickupWindowStart && form.pickupWindowEnd) {
+      if (form.pickupWindowEnd < form.pickupWindowStart) {
+        e.pickupWindowEnd = 'End date must be on or after start date';
+      }
+    }
+
     // Validate product quantity overrides
     for (const lp of linkedProducts) {
       if (lp.maxQuantityOverride != null && lp.maxQuantityOverride === 0) {
@@ -411,6 +424,8 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           intervalMinutes: parseInt(form.slotInterval, 10) || 30,
         },
         pickupSlots: form.pickupSlots,
+        pickupWindowStart: form.pickupWindowStart || null,
+        pickupWindowEnd: form.pickupWindowEnd || null,
       };
 
       const url = isNew ? '/api/launches' : `/api/launches/${params.id}`;
@@ -679,6 +694,34 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
                   <option key={loc.id} value={loc.id}>{loc.internalName}</option>
                 ))}
               </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Window Start</label>
+              <input
+                type="date"
+                value={form.pickupWindowStart}
+                onChange={(e) => set({ pickupWindowStart: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                aria-label="Pickup window start date"
+              />
+              <p className="text-xs text-gray-500 mt-1">Optional. For multi-day pickup windows.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Window End</label>
+              <input
+                type="date"
+                value={form.pickupWindowEnd}
+                onChange={(e) => set({ pickupWindowEnd: e.target.value })}
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${
+                  errors.pickupWindowEnd ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+                aria-label="Pickup window end date"
+              />
+              {errors.pickupWindowEnd && (
+                <p className="text-xs text-red-600 mt-1">{errors.pickupWindowEnd}</p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">

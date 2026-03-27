@@ -6,6 +6,7 @@ import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
+import { getActivePricingTier } from '@/lib/utils/order-helpers';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -35,12 +36,15 @@ interface CakeProduct {
   price: number | null;
   shopifyProductId: string | null;
   cakeDescription: TranslationObject;
+  cakeFlavourNotes: TranslationObject | null;
   cakeInstructions: TranslationObject;
   cakeMinPeople: number;
   shortCardCopy: string | null;
   allergens: string[];
   leadTimeTiers: LeadTimeTier[];
   pricingTiers: PricingTier[];
+  serves: string | null;
+  cakeDeliveryAvailable: boolean;
 }
 
 // ── Helpers ──
@@ -94,17 +98,20 @@ function formatDateHuman(dateStr: string, locale: string): string {
 // ── Product Card ──
 
 function CakeProductCard({
-  product, locale, isSelected, onSelect, brandColor, C,
+  product, locale, isSelected, onSelect, brandColor, numberOfPeople, C,
 }: {
   product: CakeProduct;
   locale: string;
   isSelected: boolean;
   onSelect: (id: string) => void;
   brandColor: string;
+  numberOfPeople: number;
   C: Record<string, any>;
 }) {
   const description = tr(product.cakeDescription, locale);
+  const flavourNotes = tr(product.cakeFlavourNotes, locale);
   const isFr = locale === 'fr';
+  const activeTier = getActivePricingTier(product.pricingTiers, numberOfPeople);
 
   return (
     <button
@@ -146,6 +153,17 @@ function CakeProductCard({
           {product.name}
         </h3>
 
+        {product.serves && (
+          <p className="text-[10px] uppercase tracking-wider text-gray-400"
+            style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+            {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
+          </p>
+        )}
+
+        {flavourNotes && (
+          <p className="text-xs text-gray-500 italic">{flavourNotes}</p>
+        )}
+
         {product.shortCardCopy && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{product.shortCardCopy}</p>
         )}
@@ -178,12 +196,19 @@ function CakeProductCard({
               {product.pricingTiers
                 .slice()
                 .sort((a, b) => a.minPeople - b.minPeople)
-                .map((tier, i) => (
-                  <span key={i} className="text-[10px] tracking-wide text-gray-500"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {tier.minPeople}+ → ${(tier.priceInCents / 100).toFixed(0)}
-                  </span>
-                ))}
+                .map((tier, i) => {
+                  const isActive = activeTier && tier.minPeople === activeTier.minPeople && tier.priceInCents === activeTier.priceInCents;
+                  return (
+                    <span key={i} className={`text-[10px] tracking-wide ${
+                      isActive
+                        ? 'bg-[#333112]/10 text-gray-900 font-medium rounded px-1'
+                        : 'text-gray-500'
+                    }`}
+                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                      {tier.minPeople}+ → ${(tier.priceInCents / 100).toFixed(0)}
+                    </span>
+                  );
+                })}
             </div>
           </div>
         )}
@@ -205,8 +230,10 @@ function CakeProductCard({
 function CakeInlineCart({
   selectedProduct, numberOfPeople, calculatedPrice,
   pickupDate, eventType, specialInstructions,
+  fulfillmentType, deliveryAddress,
   dateWarning, earliestDateStr, maxLeadTimeDays,
   onDateChange, onNumberOfPeopleChange, onEventTypeChange, onSpecialInstructionsChange,
+  onFulfillmentTypeChange, onDeliveryAddressChange,
   onCheckout, onRemove, checkoutLoading, checkoutError,
   locale, belowMin, C,
 }: {
@@ -216,6 +243,8 @@ function CakeInlineCart({
   pickupDate: string;
   eventType: string;
   specialInstructions: string;
+  fulfillmentType: 'pickup' | 'delivery';
+  deliveryAddress: string;
   dateWarning: string | null;
   earliestDateStr: string;
   maxLeadTimeDays: number;
@@ -223,6 +252,8 @@ function CakeInlineCart({
   onNumberOfPeopleChange: (n: number) => void;
   onEventTypeChange: (t: string) => void;
   onSpecialInstructionsChange: (s: string) => void;
+  onFulfillmentTypeChange: (t: 'pickup' | 'delivery') => void;
+  onDeliveryAddressChange: (a: string) => void;
   onCheckout: () => void;
   onRemove: () => void;
   checkoutLoading: boolean;
@@ -233,6 +264,7 @@ function CakeInlineCart({
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
+  const deliveryUnavailable = fulfillmentType === 'delivery' && selectedProduct != null && !selectedProduct.cakeDeliveryAvailable;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
@@ -320,10 +352,49 @@ function CakeInlineCart({
 
             <hr className="border-gray-200" />
 
-            {/* Pickup-only label */}
+            {/* Pickup / Delivery toggle */}
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{C.pickup}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
+                {isFr ? 'Cueillette / Livraison' : 'Fulfillment'}
+              </p>
+              <div className="flex rounded overflow-hidden border border-gray-300">
+                {(['pickup', 'delivery'] as const).map((type) => (
+                  <button key={type} type="button"
+                    onClick={() => onFulfillmentTypeChange(type)}
+                    className={`flex-1 py-2 text-xs uppercase tracking-widest transition-colors ${
+                      fulfillmentType === type
+                        ? 'bg-[#333112] text-white'
+                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                    }`}
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    {type === 'pickup' ? (isFr ? 'Cueillette' : 'Pickup') : (isFr ? 'Livraison' : 'Delivery')}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Delivery unavailable warning */}
+            {deliveryUnavailable && (
+              <p className="text-xs text-red-600" role="alert">
+                {isFr
+                  ? 'La livraison n'est pas disponible pour ce gâteau.'
+                  : 'Delivery is not available for this cake.'}
+              </p>
+            )}
+
+            {/* Delivery address */}
+            {fulfillmentType === 'delivery' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500 uppercase tracking-wide">
+                  {isFr ? 'Adresse de livraison' : 'Delivery address'}
+                </label>
+                <textarea value={deliveryAddress}
+                  onChange={(e) => onDeliveryAddressChange(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
+                  placeholder={isFr ? 'Entrez l\'adresse de livraison' : 'Enter delivery address'} />
+              </div>
+            )}
 
             {/* Date */}
             <div>
@@ -354,6 +425,15 @@ function CakeInlineCart({
             )}
             {dateWarning && (
               <p className="text-[11px] text-red-500 -mt-2" role="alert">{dateWarning}</p>
+            )}
+
+            {/* Date confirmation line */}
+            {pickupDate && !dateWarning && (
+              <p className="text-xs text-gray-600 font-medium -mt-2">
+                {fulfillmentType === 'pickup'
+                  ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(pickupDate, locale)}`
+                  : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(pickupDate, locale)}`}
+              </p>
             )}
 
             {/* Event Type */}
@@ -398,7 +478,7 @@ function CakeInlineCart({
             )}
 
             <button onClick={onCheckout}
-              disabled={checkoutLoading || !pickupDate || !!dateWarning || belowMin || calculatedPrice == null}
+              disabled={checkoutLoading || !pickupDate || !!dateWarning || belowMin || calculatedPrice == null || deliveryUnavailable}
               className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
               {checkoutLoading ? C.loading : C.checkout}
@@ -427,6 +507,8 @@ export default function CakeOrderPageClient() {
   const [pickupDate, setPickupDate] = useState<string>('');
   const [eventType, setEventType] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
+  const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -537,6 +619,8 @@ export default function CakeOrderPageClient() {
           numberOfPeople,
           eventType,
           specialInstructions: specialInstructions.trim() || null,
+          fulfillmentType,
+          deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress.trim() || null : null,
           locale,
           calculatedPrice,
         }),
@@ -553,7 +637,7 @@ export default function CakeOrderPageClient() {
     } finally {
       setCheckoutLoading(false);
     }
-  }, [selectedProduct, calculatedPrice, matchedTier, pickupDate, numberOfPeople, eventType, specialInstructions, locale]);
+  }, [selectedProduct, calculatedPrice, matchedTier, pickupDate, numberOfPeople, eventType, specialInstructions, fulfillmentType, deliveryAddress, locale]);
 
   useEffect(() => {
     fetch('/api/storefront/cake-products')
@@ -592,7 +676,8 @@ export default function CakeOrderPageClient() {
               {products.map((product) => (
                 <CakeProductCard key={product.id} product={product} locale={locale}
                   isSelected={selectedProductId === product.id}
-                  onSelect={handleSelectProduct} brandColor={brandColor} C={C} />
+                  onSelect={handleSelectProduct} brandColor={brandColor}
+                  numberOfPeople={numberOfPeople} C={C} />
               ))}
             </div>
           )}
@@ -607,6 +692,8 @@ export default function CakeOrderPageClient() {
             pickupDate={pickupDate}
             eventType={eventType}
             specialInstructions={specialInstructions}
+            fulfillmentType={fulfillmentType}
+            deliveryAddress={deliveryAddress}
             dateWarning={dateWarning}
             earliestDateStr={earliestDateStr}
             maxLeadTimeDays={maxLeadTimeDays}
@@ -614,6 +701,8 @@ export default function CakeOrderPageClient() {
             onNumberOfPeopleChange={setNumberOfPeople}
             onEventTypeChange={setEventType}
             onSpecialInstructionsChange={setSpecialInstructions}
+            onFulfillmentTypeChange={setFulfillmentType}
+            onDeliveryAddressChange={setDeliveryAddress}
             onCheckout={handleCheckout}
             onRemove={handleRemove}
             checkoutLoading={checkoutLoading}

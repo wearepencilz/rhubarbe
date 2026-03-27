@@ -76,6 +76,12 @@ export const products = pgTable('products', {
   cakeInstructions: customJsonb<{ en: string; fr: string }>('cake_instructions'),
   cakeMinPeople: integer('cake_min_people'),
 
+  // Ordering system extension fields
+  nextAvailableDate: timestamp('next_available_date'),
+  servesPerUnit: integer('serves_per_unit'),
+  cakeFlavourNotes: customJsonb<{ en: string; fr: string }>('cake_flavour_notes'),
+  cakeDeliveryAvailable: boolean('cake_delivery_available').default(true),
+
   // Tax fields
   taxBehavior: text('tax_behavior').notNull().default('always_taxable'),
   taxThreshold: integer('tax_threshold').notNull().default(6),
@@ -132,6 +138,7 @@ export const cakeVariants = pgTable('cake_variants', {
   shopifyVariantId: text('shopify_variant_id'),
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
+  description: customJsonb<{ en: string; fr: string }>('description'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('cake_variants_product_id_idx').on(table.productId),
@@ -146,6 +153,7 @@ export const volumeVariants = pgTable('volume_variants', {
   shopifyVariantId: text('shopify_variant_id'),
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
+  description: customJsonb<{ en: string; fr: string }>('description'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('volume_variants_product_id_idx').on(table.productId),
@@ -189,6 +197,8 @@ export const launches = pgTable('launches', {
   // Pickup
   pickupDate: timestamp('pickup_date').notNull(),
   pickupLocationId: uuid('pickup_location_id').references(() => pickupLocations.id),
+  pickupWindowStart: timestamp('pickup_window_start'),
+  pickupWindowEnd: timestamp('pickup_window_end'),
   pickupInstructions: customJsonb<{ en: string; fr: string }>('pickup_instructions'),
   
   // Pickup Slots — config used to generate, plus the generated slots

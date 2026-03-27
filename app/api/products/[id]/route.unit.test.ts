@@ -386,6 +386,151 @@ describe('Product API - Availability Field Updates', () => {
     });
   });
 
+  describe('PATCH /api/products/[id] - nextAvailableDate and servesPerUnit', () => {
+    beforeEach(async () => {
+      await db.insert(products).values({
+        id: testProductId,
+        name: 'Test Product',
+        slug: 'test-product-new-fields',
+        availabilityMode: 'always_available',
+        defaultMinQuantity: 1,
+        defaultQuantityStep: 1,
+        defaultPickupRequired: false,
+        onlineOrderable: true,
+        pickupOnly: false,
+      });
+    });
+
+    it('should accept and persist servesPerUnit as a non-negative integer', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ servesPerUnit: 4 }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(200);
+
+      const product = await response.json();
+      expect(product.servesPerUnit).toBe(4);
+    });
+
+    it('should accept servesPerUnit of 0', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ servesPerUnit: 0 }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(200);
+
+      const product = await response.json();
+      expect(product.servesPerUnit).toBe(0);
+    });
+
+    it('should accept null servesPerUnit', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ servesPerUnit: null }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(200);
+
+      const product = await response.json();
+      expect(product.servesPerUnit).toBeNull();
+    });
+
+    it('should reject negative servesPerUnit', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ servesPerUnit: -1 }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(400);
+
+      const result = await response.json();
+      expect(result.error).toBe('servesPerUnit must be a non-negative integer');
+    });
+
+    it('should reject non-integer servesPerUnit', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ servesPerUnit: 2.5 }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(400);
+
+      const result = await response.json();
+      expect(result.error).toBe('servesPerUnit must be a non-negative integer');
+    });
+
+    it('should accept and persist nextAvailableDate as an ISO string', async () => {
+      const dateStr = '2025-04-15T00:00:00.000Z';
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ nextAvailableDate: dateStr }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(200);
+
+      const product = await response.json();
+      expect(new Date(product.nextAvailableDate).toISOString()).toBe(dateStr);
+    });
+
+    it('should accept null nextAvailableDate', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ nextAvailableDate: null }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(200);
+
+      const product = await response.json();
+      expect(product.nextAvailableDate).toBeNull();
+    });
+
+    it('should reject invalid nextAvailableDate string', async () => {
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ nextAvailableDate: 'not-a-date' }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(400);
+
+      const result = await response.json();
+      expect(result.error).toBe('nextAvailableDate must be a valid date string');
+    });
+
+    it('should persist both fields together', async () => {
+      const dateStr = '2025-06-01T12:00:00.000Z';
+      const url = `http://localhost:3000/api/products/${testProductId}`;
+      const request = new NextRequest(url, {
+        method: 'PATCH',
+        body: JSON.stringify({ nextAvailableDate: dateStr, servesPerUnit: 8 }),
+      });
+
+      const response = await PATCH(request, { params: { id: testProductId } });
+      expect(response.status).toBe(200);
+
+      const product = await response.json();
+      expect(new Date(product.nextAvailableDate).toISOString()).toBe(dateStr);
+      expect(product.servesPerUnit).toBe(8);
+    });
+  });
+
   describe('DELETE /api/products/[id]', () => {
     it('should delete product successfully', async () => {
       await db.insert(products).values({

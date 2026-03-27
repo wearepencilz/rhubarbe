@@ -66,6 +66,28 @@ export async function PUT(
       return NextResponse.json({ error: 'default_quantity_step must be at least 1' }, { status: 400 });
     }
 
+    // Validate servesPerUnit if provided: must be a non-negative integer
+    if (body.servesPerUnit !== undefined && body.servesPerUnit !== null) {
+      if (!Number.isInteger(body.servesPerUnit) || body.servesPerUnit < 0) {
+        return NextResponse.json(
+          { error: 'servesPerUnit must be a non-negative integer' },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Parse nextAvailableDate: accept ISO string, convert to Date, or null
+    if (body.nextAvailableDate !== undefined && body.nextAvailableDate !== null) {
+      const parsed = new Date(body.nextAvailableDate);
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json(
+          { error: 'nextAvailableDate must be a valid date string' },
+          { status: 400 },
+        );
+      }
+      body.nextAvailableDate = parsed;
+    }
+
     // Extract ingredients from body before updating the product row
     const { ingredients: bodyIngredients, ...productFields } = body;
 

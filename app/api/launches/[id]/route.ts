@@ -118,6 +118,29 @@ export async function PATCH(
     if (body.pickupSlotConfig !== undefined) updateData.pickupSlotConfig = body.pickupSlotConfig;
     if (body.pickupSlots !== undefined) updateData.pickupSlots = body.pickupSlots;
 
+    // Pickup window fields
+    if (body.pickupWindowStart !== undefined) {
+      updateData.pickupWindowStart = body.pickupWindowStart ? new Date(body.pickupWindowStart) : null;
+    }
+    if (body.pickupWindowEnd !== undefined) {
+      updateData.pickupWindowEnd = body.pickupWindowEnd ? new Date(body.pickupWindowEnd) : null;
+    }
+
+    // Validate pickup window: end must be >= start when both are provided
+    const resolvedStart = updateData.pickupWindowStart !== undefined
+      ? updateData.pickupWindowStart
+      : existing.pickupWindowStart;
+    const resolvedEnd = updateData.pickupWindowEnd !== undefined
+      ? updateData.pickupWindowEnd
+      : existing.pickupWindowEnd;
+
+    if (resolvedStart && resolvedEnd && resolvedEnd < resolvedStart) {
+      return NextResponse.json(
+        { error: 'pickupWindowEnd must be >= pickupWindowStart' },
+        { status: 400 }
+      );
+    }
+
     const [updated] = await db
       .update(launches)
       .set(updateData)

@@ -24,6 +24,14 @@ import ShopifyVariantsDisplay from '../../components/ShopifyVariantsDisplay';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
 import type { FlavourIngredient, ContentTranslations, ProductVariant } from '@/types';
 
+/** Convert a UTC ISO string to a local date value (YYYY-MM-DD) */
+function toLocalDate(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [offering, setOffering] = useState<Offering | null>(null);
@@ -87,6 +95,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     taxBehavior: 'always_taxable',
     taxThreshold: 6,
     taxUnitCount: 1,
+    // Ordering fields
+    nextAvailableDate: '',
+    servesPerUnit: '',
   });
 
   useEffect(() => { fetchData(); }, [params.id]);
@@ -167,6 +178,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           taxBehavior: offeringData.taxBehavior || 'always_taxable',
           taxThreshold: offeringData.taxThreshold ?? 6,
           taxUnitCount: offeringData.taxUnitCount ?? 1,
+          nextAvailableDate: offeringData.nextAvailableDate ? toLocalDate(offeringData.nextAvailableDate) : '',
+          servesPerUnit: offeringData.servesPerUnit != null ? String(offeringData.servesPerUnit) : '',
         });
       }
     } catch (error) {
@@ -225,6 +238,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         taxBehavior: formData.taxBehavior,
         taxThreshold: formData.taxThreshold,
         taxUnitCount: formData.taxUnitCount,
+        nextAvailableDate: formData.nextAvailableDate || null,
+        servesPerUnit: formData.servesPerUnit ? parseInt(formData.servesPerUnit) : null,
       };
       const response = await fetch(`/api/products/${params.id}`, {
         method: 'PUT',
@@ -624,6 +639,35 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             onChange={(tax) => setFormData({ ...formData, ...tax })}
             shopifyProductId={formData.shopifyProductId || undefined}
           />
+
+          {/* Ordering */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Ordering</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Availability date and serving information.</p>
+            </div>
+            <div className="px-6 py-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Next available date</label>
+                <input
+                  type="date"
+                  value={formData.nextAvailableDate}
+                  onChange={(e) => setFormData({ ...formData, nextAvailableDate: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                  aria-label="Next available date"
+                />
+                <p className="text-xs text-gray-500 mt-1">Shown on sold-out products to indicate when they'll be back.</p>
+              </div>
+              <Input
+                label="Serves per unit"
+                type="number"
+                value={formData.servesPerUnit}
+                onChange={(v) => setFormData({ ...formData, servesPerUnit: v })}
+                placeholder="e.g. 4"
+                helperText="Used to calculate serving estimates in catering orders."
+              />
+            </div>
+          </div>
 
           {/* Availability */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">

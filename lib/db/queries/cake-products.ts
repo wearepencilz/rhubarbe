@@ -70,6 +70,8 @@ export async function updateCakeConfig(
     cakeDescription?: { en: string; fr: string } | null;
     cakeInstructions?: { en: string; fr: string } | null;
     cakeMinPeople?: number | null;
+    cakeFlavourNotes?: { en: string; fr: string } | null;
+    cakeDeliveryAvailable?: boolean;
   },
 ) {
   const [updated] = await db
