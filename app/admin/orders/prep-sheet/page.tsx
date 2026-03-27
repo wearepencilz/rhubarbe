@@ -64,7 +64,7 @@ interface DateGroup {
 }
 
 /** Aggregate items across orders into prep entries */
-export function aggregatePrepEntries(orders: Order[]): PrepEntry[] {
+function aggregatePrepEntries(orders: Order[]): PrepEntry[] {
   const map = new Map<string, PrepEntry>();
   for (const order of orders) {
     for (const item of order.items) {
