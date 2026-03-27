@@ -24,7 +24,7 @@ const groups: DashboardGroup[] = [
     label: 'Ordering',
     cards: [
       { title: 'Menus', description: 'Weekly preorder menus and launches', href: '/admin/menus', icon: '📅' },
-      { title: 'Volume', description: 'Volume ordering products and lead times', href: '/admin/volume-products', icon: '📦' },
+      { title: 'Catering', description: 'Catering products and lead times', href: '/admin/volume-products', icon: '📦' },
       { title: 'Orders', description: 'Preorders, prep sheets, and pickup lists', href: '/admin/orders', icon: '🧾' },
       { title: 'Pickup Locations', description: 'Physical pickup points and instructions', href: '/admin/pickup-locations', icon: '📍' },
     ],

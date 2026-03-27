@@ -68,18 +68,22 @@ export default function DatePickerField({ label, ...props }: DatePickerFieldProp
                 )}
               </AriaCalendarGridHeader>
               <AriaCalendarGridBody className="[&_td]:p-0">
-                {(date) => (
-                  <AriaCalendarCell
-                    date={date}
-                    className={({ isSelected, isDisabled, isFocusVisible, isOutsideMonth }) =>
-                      `flex size-9 items-center justify-center rounded-full text-sm outline-none cursor-pointer transition-colors
-                      ${isOutsideMonth ? 'text-gray-300' : ''}
-                      ${isDisabled ? 'text-gray-300 pointer-events-none' : ''}
-                      ${isSelected ? 'bg-gray-900 text-white font-medium' : 'hover:bg-gray-100'}
-                      ${isFocusVisible ? 'ring-2 ring-gray-900 ring-offset-1' : ''}`
-                    }
-                  />
-                )}
+                {(date) => {
+                  const todayDate = today(getLocalTimeZone());
+                  const isToday = date.year === todayDate.year && date.month === todayDate.month && date.day === todayDate.day;
+                  return (
+                    <AriaCalendarCell
+                      date={date}
+                      className={({ isSelected, isDisabled, isFocusVisible, isOutsideMonth }) =>
+                        `flex size-9 items-center justify-center rounded-full text-sm outline-none cursor-pointer transition-colors
+                        ${isDisabled ? 'text-gray-300 pointer-events-none' : isOutsideMonth ? 'text-gray-500' : ''}
+                        ${isSelected ? 'bg-gray-900 text-white font-medium' : 'hover:bg-gray-100'}
+                        ${isToday && !isSelected ? 'ring-1 ring-gray-900' : ''}
+                        ${isFocusVisible ? 'ring-2 ring-gray-900 ring-offset-1' : ''}`
+                      }
+                    />
+                  );
+                }}
               </AriaCalendarGridBody>
             </AriaCalendarGrid>
           </AriaCalendar>

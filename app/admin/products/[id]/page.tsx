@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Offering, Ingredient } from '@/types';
 
@@ -40,6 +40,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
   const [volumeEnabled, setVolumeEnabled] = useState(false);
   const [enablingVolume, setEnablingVolume] = useState(false);
+  const shopifyPickerOpenRef = useRef<(() => void) | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -557,8 +558,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {formData.shopifyProductHandle && !shopifyLinkBroken && (
-                      <a href={`${shopifyAdminBase}/products/${formData.shopifyProductHandle}`} target="_blank" rel="noopener noreferrer">
+                    {formData.shopifyProductId && !shopifyLinkBroken && (
+                      <a href={`${shopifyAdminBase}/products/${formData.shopifyProductId.replace('gid://shopify/Product/', '')}`} target="_blank" rel="noopener noreferrer">
                         <Button variant="secondary" size="sm">View</Button>
                       </a>
                     )}
@@ -599,8 +600,9 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                     selectedProductId={formData.shopifyProductId}
                     selectedProductHandle={formData.shopifyProductHandle}
                     onSelect={(product) => setFormData({ ...formData, shopifyProductId: product?.id || '', shopifyProductHandle: product?.handle || '' })}
-                    trigger={<Button variant="secondary" size="sm" className="flex-shrink-0">Link</Button>}
+                    onOpenRef={shopifyPickerOpenRef}
                   />
+                  <Button variant="secondary" size="sm" className="flex-shrink-0" onClick={() => shopifyPickerOpenRef.current?.()}>Link</Button>
                 </div>
               </>
             )}
@@ -651,7 +653,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Volume ordering</h2>
+                <h2 className="text-sm font-semibold text-gray-900">Catering ordering</h2>
               </div>
               <Badge color={volumeEnabled ? 'success' : 'gray'}>
                 {volumeEnabled ? 'On' : 'Off'}
@@ -679,7 +681,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                       });
                       if (res.ok) {
                         setVolumeEnabled(true);
-                        toast.success('Volume ordering enabled');
+                        toast.success('Catering ordering enabled');
                       } else {
                         const err = await res.json();
                         toast.error('Failed', err.error || 'Could not enable');

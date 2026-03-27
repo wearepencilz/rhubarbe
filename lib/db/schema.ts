@@ -70,6 +70,12 @@ export const products = pgTable('products', {
   volumeInstructions: customJsonb<{ en: string; fr: string }>('volume_instructions'),
   volumeMinOrderQuantity: integer('volume_min_order_quantity'),
 
+  // Cake sales fields
+  cakeEnabled: boolean('cake_enabled').notNull().default(false),
+  cakeDescription: customJsonb<{ en: string; fr: string }>('cake_description'),
+  cakeInstructions: customJsonb<{ en: string; fr: string }>('cake_instructions'),
+  cakeMinPeople: integer('cake_min_people'),
+
   // Tax fields
   taxBehavior: text('tax_behavior').notNull().default('always_taxable'),
   taxThreshold: integer('tax_threshold').notNull().default(6),
@@ -93,6 +99,43 @@ export const volumeLeadTimeTiers = pgTable('volume_lead_time_tiers', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('volume_lead_time_tiers_product_id_idx').on(table.productId),
+}));
+
+// Cake Lead Time Tiers — per-product lead time rules based on number of people
+export const cakeLeadTimeTiers = pgTable('cake_lead_time_tiers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  minPeople: integer('min_people').notNull(),
+  leadTimeDays: integer('lead_time_days').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  productIdIdx: index('cake_lead_time_tiers_product_id_idx').on(table.productId),
+}));
+
+// Cake Pricing Tiers — per-product tiered pricing based on number of people
+export const cakePricingTiers = pgTable('cake_pricing_tiers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  minPeople: integer('min_people').notNull(),
+  priceInCents: integer('price_in_cents').notNull(),
+  shopifyVariantId: text('shopify_variant_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  productIdIdx: index('cake_pricing_tiers_product_id_idx').on(table.productId),
+}));
+
+// Cake Variants — cake-specific variants with bilingual labels and Shopify mapping
+export const cakeVariants = pgTable('cake_variants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  label: customJsonb<{ en: string; fr: string }>('label').notNull(),
+  shopifyVariantId: text('shopify_variant_id'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  productIdIdx: index('cake_variants_product_id_idx').on(table.productId),
+  sortOrderIdx: index('cake_variants_sort_order_idx').on(table.sortOrder),
 }));
 
 // Volume Variants — volume-specific variants with bilingual labels and Shopify mapping
@@ -214,8 +257,8 @@ export const orders = pgTable('orders', {
     enum: ['pending', 'paid', 'refunded'] 
   }).notNull().default('pending'),
   
-  // Volume order fields
-  orderType: text('order_type').notNull().default('launch'),  // "launch" | "volume"
+  // Order type fields
+  orderType: text('order_type').notNull().default('launch'),  // "launch" | "volume" | "cake"
   fulfillmentDate: timestamp('fulfillment_date'),
   allergenNotes: text('allergen_notes'),
 

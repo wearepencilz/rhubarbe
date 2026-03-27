@@ -42,6 +42,7 @@ interface VolumeProduct {
   allergens: string[];
   leadTimeTiers: LeadTimeTier[];
   variants: VolumeVariant[];
+  pickupOnly: boolean;
 }
 
 // ── Helpers ──
@@ -96,6 +97,7 @@ interface CartGroup {
   productName: string;
   shopifyProductId: string | null;
   basePrice: number;
+  allergens: string[];
   variants: Array<{ variantId: string; variantLabel: string; quantity: number; shopifyVariantId: string; price: number }>;
   totalQty: number;
   totalPrice: number;
@@ -116,7 +118,7 @@ function VolumeProductCard({
   const isFr = locale === 'fr';
   const description = tr(product.volumeDescription, locale);
   const totalQty = getTotalQuantity(product, cart);
-  const belowMin = totalQty > 0 && totalQty < product.volumeMinOrderQuantity;
+  const belowMin = totalQty > 0 && product.leadTimeTiers.length > 0 && totalQty < product.leadTimeTiers[0].minQuantity;
   const currentLeadDays = getLeadTimeDays(product.leadTimeTiers, totalQty);
 
   return (
@@ -139,15 +141,25 @@ function VolumeProductCard({
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
             {product.name}
           </h3>
-          {product.price != null && product.price > 0 && (
-            <span className="text-sm shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              ${(product.price / 100).toFixed(2)}
-            </span>
-          )}
         </div>
 
         {description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{description}</p>
+        )}
+
+        {/* Allergen badges */}
+        {product.allergens && product.allergens.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {product.allergens.map((a) => (
+              <span
+                key={a}
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
+                style={{ fontFamily: 'var(--font-diatype-mono)' }}
+              >
+                {a}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Quantity inputs */}
@@ -156,19 +168,17 @@ function VolumeProductCard({
             product.variants.map((v) => {
               const variantPrice = v.price ?? product.price;
               return (
-                <div key={v.id} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 truncate"
+                <div key={v.id} className="flex items-center gap-2">
+                  <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1"
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    {tr(v.label, locale)}
+                  </label>
+                  {variantPrice != null && variantPrice > 0 && (
+                    <span className="text-[10px] text-gray-400 shrink-0"
                       style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                      {tr(v.label, locale)}
-                    </label>
-                    {variantPrice != null && variantPrice > 0 && variantPrice !== product.price && (
-                      <span className="text-[10px] text-gray-400 shrink-0"
-                        style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                        ${(variantPrice / 100).toFixed(2)}
-                      </span>
-                    )}
-                  </div>
+                      ${(variantPrice / 100).toFixed(2)}
+                    </span>
+                  )}
                   <input id={`qty-${v.id}`} type="number" min={0}
                     value={(cart.get(v.id) ?? 0) || ''}
                     placeholder="0"
@@ -193,12 +203,6 @@ function VolumeProductCard({
             </div>
           )}
         </div>
-
-        {/* Minimum order */}
-        <p className="text-[11px] uppercase tracking-wider text-gray-400 mt-2"
-          style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-          {V.minimum}: {product.volumeMinOrderQuantity}
-        </p>
 
         {/* Lead time tiers */}
         {product.leadTimeTiers.length > 0 && (
@@ -235,8 +239,8 @@ function VolumeProductCard({
         {belowMin && (
           <p className="text-[11px] text-red-500 mt-1" role="alert">
             {isFr
-              ? `Minimum: ${product.volumeMinOrderQuantity} (actuel : ${totalQty})`
-              : `Minimum: ${product.volumeMinOrderQuantity} (current: ${totalQty})`}
+              ? `Minimum: ${product.leadTimeTiers[0]?.minQuantity} (actuel : ${totalQty})`
+              : `Minimum: ${product.leadTimeTiers[0]?.minQuantity} (current: ${totalQty})`}
           </p>
         )}
       </div>
@@ -253,8 +257,8 @@ function VolumeInlineCart({
   dateWarning, earliestDateStr, maxLeadTimeDays,
   onDateChange, onTimeChange,
   onFulfillmentTypeChange, onAllergenNoteChange,
-  onCheckout, checkoutLoading, checkoutError,
-  locale, hasMinViolation, V,
+  onCheckout, onRemoveProduct, checkoutLoading, checkoutError,
+  locale, hasMinViolation, deliveryDisabled, V,
 }: {
   groups: CartGroup[];
   totalQuantity: number;
@@ -271,10 +275,12 @@ function VolumeInlineCart({
   onFulfillmentTypeChange: (t: 'pickup' | 'delivery') => void;
   onAllergenNoteChange: (n: string) => void;
   onCheckout: () => void;
+  onRemoveProduct: (productId: string) => void;
   checkoutLoading: boolean;
   checkoutError: string | null;
   locale: string;
   hasMinViolation: boolean;
+  deliveryDisabled: boolean;
   V: Record<string, string>;
 }) {
   const isFr = locale === 'fr';
@@ -314,12 +320,12 @@ function VolumeInlineCart({
                 {group.variants.length > 1 ? (
                   <div className="mt-1 space-y-0.5">
                     {group.variants.map((v) => (
-                      <div key={v.variantId} className="flex items-center justify-between pl-2">
-                        <span className="text-[11px] text-gray-400 truncate"
+                      <div key={v.variantId} className="flex items-start justify-between gap-2">
+                        <span className="text-[11px] text-gray-400 break-words min-w-0"
                           style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                           {v.variantLabel}
                         </span>
-                        <span className="text-[11px] text-gray-500"
+                        <span className="text-[11px] text-gray-500 whitespace-nowrap shrink-0"
                           style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                           {v.quantity} × ${(v.price / 100).toFixed(2)}
                         </span>
@@ -335,12 +341,47 @@ function VolumeInlineCart({
                     {group.variants[0]?.price > 0 && ` @ $${(group.variants[0].price / 100).toFixed(2)}`}
                   </p>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onRemoveProduct(group.productId)}
+                  className="text-[11px] text-gray-400 underline hover:text-red-500 mt-1"
+                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                >
+                  {isFr ? 'retirer' : 'remove'}
+                </button>
               </div>
             ))}
           </div>
 
           {/* Footer */}
           <div className="px-5 py-4 border-t border-gray-200 space-y-4">
+            {/* Allergen summary */}
+            {(() => {
+              const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
+              if (allAllergens.length === 0) return null;
+              return (
+                <div className="rounded-md bg-amber-50 ring-1 ring-amber-200/60 px-3 py-2.5">
+                  <p
+                    className="text-[10px] uppercase tracking-widest text-amber-600 mb-1.5"
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                  >
+                    {isFr ? 'Contient' : 'Contains'}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {allAllergens.map((a) => (
+                      <span
+                        key={a}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-white text-amber-700 ring-1 ring-amber-200/60"
+                        style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Totals */}
             <div className="space-y-1">
               <div className="flex justify-between text-sm font-semibold">
@@ -369,10 +410,13 @@ function VolumeInlineCart({
                 {(['pickup', 'delivery'] as const).map((type) => (
                   <button key={type} type="button"
                     onClick={() => onFulfillmentTypeChange(type)}
+                    disabled={type === 'delivery' && deliveryDisabled}
                     className={`flex-1 py-2 text-xs uppercase tracking-widest transition-colors ${
                       fulfillmentType === type
                         ? 'bg-[#333112] text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                        : type === 'delivery' && deliveryDisabled
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                     style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                     {type === 'pickup' ? V.pickup : V.delivery}
@@ -528,6 +572,20 @@ export default function VolumeOrderPageClient() {
     });
   }, []);
 
+  const handleRemoveProduct = useCallback((productId: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    setCart((prev) => {
+      const next = new Map(prev);
+      if (product.variants.length > 0) {
+        for (const v of product.variants) next.delete(v.id);
+      } else {
+        next.delete(productId);
+      }
+      return next;
+    });
+  }, [products]);
+
   // Build grouped cart
   const cartGroups = useMemo<CartGroup[]>(() => {
     const groups: CartGroup[] = [];
@@ -564,6 +622,7 @@ export default function VolumeOrderPageClient() {
           productName: product.name,
           shopifyProductId: product.shopifyProductId ?? null,
           basePrice: product.price ?? 0,
+          allergens: product.allergens || [],
           variants,
           totalQty: variants.reduce((s, v) => s + v.quantity, 0),
           totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0),
@@ -586,9 +645,25 @@ export default function VolumeOrderPageClient() {
   const hasMinViolation = useMemo(() => {
     return products.some((p) => {
       const qty = getTotalQuantity(p, cart);
-      return qty > 0 && qty < p.volumeMinOrderQuantity;
+      const minQty = p.leadTimeTiers.length > 0 ? p.leadTimeTiers[0].minQuantity : 1;
+      return qty > 0 && qty < minQty;
     });
   }, [products, cart]);
+
+  // If any product in the cart is pickup-only, disable delivery
+  const deliveryDisabled = useMemo(() => {
+    return products.some((p) => {
+      const qty = getTotalQuantity(p, cart);
+      return qty > 0 && p.pickupOnly;
+    });
+  }, [products, cart]);
+
+  // Auto-switch to pickup if delivery becomes disabled
+  useEffect(() => {
+    if (deliveryDisabled && fulfillmentType === 'delivery') {
+      setFulfillmentType('pickup');
+    }
+  }, [deliveryDisabled, fulfillmentType]);
 
   // Flatten groups back to line items for checkout API
   const checkoutItems = useMemo(() => {
@@ -695,9 +770,10 @@ export default function VolumeOrderPageClient() {
             onDateChange={setFulfillmentDate} onTimeChange={setFulfillmentTime}
             onFulfillmentTypeChange={setFulfillmentType}
             onAllergenNoteChange={setAllergenNote}
-            onCheckout={handleCheckout} checkoutLoading={checkoutLoading}
+            onCheckout={handleCheckout} onRemoveProduct={handleRemoveProduct} checkoutLoading={checkoutLoading}
             checkoutError={checkoutError} locale={locale}
             hasMinViolation={hasMinViolation}
+            deliveryDisabled={deliveryDisabled}
             V={V}
           />
         </div>

@@ -12,13 +12,20 @@ vi.mock('@/lib/email/volume-order-confirmation', () => ({
   sendVolumeOrderConfirmation: vi.fn(),
 }));
 
+// Mock the cake email sender — must be hoisted before imports
+vi.mock('@/lib/email/cake-order-confirmation', () => ({
+  sendCakeOrderConfirmation: vi.fn(),
+}));
+
 import { POST } from './route';
 import * as ordersQuery from '@/lib/db/queries/orders';
 import * as emailModule from '@/lib/email/volume-order-confirmation';
+import * as cakeEmailModule from '@/lib/email/cake-order-confirmation';
 
 const mockGetByShopifyOrderId = ordersQuery.getByShopifyOrderId as ReturnType<typeof vi.fn>;
 const mockCreate = ordersQuery.create as ReturnType<typeof vi.fn>;
 const mockSendVolumeOrderConfirmation = emailModule.sendVolumeOrderConfirmation as ReturnType<typeof vi.fn>;
+const mockSendCakeOrderConfirmation = cakeEmailModule.sendCakeOrderConfirmation as ReturnType<typeof vi.fn>;
 
 // Build a minimal Shopify order payload
 function makeShopifyOrder(overrides: Record<string, unknown> = {}) {
@@ -69,6 +76,7 @@ describe('POST /api/shopify/webhooks/orders-paid', () => {
     mockCreate.mockResolvedValue({ orderNumber: '#1001', id: 'order-uuid-1' });
     // Default: email sends successfully
     mockSendVolumeOrderConfirmation.mockResolvedValue(undefined);
+    mockSendCakeOrderConfirmation.mockResolvedValue(undefined);
     // Ensure SHOPIFY_WEBHOOK_SECRET is not set so HMAC verification is skipped
     delete process.env.SHOPIFY_WEBHOOK_SECRET;
   });
@@ -280,6 +288,208 @@ describe('POST /api/shopify/webhooks/orders-paid', () => {
       const body = await res.json();
       expect(body.ok).toBe(true);
       expect(mockSendVolumeOrderConfirmation).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Requirements: 9.2 — cake order type detection and storage
+  describe('cake order type detection (Req 9.2)', () => {
+    it('stores orderType = "cake" when note_attributes contains Order Type = cake', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.orderType).toBe('cake');
+    });
+
+    it('stores fulfillmentDate from Pickup Date attribute for cake orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.fulfillmentDate).toBeInstanceOf(Date);
+      expect((orderData.fulfillmentDate as Date).toISOString()).toContain('2026-06-15');
+    });
+
+    it('stores special instructions in allergenNotes for cake orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+          { name: 'Special Instructions', value: 'Nut-free please' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.allergenNotes).toBe('Nut-free please');
+    });
+
+    it('stores allergenNotes as null when Special Instructions is absent for cake orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.allergenNotes).toBeNull();
+    });
+  });
+
+  // Requirements: 9.3 — cake-specific metadata extraction
+  describe('cake metadata extraction (Req 9.3)', () => {
+    it('stores number of people and event type in specialInstructions for cake orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'wedding' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.specialInstructions).toContain('Number of People: 25');
+      expect(orderData.specialInstructions).toContain('Event Type: wedding');
+    });
+
+    it('includes order note in specialInstructions alongside metadata for cake orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note: 'Please deliver to side entrance',
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '30' },
+          { name: 'Event Type', value: 'corporate' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.specialInstructions).toContain('Number of People: 30');
+      expect(orderData.specialInstructions).toContain('Event Type: corporate');
+      expect(orderData.specialInstructions).toContain('Please deliver to side entrance');
+    });
+
+    it('correctly extracts all cake fields together', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note: 'Type: Cake Order\nPickup: June 15, 2026\nPeople: 25\nEvent: Birthday',
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+          { name: 'Special Instructions', value: 'Nut-free please' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const [orderData] = mockCreate.mock.calls[0];
+      expect(orderData.orderType).toBe('cake');
+      expect(orderData.fulfillmentDate).toBeInstanceOf(Date);
+      expect((orderData.fulfillmentDate as Date).toISOString()).toContain('2026-06-15');
+      expect(orderData.allergenNotes).toBe('Nut-free please');
+      expect(orderData.specialInstructions).toContain('Number of People: 25');
+      expect(orderData.specialInstructions).toContain('Event Type: birthday');
+    });
+  });
+
+  // Cake order confirmation email
+  describe('cake order confirmation email', () => {
+    it('sends cake confirmation email for cake orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+          { name: 'Special Instructions', value: 'Nut-free please' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+      expect(mockSendCakeOrderConfirmation).toHaveBeenCalledTimes(1);
+      expect(mockSendVolumeOrderConfirmation).not.toHaveBeenCalled();
+
+      const [emailOrder, locale] = mockSendCakeOrderConfirmation.mock.calls[0];
+      expect(emailOrder.orderNumber).toBe('#1001');
+      expect(emailOrder.customerName).toBe('Jane Doe');
+      expect(emailOrder.customerEmail).toBe('customer@example.com');
+      expect(emailOrder.fulfillmentDate).toBeInstanceOf(Date);
+      expect(emailOrder.specialInstructions).toBe('Nut-free please');
+      expect(emailOrder.numberOfPeople).toBe('25');
+      expect(emailOrder.eventType).toBe('birthday');
+      expect(emailOrder.items).toHaveLength(1);
+      expect(locale).toBe('en');
+    });
+
+    it('does not send cake email for volume orders', async () => {
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'volume' },
+          { name: 'Fulfillment Date', value: '2026-04-10T10:00:00' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+      expect(mockSendCakeOrderConfirmation).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 even when cake email sending fails', async () => {
+      mockSendCakeOrderConfirmation.mockRejectedValue(new Error('Email service down'));
+
+      const shopifyOrder = makeShopifyOrder({
+        note_attributes: [
+          { name: 'Order Type', value: 'cake' },
+          { name: 'Pickup Date', value: '2026-06-15' },
+          { name: 'Number of People', value: '25' },
+          { name: 'Event Type', value: 'birthday' },
+        ],
+      });
+
+      const res = await POST(makeRequest(shopifyOrder));
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(mockSendCakeOrderConfirmation).toHaveBeenCalledTimes(1);
     });
   });
 });

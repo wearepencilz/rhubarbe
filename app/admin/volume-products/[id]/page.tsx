@@ -73,7 +73,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const [descriptionFr, setDescriptionFr] = useState('');
   const [instructionsEn, setInstructionsEn] = useState('');
   const [instructionsFr, setInstructionsFr] = useState('');
-  const [minOrderQuantity, setMinOrderQuantity] = useState('');
   const [tiers, setTiers] = useState<LeadTimeTier[]>([]);
   const [tierErrors, setTierErrors] = useState<string | null>(null);
 
@@ -86,7 +85,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setLoading(true);
       const res = await fetch(`/api/volume-products/${params.id}`);
       if (!res.ok) {
-        setError('Volume product not found');
+        setError('Catering product not found');
         return;
       }
       const data: VolumeProduct = await res.json();
@@ -96,10 +95,9 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setDescriptionFr(data.volumeDescription?.fr ?? '');
       setInstructionsEn(data.volumeInstructions?.en ?? '');
       setInstructionsFr(data.volumeInstructions?.fr ?? '');
-      setMinOrderQuantity(data.volumeMinOrderQuantity?.toString() ?? '');
       setTiers(data.leadTimeTiers.map((t) => ({ minQuantity: t.minQuantity, leadTimeDays: t.leadTimeDays })));
     } catch {
-      setError('Failed to load volume product');
+      setError('Failed to load catering product');
     } finally {
       setLoading(false);
     }
@@ -107,7 +105,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
   const markDirty = useCallback(() => setIsDirty(true), []);
 
-  // --- Volume toggle ---
+  // --- Catering toggle ---
   function handleToggleVolume(checked: boolean) {
     if (!checked && volumeEnabled) {
       setDisableConfirmOpen(true);
@@ -163,7 +161,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
   // --- Variants ---
   // Variant state is managed via the product's existing variants
-  // The variants state holds volume variant mappings (active toggle + shopify ID)
+  // The variants state holds catering variant mappings (active toggle + shopify ID)
 
   // --- Save ---
   async function handleSave() {
@@ -187,7 +185,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         volumeInstructions: instructionsEn || instructionsFr
           ? { en: instructionsEn, fr: instructionsFr }
           : null,
-        volumeMinOrderQuantity: minOrderQuantity ? parseInt(minOrderQuantity) : null,
+        volumeMinOrderQuantity: tiers.length > 0 ? tiers[0].minQuantity : null,
         leadTimeTiers: tiers,
       };
 
@@ -201,7 +199,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         const updated = await res.json();
         setProduct(updated);
         setIsDirty(false);
-        toast.success('Saved', 'Volume product configuration updated');
+        toast.success('Saved', 'Catering product configuration updated');
       } else {
         const err = await res.json();
         const msg = err.details || err.error || 'Failed to save';
@@ -231,9 +229,9 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   if (!product) {
     return (
       <EditPageLayout
-        title="Volume Product"
+        title="Catering Product"
         backHref="/admin/volume-products"
-        backLabel="Back to Volume Products"
+        backLabel="Back to Catering Products"
         onSave={() => {}}
         onCancel={handleCancel}
         error={error || 'Product not found'}
@@ -251,7 +249,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
     <EditPageLayout
       title={product.name}
       backHref="/admin/volume-products"
-      backLabel="Back to Volume Products"
+      backLabel="Back to Catering Products"
       onSave={handleSave}
       onCancel={handleCancel}
       saving={saving}
@@ -271,19 +269,8 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         {/* Order rules: min quantity + lead time tiers */}
         <SectionCard
           title="Order Rules"
-          description="Minimum order quantity and lead time tiers."
+          description="Lead time tiers determine both the minimum order quantity and the required notice period."
         >
-          <Input
-            label="Minimum Order Quantity"
-            type="number"
-            value={minOrderQuantity}
-            onChange={(v) => {
-              setMinOrderQuantity(v);
-              markDirty();
-            }}
-            placeholder="e.g., 6"
-          />
-
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="block text-sm font-medium text-gray-700">Lead Time Tiers</label>
@@ -292,7 +279,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               </Button>
             </div>
             {tiers.length === 0 ? (
-              <p className="text-sm text-gray-500">No tiers configured. Add at least one tier for volume ordering to work.</p>
+              <p className="text-sm text-gray-500">No tiers configured. Add at least one tier for catering ordering to work.</p>
             ) : (
               <div className="space-y-1.5">
                 {tiers.map((tier, index) => (
@@ -334,7 +321,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         </SectionCard>
 
         {/* Description & instructions */}
-        <SectionCard title="Description & Instructions" description="Customer-facing content for volume orders.">
+        <SectionCard title="Description & Instructions" description="Customer-facing content for catering orders.">
           <TranslationFields
             base={{ description: descriptionEn }}
             translations={descriptionTranslations}
@@ -347,7 +334,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               markDirty();
             }}
             fields={[
-              { key: 'description', label: 'Volume Description', type: 'textarea', rows: 3, placeholder: 'Describe this product for volume orders...' },
+              { key: 'description', label: 'Catering Description', type: 'textarea', rows: 3, placeholder: 'Describe this product for catering orders...' },
             ]}
           />
           <TranslationFields
@@ -373,7 +360,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         <div className="col-span-1 space-y-6">
 
           {/* Volume toggle */}
-          <SectionCard title="Volume Sales" description="Enable or disable volume ordering for this product.">
+          <SectionCard title="Catering Sales" description="Enable or disable catering ordering for this product.">
             <label className="inline-flex items-center gap-3 cursor-pointer">
               <button
                 type="button"
@@ -391,13 +378,13 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
                 />
               </button>
               <span className="text-sm text-gray-700">
-                {volumeEnabled ? 'Volume ordering enabled' : 'Volume ordering disabled'}
+                {volumeEnabled ? 'Catering ordering enabled' : 'Catering ordering disabled'}
               </span>
             </label>
             {volumeEnabled && tiers.length === 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-warning-secondary border border-warning-200">
                 <span className="text-xs text-warning-700">
-                  ⚠ No lead time tiers configured. This product won't appear on the volume ordering page until at least one tier is added.
+                  ⚠ No lead time tiers configured. This product won't appear on the catering ordering page until at least one tier is added.
                 </span>
               </div>
             )}
@@ -427,8 +414,8 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       <ConfirmModal
         isOpen={disableConfirmOpen}
         variant="warning"
-        title="Disable Volume Ordering?"
-        message="This product will no longer appear on the volume ordering page. Existing orders will not be affected."
+        title="Disable Catering Ordering?"
+        message="This product will no longer appear on the catering ordering page. Existing orders will not be affected."
         confirmLabel="Disable"
         cancelLabel="Cancel"
         onConfirm={confirmDisable}

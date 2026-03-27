@@ -110,6 +110,7 @@ export async function shopifyAdminFetch(query: string, variables?: any) {
       'X-Shopify-Access-Token': accessToken,
     },
     body: JSON.stringify({ query, variables }),
+    cache: 'no-store',
   });
   
   if (!response.ok) {

@@ -18,6 +18,8 @@ export async function GET(
       ? shopifyProductId
       : `gid://shopify/Product/${shopifyProductId}`;
 
+    console.log('[Shopify Variants] Fetching for GID:', gid);
+
     const data = await shopifyAdminFetch(
       `query getProductVariants($id: ID!) {
         product(id: $id) {

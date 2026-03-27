@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/app/admin/components/ui/button';
 import { Input } from '@/app/admin/components/ui/input';
 
@@ -25,14 +25,27 @@ interface Props {
   selectedProductHandle?: string;
   onSelect: (product: ShopifyProduct | null) => void;
   trigger?: React.ReactNode;
+  /** Called to imperatively open the picker modal */
+  onOpenRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export default function ShopifyProductPicker({ selectedProductId, selectedProductHandle, onSelect, trigger }: Props) {
+export default function ShopifyProductPicker({ selectedProductId, selectedProductHandle, onSelect, trigger, onOpenRef }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleModalOpen = () => {
+    setShowModal(true);
+    loadProducts('*');
+  };
+
+  // Expose open handler via ref so parent can call it directly
+  useEffect(() => {
+    if (onOpenRef) onOpenRef.current = handleModalOpen;
+    return () => { if (onOpenRef) onOpenRef.current = null; };
+  }, [onOpenRef]);
 
   const loadProducts = async (query: string = '*') => {
     setLoading(true);
@@ -76,11 +89,6 @@ export default function ShopifyProductPicker({ selectedProductId, selectedProduc
     await loadProducts(searchTerm);
   };
 
-  const handleModalOpen = () => {
-    setShowModal(true);
-    loadProducts('*'); // Always load fresh products when modal opens
-  };
-
   const handleSelect = (product: ShopifyProduct) => {
     onSelect(product);
     setShowModal(false);
@@ -116,7 +124,7 @@ export default function ShopifyProductPicker({ selectedProductId, selectedProduc
   return (
     <div>
       {trigger ? (
-        <div onClick={handleModalOpen} style={{ cursor: 'pointer', display: 'inline-block' }}>{trigger}</div>
+        <div onClickCapture={handleModalOpen} style={{ cursor: 'pointer', display: 'inline-block' }}>{trigger}</div>
       ) : (
         <button
           type="button"

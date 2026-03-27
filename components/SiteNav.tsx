@@ -13,7 +13,7 @@ interface NavLabels {
 
 export default function SiteNav() {
   const { T, locale } = useT();
-  const { orderCount, volumeCount } = useOrderItems();
+  const { orderCount, volumeCount, cakeCount } = useOrderItems();
   const [navLabels, setNavLabels] = useState<NavLabels | null>(null);
 
   useEffect(() => {
@@ -47,8 +47,11 @@ export default function SiteNav() {
           <span className="text-[10px] opacity-50">({volumeCount})</span>
         )}
       </Link>
-      <Link href="/catering" className="hover:opacity-60 transition-opacity">
-        {label('cateringAndCakes', T.nav.cateringAndCakes)}
+      <Link href="/cake-order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
+        {label('cakeOrder', T.nav.cakeOrder)}
+        {cakeCount > 0 && (
+          <span className="text-[10px] opacity-50">({cakeCount})</span>
+        )}
       </Link>
       <Link href="/about" className="hover:opacity-60 transition-opacity">
         {label('about', T.nav.about)}

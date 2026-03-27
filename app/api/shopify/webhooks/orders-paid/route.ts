@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as crypto from 'crypto';
 import * as ordersQuery from '@/lib/db/queries/orders';
 import { sendVolumeOrderConfirmation, OrderWithItems } from '@/lib/email/volume-order-confirmation';
+import { sendCakeOrderConfirmation, CakeOrderForEmail } from '@/lib/email/cake-order-confirmation';
 
 /**
  * Shopify Webhook: orders/paid
@@ -52,6 +53,28 @@ export async function POST(request: NextRequest) {
 
 
 /**
+ * Build the specialInstructions field for the order.
+ * For cake orders, include number of people and event type metadata alongside the order note.
+ * For other order types, just use the Shopify order note.
+ */
+function buildSpecialInstructions(
+  orderType: string,
+  orderNote: string | null,
+  numberOfPeople: string | null,
+  eventType: string | null,
+): string | null {
+  if (orderType !== 'cake') return orderNote || null;
+
+  const parts: string[] = [];
+  if (numberOfPeople) parts.push(`Number of People: ${numberOfPeople}`);
+  if (eventType) parts.push(`Event Type: ${eventType}`);
+  if (orderNote) parts.push(orderNote);
+
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+
+/**
  * Parse a Shopify order webhook payload and insert into our DB.
  * Cart attributes (Menu, Pickup Date, Order Type, etc.) are set during checkout.
  */
@@ -73,7 +96,10 @@ async function processShopifyOrder(shopifyOrder: any) {
 
   // Determine order type — default to "launch" for backward compatibility
   const orderTypeAttr = attrs.get('Order Type');
-  const orderType: 'launch' | 'volume' = orderTypeAttr === 'volume' ? 'volume' : 'launch';
+  const orderType: 'launch' | 'volume' | 'cake' =
+    orderTypeAttr === 'volume' ? 'volume' :
+    orderTypeAttr === 'cake' ? 'cake' :
+    'launch';
 
   const pickupDate = attrs.get('Pickup Date');
   const pickupLocation = attrs.get('Pickup Location');
@@ -85,7 +111,17 @@ async function processShopifyOrder(shopifyOrder: any) {
   // Volume order specific attributes
   const fulfillmentDateRaw = attrs.get('Fulfillment Date') || null;
   const allergenNotes = attrs.get('Allergen Note') || null;
-  const fulfillmentDate = fulfillmentDateRaw ? new Date(fulfillmentDateRaw) : null;
+
+  // Cake order specific attributes
+  const cakePickupDateRaw = attrs.get('Pickup Date') || null;
+  const cakeSpecialInstructions = attrs.get('Special Instructions') || null;
+  const cakeNumberOfPeople = attrs.get('Number of People') || null;
+  const cakeEventType = attrs.get('Event Type') || null;
+
+  // Resolve fulfillment date: for cake orders use Pickup Date, for volume use Fulfillment Date
+  const fulfillmentDate = orderType === 'cake'
+    ? (cakePickupDateRaw ? new Date(cakePickupDateRaw) : null)
+    : (fulfillmentDateRaw ? new Date(fulfillmentDateRaw) : null);
 
   // Parse pickup slot "10:00 – 10:30" format
   let pickupSlot: { startTime: string; endTime: string } | undefined;
@@ -105,6 +141,11 @@ async function processShopifyOrder(shopifyOrder: any) {
   // Pricing — Shopify sends amounts as strings like "45.00", we store in cents
   const toCents = (val: string | number | undefined) => Math.round(parseFloat(String(val || '0')) * 100);
 
+  // For cake orders: store special instructions in allergenNotes, extract metadata from note/attributes
+  const resolvedAllergenNotes = orderType === 'cake'
+    ? (cakeSpecialInstructions || null)
+    : allergenNotes;
+
   const orderData = {
     orderNumber: String(shopifyOrder.order_number || shopifyOrder.name || shopifyOrderId),
     shopifyOrderId,
@@ -113,7 +154,7 @@ async function processShopifyOrder(shopifyOrder: any) {
     customerName,
     customerEmail,
     customerPhone,
-    specialInstructions: shopifyOrder.note || null,
+    specialInstructions: buildSpecialInstructions(orderType, shopifyOrder.note, cakeNumberOfPeople, cakeEventType),
     subtotal: toCents(shopifyOrder.subtotal_price),
     tax: toCents(shopifyOrder.total_tax),
     total: toCents(shopifyOrder.total_price),
@@ -122,7 +163,7 @@ async function processShopifyOrder(shopifyOrder: any) {
     orderDate: new Date(shopifyOrder.created_at || Date.now()),
     orderType,
     fulfillmentDate: fulfillmentDate ?? undefined,
-    allergenNotes,
+    allergenNotes: resolvedAllergenNotes,
   };
 
   // Build order items from line items
@@ -168,6 +209,31 @@ async function processShopifyOrder(shopifyOrder: any) {
       await sendVolumeOrderConfirmation(emailOrder, locale);
     } catch (err) {
       console.error('[Webhook] Email send failed for order', created.orderNumber, err);
+      // Don't fail the webhook — email failure is non-blocking
+    }
+  }
+
+  // Send confirmation email for cake orders (non-blocking)
+  if (orderType === 'cake') {
+    try {
+      const locale = (attrs.get('Locale') as 'en' | 'fr') || 'en';
+      const emailOrder: CakeOrderForEmail = {
+        id: created.id,
+        orderNumber: created.orderNumber,
+        customerName,
+        customerEmail,
+        fulfillmentDate,
+        specialInstructions: cakeSpecialInstructions,
+        numberOfPeople: cakeNumberOfPeople,
+        eventType: cakeEventType,
+        items: itemsData.map((item: { productName: string; quantity: number }) => ({
+          productName: item.productName,
+          quantity: item.quantity,
+        })),
+      };
+      await sendCakeOrderConfirmation(emailOrder, locale);
+    } catch (err) {
+      console.error('[Webhook] Cake email send failed for order', created.orderNumber, err);
       // Don't fail the webhook — email failure is non-blocking
     }
   }

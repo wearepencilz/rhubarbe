@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as productQueries from '@/lib/db/queries/products';
 import { availabilityCache } from '@/lib/cache/availability-cache';
 import { updateProduct as syncToShopify } from '@/lib/shopify/admin';
-import { syncExemptVariantPrice } from '@/lib/tax/sync-exempt-variant-price';
 
 // GET /api/products/[id]
 export async function GET(
@@ -91,6 +90,19 @@ export async function PUT(
           notes: ing.notes ?? null,
         })),
       );
+
+      // Recompute allergens from linked ingredients
+      const updatedProduct = await productQueries.getById(params.id);
+      if (updatedProduct?.ingredients) {
+        const allergenSet = new Set<string>();
+        for (const li of updatedProduct.ingredients) {
+          const ingAllergens = (li as any).ingredient?.allergens || [];
+          for (const a of ingAllergens) allergenSet.add(a);
+        }
+        await productQueries.update(params.id, {
+          allergens: Array.from(allergenSet),
+        });
+      }
     }
 
     // Sync to Shopify if product is linked
@@ -110,20 +122,6 @@ export async function PUT(
           descriptionHtml,
           status: saved.status === 'active' ? 'ACTIVE' : 'DRAFT',
           tags: (saved.tags as string[]) || [],
-          price: saved.price ? (saved.price / 100).toFixed(2) : undefined,
-          ...(saved.variants &&
-          Array.isArray(saved.variants) &&
-          saved.variants.length > 0 &&
-          saved.variants.some((v: any) => v.shopifyVariantId)
-            ? {
-                variants: saved.variants
-                  .filter((v: any) => v.shopifyVariantId)
-                  .map((v: any) => ({
-                    id: v.shopifyVariantId,
-                    price: ((v.price || saved.price) / 100).toFixed(2),
-                  })),
-              }
-            : {}),
           metafields: [
             {
               namespace: 'translations',
@@ -139,20 +137,6 @@ export async function PUT(
             },
           ],
         });
-
-        // Sync exempt variant price if it exists and price changed
-        if (saved.shopifyTaxExemptVariantId && saved.price !== existing.price) {
-          try {
-            // We need the Admin GID, but we stored the Storefront GID.
-            // The Admin GID can be derived by base64-decoding the Storefront GID.
-            const adminVariantId = Buffer.from(saved.shopifyTaxExemptVariantId, 'base64').toString('utf-8');
-            const newPrice = saved.price ? (saved.price / 100).toFixed(2) : '0.00';
-            await syncExemptVariantPrice(saved.shopifyProductId, adminVariantId, newPrice);
-          } catch (err: any) {
-            console.error('[Tax] Failed to sync exempt variant price:', err.message);
-            // Non-blocking — log warning but don't fail the save
-          }
-        }
 
         // Update sync status
         await productQueries.update(params.id, {

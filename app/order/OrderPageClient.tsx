@@ -65,6 +65,7 @@ interface CartItem {
   quantity: number;
   image: string | null;
   shopifyVariantId: string | null;
+  allergens: string[];
 }
 
 function formatDate(iso: string, locale: string) {
@@ -190,6 +191,21 @@ function ProductCard({
         </div>
         {description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{description}</p>
+        )}
+
+        {/* Allergen badges */}
+        {product.allergens && product.allergens.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {product.allergens.map((a) => (
+              <span
+                key={a}
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
+                style={{ fontFamily: 'var(--font-diatype-mono)' }}
+              >
+                {a}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Variant selector */}
@@ -393,6 +409,33 @@ function InlineCart({
           </div>
 
           <div className="px-5 py-4 border-t border-gray-200 space-y-4">
+            {/* Allergen summary */}
+            {(() => {
+              const allAllergens = Array.from(new Set(items.flatMap((i) => i.allergens || [])));
+              if (allAllergens.length === 0) return null;
+              return (
+                <div className="rounded-md bg-amber-50 ring-1 ring-amber-200/60 px-3 py-2.5">
+                  <p
+                    className="text-[10px] uppercase tracking-widest text-amber-600 mb-1.5"
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                  >
+                    {isFr ? 'Contient' : 'Contains'}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {allAllergens.map((a) => (
+                      <span
+                        key={a}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-white text-amber-700 ring-1 ring-amber-200/60"
+                        style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="space-y-1">
               <div className="flex justify-between text-sm font-semibold">
                 <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
@@ -638,6 +681,7 @@ export default function OrderPageClient() {
         quantity: 1,
         image: product.image,
         shopifyVariantId: activeVariant?.shopifyVariantId || null,
+        allergens: product.allergens || [],
       }];
     });
   };

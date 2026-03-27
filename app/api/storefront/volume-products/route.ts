@@ -2,19 +2,19 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { products, volumeLeadTimeTiers } from '@/lib/db/schema';
 import { eq, asc, sql, and } from 'drizzle-orm';
+import { shopifyFetch } from '@/lib/shopify/client';
+import { isTaxOption } from '@/lib/tax/constants';
 
 /**
  * GET /api/storefront/volume-products
  *
  * Public endpoint — no auth required.
- * Returns volume-enabled products that have at least one lead time tier configured.
- * Uses the product's own variants (from the variants JSONB column) — not the
- * volume_variants table, which is redundant.
- * Does NOT reference any launch, menu, or launch-product data.
+ * Returns volume-enabled products with lead time tiers.
+ * Variants are fetched from Shopify (source of truth) when the CMS variants
+ * JSONB is empty. Tax-only duplicate variants are filtered out.
  */
 export async function GET() {
   try {
-    // Fetch products where volumeEnabled = true AND at least one lead time tier exists
     const volumeProducts = await db
       .select({
         id: products.id,
@@ -28,6 +28,7 @@ export async function GET() {
         volumeMinOrderQuantity: products.volumeMinOrderQuantity,
         allergens: products.allergens,
         variants: products.variants,
+        pickupOnly: products.pickupOnly,
       })
       .from(products)
       .where(
@@ -38,7 +39,6 @@ export async function GET() {
       )
       .orderBy(asc(products.name));
 
-    // Fetch tiers for each product
     const productIds = volumeProducts.map((p) => p.id);
 
     const allTiers = productIds.length > 0
@@ -53,7 +53,6 @@ export async function GET() {
           .orderBy(asc(volumeLeadTimeTiers.minQuantity))
       : [];
 
-    // Group tiers by productId
     const tiersByProduct = new Map<string, Array<{ minQuantity: number; leadTimeDays: number }>>();
     for (const tier of allTiers) {
       const list = tiersByProduct.get(tier.productId) ?? [];
@@ -61,18 +60,112 @@ export async function GET() {
       tiersByProduct.set(tier.productId, list);
     }
 
-    // Assemble the response — use the product's own variants JSONB
+    // Fetch Shopify variants for products that need them
+    const shopifyIds = volumeProducts
+      .filter((p) => p.shopifyProductId && (!p.variants || (p.variants as any[]).length === 0))
+      .map((p) => p.shopifyProductId!);
+
+    const shopifyVariantsByGid = new Map<string, Array<{
+      id: string;
+      label: { en: string; fr: string };
+      price: number | null;
+      shopifyVariantId: string | null;
+    }>>();
+
+    if (shopifyIds.length > 0) {
+      try {
+        const query = `
+          query getProductVariants($ids: [ID!]!) {
+            nodes(ids: $ids) {
+              ... on Product {
+                id
+                variants(first: 100) {
+                  edges {
+                    node {
+                      id
+                      title
+                      selectedOptions { name value }
+                      price { amount currencyCode }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `;
+        const response = await shopifyFetch<any>({
+          query,
+          variables: { ids: shopifyIds },
+          cache: 'no-store',
+        });
+
+        const nodes = response.data?.nodes ?? [];
+        for (const node of nodes) {
+          if (!node?.id || !node?.variants) continue;
+          const variants: Array<{
+            id: string;
+            label: { en: string; fr: string };
+            price: number | null;
+            shopifyVariantId: string | null;
+          }> = [];
+
+          for (const edge of node.variants.edges) {
+            const v = edge.node;
+            // Filter out tax-only duplicate variants
+            const hasTaxOption = v.selectedOptions?.some((o: any) => isTaxOption(o.name));
+            const taxOption = v.selectedOptions?.find((o: any) => isTaxOption(o.name));
+            if (hasTaxOption && taxOption?.value !== 'true') continue;
+
+            // Skip "Default Title" single-variant products
+            if (v.title === 'Default Title') continue;
+
+            const optionLabel = v.selectedOptions
+              ?.filter((o: any) => !isTaxOption(o.name) && o.name !== 'Title')
+              .map((o: any) => o.value)
+              .join(' / ') || v.title;
+
+            variants.push({
+              id: v.id,
+              label: { en: optionLabel, fr: optionLabel },
+              price: v.price?.amount ? Math.round(parseFloat(v.price.amount) * 100) : null,
+              shopifyVariantId: v.id,
+            });
+          }
+
+          if (variants.length > 0) {
+            shopifyVariantsByGid.set(node.id, variants);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching Shopify variants for volume products:', err);
+      }
+    }
+
     const result = volumeProducts.map((p) => {
-      // Map product variants to the storefront shape
-      const productVariants = (p.variants ?? []).map((v: any) => ({
-        id: v.id || v.label || `${p.id}-${v.sortOrder ?? 0}`,
-        label: {
-          en: v.label || v.name || '',
-          fr: v.labelFr || v.label || v.name || '',
-        },
-        price: v.price ?? null,
-        shopifyVariantId: v.shopifyVariantId ?? null,
-      }));
+      // Use CMS variants if available, otherwise fall back to Shopify
+      const cmsVariants = (p.variants ?? []) as any[];
+      let productVariants: Array<{
+        id: string;
+        label: { en: string; fr: string };
+        price: number | null;
+        shopifyVariantId: string | null;
+      }>;
+
+      if (cmsVariants.length > 0) {
+        productVariants = cmsVariants.map((v: any) => ({
+          id: v.id || v.label || `${p.id}-${v.sortOrder ?? 0}`,
+          label: {
+            en: v.label || v.name || '',
+            fr: v.labelFr || v.label || v.name || '',
+          },
+          price: v.price ?? null,
+          shopifyVariantId: v.shopifyVariantId ?? null,
+        }));
+      } else if (p.shopifyProductId) {
+        productVariants = shopifyVariantsByGid.get(p.shopifyProductId) ?? [];
+      } else {
+        productVariants = [];
+      }
 
       return {
         id: p.id,
@@ -85,6 +178,7 @@ export async function GET() {
         volumeInstructions: p.volumeInstructions ?? { en: '', fr: '' },
         volumeMinOrderQuantity: p.volumeMinOrderQuantity ?? 1,
         allergens: p.allergens ?? [],
+        pickupOnly: p.pickupOnly ?? false,
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         variants: productVariants,
       };

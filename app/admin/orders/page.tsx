@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Table, TableCard } from '@/src/app/admin/components/ui/application/table/table';
 import { Badge } from '@/src/app/admin/components/ui/base/badges/badges';
 import { Select } from '@/src/app/admin/components/ui/base/select/select';
 import { Button } from '@/app/admin/components/ui/buttons/button';
 import { useToast } from '@/app/admin/components/ToastContainer';
+import OrderTypeBadge from '@/app/admin/components/OrderTypeBadge';
 import { SearchLg } from '@untitledui/icons';
 
 interface Order {
@@ -23,6 +23,8 @@ interface Order {
   fulfillmentDate: string | null;
   allergenNotes: string | null;
   totalQuantity: number;
+  numberOfPeople: number | null;
+  eventType: string | null;
 }
 
 export default function OrdersPage() {
@@ -123,8 +125,9 @@ export default function OrdersPage() {
               onSelectionChange={(key) => setOrderTypeFilter(key as string)}
               items={[
                 { id: 'all', label: 'All types' },
-                { id: 'launch', label: 'Launch' },
-                { id: 'volume', label: 'Volume' },
+                { id: 'launch', label: 'Menu' },
+                { id: 'volume', label: 'Catering' },
+                { id: 'cake', label: 'Cake' },
               ]}
             >
               {(item) => <Select.Item id={item.id} label={item.label} />}
@@ -158,14 +161,25 @@ export default function OrdersPage() {
             <Table.Head isRowHeader label="Order #" />
             <Table.Head label="Customer" />
             <Table.Head label="Date" />
+            <Table.Head label="Type" />
             {orderTypeFilter === 'volume' ? (
               <>
                 <Table.Head label="Fulfillment Date" />
                 <Table.Head label="Total Qty" />
                 <Table.Head label="Allergen Notes" />
               </>
+            ) : orderTypeFilter === 'cake' ? (
+              <>
+                <Table.Head label="Pickup Date" />
+                <Table.Head label="# People" />
+                <Table.Head label="Event Type" />
+                <Table.Head label="Total Qty" />
+              </>
             ) : (
-              <Table.Head label="Pickup" />
+              <>
+                <Table.Head label="Pickup Date" />
+                <Table.Head label="Pickup Location" />
+              </>
             )}
             <Table.Head label="Status" />
             <Table.Head label="Total" />
@@ -182,6 +196,9 @@ export default function OrdersPage() {
                 <Table.Cell>
                   <p className="text-sm text-primary">{order.orderDate}</p>
                 </Table.Cell>
+                <Table.Cell>
+                  <OrderTypeBadge orderType={order.orderType} />
+                </Table.Cell>
                 {orderTypeFilter === 'volume' ? (
                   <>
                     <Table.Cell>
@@ -196,11 +213,30 @@ export default function OrdersPage() {
                       </p>
                     </Table.Cell>
                   </>
+                ) : orderTypeFilter === 'cake' ? (
+                  <>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.pickupDate || '—'}</p>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.numberOfPeople ?? '—'}</p>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.eventType || '—'}</p>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.totalQuantity}</p>
+                    </Table.Cell>
+                  </>
                 ) : (
-                  <Table.Cell>
-                    <p className="text-sm text-primary">{order.pickupDate || '—'}</p>
-                    {order.pickupLocation && <p className="text-xs text-tertiary">{order.pickupLocation}</p>}
-                  </Table.Cell>
+                  <>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.pickupDate || '—'}</p>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <p className="text-sm text-primary">{order.pickupLocation || '—'}</p>
+                    </Table.Cell>
+                  </>
                 )}
                 <Table.Cell>
                   <Badge color={statusColor(order.status)}>{order.status}</Badge>

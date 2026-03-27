@@ -140,9 +140,9 @@ export default function EmailTemplatePage() {
 
   return (
     <EditPageLayout
-      title="Volume Order Confirmation Email"
+      title="Catering Order Confirmation Email"
       backHref="/admin/volume-products"
-      backLabel="Back to Volume Products"
+      backLabel="Back to Catering Products"
       onSave={handleSave}
       onCancel={handleCancel}
       saving={saving}
@@ -176,7 +176,7 @@ export default function EmailTemplatePage() {
                   key: 'subject',
                   label: 'Subject',
                   type: 'input',
-                  placeholder: 'e.g., Your volume order #{{orderNumber}} is confirmed',
+                  placeholder: 'e.g., Your catering order #{{orderNumber}} is confirmed',
                 },
               ]}
             />

@@ -2,7 +2,8 @@
 const fr = {
   nav: {
     order: 'Commander',
-    volumeOrder: 'Commande en volume',
+    volumeOrder: 'Commande traiteur',
+    cakeOrder: 'Commande gâteau',
     catering: 'Traiteur',
     signatureCakes: 'Gâteaux signatures',
     cateringAndCakes: 'Traiteur & Gâteaux',
@@ -46,7 +47,7 @@ const fr = {
     timeLeft: (h: number, m: number) => `${h}h ${m}m restants`,
   },
   volumeOrder: {
-    title: 'Commande en volume',
+    title: 'Commande traiteur',
     subtitle: 'Ajustez les quantités directement — votre commande se met à jour automatiquement.',
     quantity: 'Quantité',
     minimum: 'Minimum',
@@ -73,6 +74,49 @@ const fr = {
     checkoutError: 'Erreur. Réessayez.',
     noDateError: 'Veuillez sélectionner une date',
     mobileCheckout: 'Caisse',
+  },
+  cakeOrder: {
+    title: 'Commande de gâteau',
+    subtitle: 'Sélectionnez un gâteau, entrez le nombre d\'invités et choisissez votre date.',
+    quantity: 'Quantité',
+    minimum: 'Minimum',
+    leadTimeTitle: 'Délai selon le nombre de personnes',
+    yourOrder: 'Votre commande',
+    noItems: 'Aucun article',
+    startHint: 'Sélectionnez un gâteau pour commencer',
+    estTotal: 'Total estimé',
+    items: 'Articles',
+    taxNote: 'Taxes calculées à la caisse',
+    pickup: 'Cueillette',
+    date: 'Date de cueillette',
+    earliest: 'Dès le',
+    eventType: 'Type d\'événement',
+    eventOptions: {
+      birthday: 'Anniversaire',
+      wedding: 'Mariage',
+      corporate: 'Corporatif',
+      other: 'Autre',
+    },
+    specialInstructions: 'Instructions spéciales',
+    specialInstructionsPlaceholder: 'Ex. : Sans noix, décoration spéciale…',
+    checkout: 'Passer à la caisse',
+    mobileCheckout: 'Caisse',
+    loading: 'Chargement…',
+    checkoutError: 'Erreur. Réessayez.',
+    loadError: 'Impossible de charger les produits.',
+    noProducts: 'Aucun produit disponible.',
+    numberOfPeople: 'Nombre de personnes',
+    numberOfPeopleShort: 'personnes',
+    dateWarning: 'Date trop tôt',
+    minWarning: 'Certains produits n\'atteignent pas le minimum requis',
+    noDateError: 'Veuillez sélectionner une date de cueillette',
+    selectEvent: '— sélectionner —',
+    pricingTitle: 'Tarification',
+    perPerson: '/personne',
+    selected: 'Sélectionné',
+    selectCake: 'Sélectionner',
+    removeCake: 'Retirer',
+    noPricing: 'Contactez-nous pour les prix',
   },
   flavours: {
     title: '[SAVEURS]',
@@ -190,11 +234,12 @@ const fr = {
 export default fr;
 
 export type Translations = {
-  nav: { order: string; volumeOrder: string; catering: string; signatureCakes: string; cateringAndCakes: string; about: string; cart: string; cartCount: (n: number) => string };
+  nav: { order: string; volumeOrder: string; cakeOrder: string; catering: string; signatureCakes: string; cateringAndCakes: string; about: string; cart: string; cartCount: (n: number) => string };
   cart: { open: string; openWithItems: (n: number) => string; title: string; close: string; empty: string; remove: string; subtotal: string; checkout: string; taxNote: string };
   product: { addToCart: string; adding: string; soldOut: string; preorder: string; quantity: string; inStock: string; noImage: string; orderComingSoon: string; serves: (n: string) => string };
   order: { title: string; preordersOnly: string; pickup: string; sweet: string; savory: string; other: string; pickupLabel: string; orderEnded: string; ended: string; daysLeft: (n: number) => string; timeLeft: (h: number, m: number) => string };
   volumeOrder: { title: string; subtitle: string; quantity: string; minimum: string; leadTimeTitle: string; yourOrder: string; noItems: string; startHint: string; estTotal: string; items: string; taxNote: string; fulfillment: string; pickup: string; delivery: string; date: string; time: string; earliest: string; allergenNote: string; allergenPlaceholder: string; checkout: string; loading: string; minWarning: string; noProducts: string; loadError: string; checkoutError: string; noDateError: string; mobileCheckout: string };
+  cakeOrder: { title: string; subtitle: string; quantity: string; minimum: string; leadTimeTitle: string; yourOrder: string; noItems: string; startHint: string; estTotal: string; items: string; taxNote: string; pickup: string; date: string; earliest: string; eventType: string; eventOptions: { birthday: string; wedding: string; corporate: string; other: string }; specialInstructions: string; specialInstructionsPlaceholder: string; checkout: string; mobileCheckout: string; loading: string; checkoutError: string; loadError: string; noProducts: string; numberOfPeople: string; numberOfPeopleShort: string; dateWarning: string; minWarning: string; noDateError: string; selectEvent: string; pricingTitle: string; perPerson: string; selected: string; selectCake: string; removeCake: string; noPricing: string };
   flavours: { title: string; ingredients: string; ingredientsLabel: string };
   stories: { read: string; moreStories: string; nothingYet: string; wordBy: (name: string) => string };
   availability: { inStock: string; preorder: string; soldOut: string; ships: (date: string) => string; loading: string; unavailableInfo: string; notAvailable: string; available: string; orderBy: string; pickupDate: string; pickupLocation: string; timeSlot: string; quantity: string; decreaseQty: string; increaseQty: string; multiples: (n: number) => string };

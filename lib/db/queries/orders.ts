@@ -1,6 +1,7 @@
 import { db } from '@/lib/db/client';
 import { orders, orderItems } from '@/lib/db/schema';
-import { eq, desc, and, inArray } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql } from 'drizzle-orm';
+import { parseCakeMetadata } from '@/lib/utils/parse-cake-metadata';
 
 type OrderStatus = 'pending' | 'confirmed' | 'fulfilled' | 'cancelled';
 
@@ -40,6 +41,9 @@ export async function list(filters?: { status?: string; orderType?: string }) {
     const firstItem = itemsByOrder.get(row.id)?.[0];
     const items = itemsByOrder.get(row.id) || [];
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    const cakeMetadata = row.orderType === 'cake'
+      ? parseCakeMetadata(row.specialInstructions)
+      : { numberOfPeople: null, eventType: null };
     return {
       id: row.id,
       orderNumber: row.orderNumber,
@@ -52,19 +56,37 @@ export async function list(filters?: { status?: string; orderType?: string }) {
       orderType: row.orderType,
       fulfillmentDate: row.fulfillmentDate?.toISOString() ?? null,
       allergenNotes: row.allergenNotes ?? null,
+      launchTitle: row.launchTitle ?? null,
       totalQuantity,
+      numberOfPeople: cakeMetadata.numberOfPeople,
+      eventType: cakeMetadata.eventType,
     };
   });
 }
 
+// Re-export parseCakeMetadata for external consumers
+export { parseCakeMetadata } from '@/lib/utils/parse-cake-metadata';
+
 /**
  * Get a single order by ID with its items.
+ * Returns orderType, fulfillmentDate, allergenNotes, launchTitle, and
+ * for cake orders: parsed numberOfPeople and eventType from specialInstructions.
  */
 export async function getById(id: string) {
   const [row] = await db.select().from(orders).where(eq(orders.id, id));
   if (!row) return null;
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id));
-  return { ...row, items };
+
+  const cakeMetadata = row.orderType === 'cake'
+    ? parseCakeMetadata(row.specialInstructions)
+    : { numberOfPeople: null, eventType: null };
+
+  return {
+    ...row,
+    items,
+    numberOfPeople: cakeMetadata.numberOfPeople,
+    eventType: cakeMetadata.eventType,
+  };
 }
 
 /**
@@ -138,6 +160,76 @@ export async function listByLaunch(launchId: string) {
   }));
 }
 
+
+/**
+ * List orders for a specific fulfillment date and order type, with their items.
+ * Used by catering/cake prep sheet and pickup list (date-based workflows).
+ * Same return shape as listByLaunch.
+ */
+export async function listByDate(date: string, orderType: string) {
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(
+      and(
+        sql`${orders.fulfillmentDate}::date = ${date}::date`,
+        eq(orders.orderType, orderType),
+      ),
+    )
+    .orderBy(desc(orders.orderDate));
+
+  const orderIds = rows.map((r) => r.id);
+  const allItems = orderIds.length
+    ? await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds))
+    : [];
+
+  const itemsByOrder = new Map<string, typeof allItems>();
+  for (const item of allItems) {
+    const arr = itemsByOrder.get(item.orderId) || [];
+    arr.push(item);
+    itemsByOrder.set(item.orderId, arr);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    items: itemsByOrder.get(row.id) || [],
+  }));
+}
+
+/**
+ * List upcoming orders for a given order type (fulfillmentDate >= today).
+ * Returns orders with items, grouped by date on the client side.
+ */
+export async function listUpcoming(orderType: string) {
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(
+      and(
+        eq(orders.orderType, orderType),
+        sql`(${orders.fulfillmentDate}::date >= CURRENT_DATE OR ${orders.fulfillmentDate} IS NULL)`,
+        sql`${orders.status} != 'cancelled'`,
+      ),
+    )
+    .orderBy(sql`${orders.fulfillmentDate}::date ASC NULLS LAST`, desc(orders.orderDate));
+
+  const orderIds = rows.map((r) => r.id);
+  const allItems = orderIds.length
+    ? await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds))
+    : [];
+
+  const itemsByOrder = new Map<string, typeof allItems>();
+  for (const item of allItems) {
+    const arr = itemsByOrder.get(item.orderId) || [];
+    arr.push(item);
+    itemsByOrder.set(item.orderId, arr);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    items: itemsByOrder.get(row.id) || [],
+  }));
+}
 
 /**
  * Generic partial update on an order.

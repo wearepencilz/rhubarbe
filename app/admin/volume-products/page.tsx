@@ -92,7 +92,7 @@ function AddProductModal({
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[70vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Add Volume Product</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Add Catering Product</h2>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded">
             <XClose className="w-4 h-4" />
           </button>
@@ -123,7 +123,7 @@ function AddProductModal({
             <div className="py-12 text-center">
               <p className="text-sm text-gray-400">
                 {candidates.length === 0
-                  ? 'All products are already volume-enabled'
+                  ? 'All products are already catering-enabled'
                   : 'No products match your search'}
               </p>
             </div>
@@ -184,7 +184,7 @@ export default function VolumeProductsPage() {
         setProducts(await res.json());
       }
     } catch (error) {
-      console.error('Error fetching volume products:', error);
+      console.error('Error fetching catering products:', error);
     } finally {
       setLoading(false);
     }
@@ -194,9 +194,9 @@ export default function VolumeProductsPage() {
     <>
       <TableCard.Root>
         <TableCard.Header
-          title="Volume Products"
+          title="Catering Products"
           badge={products.length}
-          description="Manage products available for volume/bulk ordering"
+          description="Manage products available for catering orders"
           contentTrailing={
             <Button variant="primary" size="sm" iconLeading={Plus} onClick={() => setShowAddModal(true)}>
               Add Product
@@ -210,13 +210,13 @@ export default function VolumeProductsPage() {
           </div>
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <p className="text-sm text-tertiary">No volume products found</p>
+            <p className="text-sm text-tertiary">No catering products found</p>
             <p className="text-xs text-tertiary max-w-sm">
-              Click "Add Product" to enable volume ordering on an existing product.
+              Click "Add Product" to enable catering ordering on an existing product.
             </p>
           </div>
         ) : (
-          <Table aria-label="Volume Products">
+          <Table aria-label="Catering Products">
             <Table.Header>
               <Table.Head isRowHeader label="Product" />
               <Table.Head label="Min Qty" />

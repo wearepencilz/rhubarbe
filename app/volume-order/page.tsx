@@ -1,9 +1,9 @@
 import VolumeOrderPageClient from './VolumeOrderPageClient';
 
 export const metadata = {
-  title: 'Commande en volume / Volume Order - Rhubarbe',
+  title: 'Commande traiteur / Catering Order - Rhubarbe',
   description:
-    'Commandez en gros des produits artisanaux de Rhubarbe. Order artisanal products in bulk from Rhubarbe.',
+    'Commandez des produits artisanaux de Rhubarbe pour vos événements. Order artisanal catering products from Rhubarbe.',
 };
 
 export default function VolumeOrderPage() {

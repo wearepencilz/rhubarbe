@@ -44,6 +44,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', name: '' });
   const [brokenLinks, setBrokenLinks] = useState<Set<string>>(new Set());
+  const [shopifyPrices, setShopifyPrices] = useState<Record<string, { price: number | null; range: [number, number] | null }>>({});
 
   useEffect(() => {
     fetchData();
@@ -60,6 +61,7 @@ export default function ProductsPage() {
         const data: Product[] = await productsRes.json();
         setProducts(data);
         verifyShopifyLinks(data);
+        fetchShopifyPrices(data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -87,6 +89,21 @@ export default function ProductsPage() {
       setBrokenLinks(broken);
     } catch {
       // network error — don't flag anything
+    }
+  }
+
+  async function fetchShopifyPrices(items: Product[]) {
+    const linked = items.filter((p) => p.shopifyProductId);
+    if (linked.length === 0) return;
+
+    try {
+      const ids = linked.map((p) => p.shopifyProductId!).join(',');
+      const res = await fetch(`/api/shopify/products/prices?ids=${encodeURIComponent(ids)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setShopifyPrices(data);
+    } catch {
+      // fall back to CMS prices
     }
   }
 
@@ -220,7 +237,16 @@ export default function ProductsPage() {
                   </Table.Cell>
                   <Table.Cell>
                     <span className="text-sm font-medium text-primary">
-                      {product.price > 0 ? `${(product.price / 100).toFixed(2)}` : '—'}
+                      {(() => {
+                        const sp = product.shopifyProductId ? shopifyPrices[product.shopifyProductId] : null;
+                        if (sp?.range) {
+                          return `$${(sp.range[0] / 100).toFixed(2)} – $${(sp.range[1] / 100).toFixed(2)}`;
+                        }
+                        if (sp?.price) {
+                          return `$${(sp.price / 100).toFixed(2)}`;
+                        }
+                        return product.price > 0 ? `$${(product.price / 100).toFixed(2)}` : '—';
+                      })()}
                     </span>
                   </Table.Cell>
                   <Table.Cell>
@@ -238,9 +264,9 @@ export default function ProductsPage() {
                       ) : (
                         <div className="flex flex-col gap-1">
                           <BadgeWithDot color="success">Linked</BadgeWithDot>
-                          {product.shopifyProductHandle && (
+                          {product.shopifyProductId && (
                             <a
-                              href={`https://admin.shopify.com/store/products/${product.shopifyProductHandle}`}
+                              href={`https://admin.shopify.com/store/${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN?.replace('.myshopify.com', '')}/products/${product.shopifyProductId.replace('gid://shopify/Product/', '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}

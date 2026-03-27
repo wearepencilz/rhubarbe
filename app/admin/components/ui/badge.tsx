@@ -2,7 +2,7 @@
 
 import { type ReactNode, type FC } from 'react';
 
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'purple' | 'gray';
+export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'purple' | 'pink' | 'gray';
 export type BadgeSize = 'sm' | 'md' | 'lg';
 
 export interface BadgeProps {
@@ -23,6 +23,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   error:   'bg-error-secondary text-error-primary',
   info:    'bg-blue-50 text-blue-700',
   purple:  'bg-purple-100 text-purple-700',
+  pink:    'bg-pink-100 text-pink-700',
   gray:    'bg-gray-100 text-gray-700',
 };
 
