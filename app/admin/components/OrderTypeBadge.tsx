@@ -8,7 +8,7 @@ export const ORDER_TYPE_CONFIG = {
   cake:   { label: 'Cake', color: 'pink' },
 };
 
-export default function OrderTypeBadge({ orderType }) {
+export default function OrderTypeBadge({ orderType }: { orderType: string }) {
   const config = ORDER_TYPE_CONFIG[orderType];
   if (!config) return null;
 
