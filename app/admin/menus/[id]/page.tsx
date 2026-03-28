@@ -181,6 +181,7 @@ interface FormData {
   pickupSlots: PickupSlot[];
   pickupWindowStart: string;
   pickupWindowEnd: string;
+  pickupMode: 'single' | 'range';
 }
 
 const EMPTY_FORM: FormData = {
@@ -196,6 +197,7 @@ const EMPTY_FORM: FormData = {
   pickupSlots: [],
   pickupWindowStart: '',
   pickupWindowEnd: '',
+  pickupMode: 'single',
 };
 
 export default function EditLaunchPage({ params }: { params: { id: string } }) {
@@ -242,6 +244,8 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       if (!res.ok) { router.push('/admin/menus'); return; }
       const d = await res.json();
       const slotConfig = d.pickupSlotConfig || {};
+      const windowStart = toLocalDate(d.pickupWindowStart);
+      const windowEnd = toLocalDate(d.pickupWindowEnd);
       setForm({
         titleEn: d.title?.en || '',
         titleFr: d.title?.fr || '',
@@ -259,8 +263,9 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
         slotEndTime: slotConfig.endTime || '17:00',
         slotInterval: String(slotConfig.intervalMinutes || 30),
         pickupSlots: d.pickupSlots || [],
-        pickupWindowStart: toLocalDate(d.pickupWindowStart),
-        pickupWindowEnd: toLocalDate(d.pickupWindowEnd),
+        pickupWindowStart: windowStart,
+        pickupWindowEnd: windowEnd,
+        pickupMode: windowStart && windowEnd ? 'range' : 'single',
       });
       setLinkedProducts(
         (d.products || []).map((p: any) => ({
@@ -371,18 +376,26 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
     if (!form.introCopyFr.trim()) e.introCopyFr = 'French intro is required';
     if (!form.orderOpens) e.orderOpens = 'Order open date is required';
     if (!form.orderCloses) e.orderCloses = 'Order close date is required';
-    if (!form.pickupDate) e.pickupDate = 'Pickup date is required';
 
-    if (form.orderCloses && form.pickupDate) {
-      const closes = new Date(form.orderCloses);
-      const pickup = new Date(form.pickupDate);
-      if (closes >= pickup) e.orderCloses = 'Order close must be before pickup date';
-    }
-
-    // Validate pickup window: end must be >= start when both provided
-    if (form.pickupWindowStart && form.pickupWindowEnd) {
-      if (form.pickupWindowEnd < form.pickupWindowStart) {
+    if (form.pickupMode === 'range') {
+      if (!form.pickupWindowStart) e.pickupWindowStart = 'Start date is required';
+      if (!form.pickupWindowEnd) e.pickupWindowEnd = 'End date is required';
+      if (form.pickupWindowStart && form.pickupWindowEnd && form.pickupWindowEnd < form.pickupWindowStart) {
         e.pickupWindowEnd = 'End date must be on or after start date';
+      }
+      // Use pickupWindowStart as the effective pickup date for ordering window validation
+      const effectivePickupDate = form.pickupWindowStart;
+      if (form.orderCloses && effectivePickupDate) {
+        const closes = new Date(form.orderCloses);
+        const pickup = new Date(effectivePickupDate);
+        if (closes >= pickup) e.orderCloses = 'Order close must be before pickup date';
+      }
+    } else {
+      if (!form.pickupDate) e.pickupDate = 'Pickup date is required';
+      if (form.orderCloses && form.pickupDate) {
+        const closes = new Date(form.orderCloses);
+        const pickup = new Date(form.pickupDate);
+        if (closes >= pickup) e.orderCloses = 'Order close must be before pickup date';
       }
     }
 
@@ -413,7 +426,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
         orderOpens: form.orderOpens,
         orderCloses: form.orderCloses,
         allowEarlyOrdering: form.allowEarlyOrdering,
-        pickupDate: form.pickupDate,
+        pickupDate: form.pickupMode === 'range' ? form.pickupWindowStart : form.pickupDate,
         pickupLocationId: form.pickupLocationId || null,
         pickupInstructions: form.pickupInstructionsEn || form.pickupInstructionsFr
           ? { en: form.pickupInstructionsEn, fr: form.pickupInstructionsFr }
@@ -424,8 +437,8 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           intervalMinutes: parseInt(form.slotInterval, 10) || 30,
         },
         pickupSlots: form.pickupSlots,
-        pickupWindowStart: form.pickupWindowStart || null,
-        pickupWindowEnd: form.pickupWindowEnd || null,
+        pickupWindowStart: form.pickupMode === 'range' ? form.pickupWindowStart : null,
+        pickupWindowEnd: form.pickupMode === 'range' ? form.pickupWindowEnd : null,
       };
 
       const url = isNew ? '/api/launches' : `/api/launches/${params.id}`;
@@ -673,7 +686,51 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
 
         {/* Section 3: Pickup (combined date/location + slots) */}
         <SectionCard title="Pickup" description="Pickup date, location, and time slots.">
-          <div className="grid grid-cols-2 gap-4">
+          {/* Pickup Location — full width */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+            <select
+              value={form.pickupLocationId}
+              onChange={(e) => set({ pickupLocationId: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+              aria-label="Pickup location"
+            >
+              <option value="">— Select location —</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.internalName}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Pickup Mode toggle — segmented control */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Mode</label>
+            <div className="flex rounded-lg overflow-hidden border border-gray-300">
+              {(['single', 'range'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    if (mode === 'single') {
+                      set({ pickupMode: 'single', pickupWindowStart: '', pickupWindowEnd: '' });
+                    } else {
+                      set({ pickupMode: 'range' });
+                    }
+                  }}
+                  className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                    form.pickupMode === mode
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {mode === 'single' ? 'Single Date' : 'Date Range'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date fields based on mode */}
+          {form.pickupMode === 'single' ? (
             <AdminDateField
               label="Pickup Date"
               value={form.pickupDate}
@@ -681,49 +738,26 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
               errorMessage={errors.pickupDate}
               isRequired
             />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
-              <select
-                value={form.pickupLocationId}
-                onChange={(e) => set({ pickupLocationId: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
-                aria-label="Pickup location"
-              >
-                <option value="">— Select location —</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.internalName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Window Start</label>
-              <input
-                type="date"
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <AdminDateField
+                label="Start Date"
                 value={form.pickupWindowStart}
-                onChange={(e) => set({ pickupWindowStart: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
-                aria-label="Pickup window start date"
+                onChange={(v) => set({ pickupWindowStart: v, pickupDate: v })}
+                errorMessage={errors.pickupWindowStart}
+                isRequired
               />
-              <p className="text-xs text-gray-500 mt-1">Optional. For multi-day pickup windows.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Window End</label>
-              <input
-                type="date"
+              <AdminDateField
+                label="End Date"
                 value={form.pickupWindowEnd}
-                onChange={(e) => set({ pickupWindowEnd: e.target.value })}
-                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 ${
-                  errors.pickupWindowEnd ? 'border-red-400 bg-red-50' : 'border-gray-300'
-                }`}
-                aria-label="Pickup window end date"
+                onChange={(v) => set({ pickupWindowEnd: v })}
+                errorMessage={errors.pickupWindowEnd}
+                isRequired
               />
-              {errors.pickupWindowEnd && (
-                <p className="text-xs text-red-600 mt-1">{errors.pickupWindowEnd}</p>
-              )}
             </div>
-          </div>
+          )}
+
+          {/* Slot generation config */}
           <div className="grid grid-cols-3 gap-4">
             <AdminTimeField
               label="Start Time"
@@ -750,6 +784,12 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
           >
             Generate Slots
           </button>
+
+          {form.pickupMode === 'range' && (
+            <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+              Slots will be available on each day of the pickup window
+            </p>
+          )}
 
           {form.pickupSlots.length > 0 && (
             <div className="space-y-2 mt-3">
