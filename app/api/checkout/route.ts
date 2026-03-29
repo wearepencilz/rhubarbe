@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to create checkout. Please try again.' },
+      { error: `Checkout failed: ${errMsg}` },
       { status: 500 },
     );
   }

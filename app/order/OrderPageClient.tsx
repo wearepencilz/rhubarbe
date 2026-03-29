@@ -835,9 +835,9 @@ export default function OrderPageClient() {
         return;
       }
 
-      // Show confirmation page instead of immediate redirect
-      setCheckoutUrl(data.checkoutUrl);
-      setShowConfirmation(true);
+      // Redirect straight to Shopify checkout
+      // (Confirmation page code kept below, commented out, in case we want to re-enable)
+      window.location.href = data.checkoutUrl;
     } catch {
       setCheckoutError(isFr ? 'Erreur réseau. Veuillez réessayer.' : 'Network error. Please try again.');
     } finally {

@@ -195,6 +195,46 @@ const fr = {
     timeSlot: 'Créneau',
     menu: 'Menu',
   },
+  checkout: {
+    // Steps
+    stepFulfillment: 'Étape 1 — Livraison',
+    stepReview: 'Étape 2 — Révision',
+    // Fulfillment toggle
+    fulfillment: 'Mode de livraison',
+    pickup: 'Cueillette',
+    delivery: 'Livraison',
+    // Date
+    date: 'Date',
+    // Address
+    streetAddress: 'Adresse',
+    city: 'Ville',
+    province: 'Province',
+    postalCode: 'Code postal',
+    streetPlaceholder: '123 rue Principale',
+    cityPlaceholder: 'Montréal',
+    provincePlaceholder: 'Québec',
+    postalCodePlaceholder: 'H2X 1Y4',
+    // Pickup slot
+    pickupSlot: 'Créneau de cueillette',
+    // Validation
+    dateRequired: 'La date est requise',
+    dateTooEarly: 'La date doit être le',
+    addressRequired: "L'adresse est requise",
+    selectPickupSlot: 'Veuillez sélectionner un créneau',
+    // Buttons
+    continueToReview: 'Continuer vers la révision',
+    proceedToPayment: 'Procéder au paiement',
+    back: 'Retour',
+    processing: 'Traitement...',
+    // Errors
+    genericError: 'Une erreur est survenue. Veuillez réessayer.',
+    // Review summary
+    items: 'Articles',
+    subtotal: 'Sous-total',
+    method: 'Méthode',
+    deliveryAddress: 'Adresse de livraison',
+    details: 'Détails',
+  },
   form: {
     traiteur: {
       heading: 'Traiteur',
@@ -248,6 +288,18 @@ export type Translations = {
   dietary: { title: string; clearAll: string; showing: (n: number) => string; vegan: string; vegetarian: string; 'gluten-free': string; 'dairy-free': string; 'nut-free': string };
   ingredients: { title: string; seasonal: string; none: string; base: string; flavor: string; 'mix-in': string; topping: string; spice: string };
   thankYou: { heading: string; message: string; pickupReminder: string; backToMenu: string; orderSummary: string; pickupDetails: string; items: string; subtotal: string; date: string; location: string; timeSlot: string; menu: string };
+  checkout: {
+    stepFulfillment: string; stepReview: string;
+    fulfillment: string; pickup: string; delivery: string;
+    date: string;
+    streetAddress: string; city: string; province: string; postalCode: string;
+    streetPlaceholder: string; cityPlaceholder: string; provincePlaceholder: string; postalCodePlaceholder: string;
+    pickupSlot: string;
+    dateRequired: string; dateTooEarly: string; addressRequired: string; selectPickupSlot: string;
+    continueToReview: string; proceedToPayment: string; back: string; processing: string;
+    genericError: string;
+    items: string; subtotal: string; method: string; deliveryAddress: string; details: string;
+  };
   form: {
     traiteur: { heading: string; intro: string; menuNote: string; contactNote: string };
     gateaux: { heading: string; intro: string; menuNote: string; contactNote: string };

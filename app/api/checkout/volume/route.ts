@@ -21,6 +21,12 @@ interface VolumeCheckoutRequest {
   fulfillmentType?: 'pickup' | 'delivery';
   allergenNote: string | null;
   locale: string;
+  deliveryAddress?: {
+    street: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
 }
 
 function formatFulfillmentDateTime(isoDate: string): string {
@@ -65,6 +71,8 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
+    console.log('[Volume Checkout] Lines to create cart:', JSON.stringify(lines));
+
     // Convention-based tax variant resolution
     const productIds = items.map((item) => item.productId);
     const taxConfigs = await getTaxConfigByIds(productIds);
@@ -98,6 +106,15 @@ export async function POST(request: NextRequest) {
       { key: 'Fulfillment Type', value: fulfillmentType || 'pickup' },
     ];
     if (allergenNote) attributes.push({ key: 'Allergen Note', value: allergenNote });
+    if (fulfillmentType === 'delivery' && body.deliveryAddress) {
+      const addr = body.deliveryAddress;
+      attributes.push(
+        { key: 'Delivery Street', value: addr.street },
+        { key: 'Delivery City', value: addr.city },
+        { key: 'Delivery Province', value: addr.province },
+        { key: 'Delivery Postal Code', value: addr.postalCode },
+      );
+    }
 
     const isFr = locale === 'fr';
     const noteLines: string[] = [
@@ -109,6 +126,10 @@ export async function POST(request: NextRequest) {
       noteLines.push(`${item.quantity}× ${item.productName} — ${item.variantLabel}`);
     }
     if (allergenNote) noteLines.push(`${isFr ? 'Préoccupations allergènes' : 'Allergen concerns'}: ${allergenNote}`);
+    if (fulfillmentType === 'delivery' && body.deliveryAddress) {
+      const addr = body.deliveryAddress;
+      noteLines.push(`${isFr ? 'Adresse de livraison' : 'Delivery address'}: ${addr.street}, ${addr.city}, ${addr.province} ${addr.postalCode}`);
+    }
     const note = noteLines.join('\n');
 
     const cart = await createCart({ lines, attributes, note });

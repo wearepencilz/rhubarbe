@@ -197,6 +197,46 @@ const en: Translations = {
     timeSlot: 'Time slot',
     menu: 'Menu',
   },
+  checkout: {
+    // Steps
+    stepFulfillment: 'Step 1 — Fulfillment',
+    stepReview: 'Step 2 — Review',
+    // Fulfillment toggle
+    fulfillment: 'Fulfillment',
+    pickup: 'Pickup',
+    delivery: 'Delivery',
+    // Date
+    date: 'Date',
+    // Address
+    streetAddress: 'Street address',
+    city: 'City',
+    province: 'Province',
+    postalCode: 'Postal code',
+    streetPlaceholder: '123 Main St',
+    cityPlaceholder: 'Montreal',
+    provincePlaceholder: 'Quebec',
+    postalCodePlaceholder: 'H2X 1Y4',
+    // Pickup slot
+    pickupSlot: 'Pickup slot',
+    // Validation
+    dateRequired: 'Date is required',
+    dateTooEarly: 'Date must be on or after',
+    addressRequired: 'Address is required',
+    selectPickupSlot: 'Please select a pickup slot',
+    // Buttons
+    continueToReview: 'Continue to Review',
+    proceedToPayment: 'Proceed to Payment',
+    back: 'Back',
+    processing: 'Processing...',
+    // Errors
+    genericError: 'Something went wrong. Please try again.',
+    // Review summary
+    items: 'Items',
+    subtotal: 'Subtotal',
+    method: 'Method',
+    deliveryAddress: 'Delivery address',
+    details: 'Details',
+  },
   form: {
     traiteur: {
       heading: 'Catering',

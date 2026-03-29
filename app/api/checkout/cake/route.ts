@@ -21,8 +21,15 @@ interface CakeCheckoutRequest {
   numberOfPeople: number;
   eventType: string;
   specialInstructions: string | null;
+  fulfillmentType?: 'pickup' | 'delivery';
   locale: string;
   calculatedPrice?: number;
+  deliveryAddress?: {
+    street: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
 }
 
 function formatPickupDate(isoDate: string): string {
@@ -34,7 +41,7 @@ function formatPickupDate(isoDate: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body: CakeCheckoutRequest = await request.json();
-    const { items, pickupDate, numberOfPeople, eventType, specialInstructions, locale, calculatedPrice } = body;
+    const { items, pickupDate, numberOfPeople, eventType, specialInstructions, fulfillmentType, locale, calculatedPrice } = body;
 
     if (!items?.length) {
       return NextResponse.json({ error: 'No items in cart' }, { status: 400 });
@@ -91,21 +98,34 @@ export async function POST(request: NextRequest) {
     }
 
     const cakeProductId = items[0].productId;
+    const resolvedFulfillmentType = fulfillmentType || 'pickup';
+    const isDelivery = resolvedFulfillmentType === 'delivery';
+
     const attributes: Array<{ key: string; value: string }> = [
       { key: 'Order Type', value: 'cake' },
       { key: 'Cake Product', value: cakeProductId },
       { key: 'Pickup Date', value: pickupDate },
-      { key: 'Fulfillment Type', value: 'pickup' },
+      { key: 'Fulfillment Type', value: resolvedFulfillmentType },
       { key: 'Number of People', value: String(numberOfPeople) },
       { key: 'Event Type', value: eventType },
     ];
     if (calculatedPrice != null) attributes.push({ key: 'Calculated Price', value: String(calculatedPrice) });
     if (specialInstructions) attributes.push({ key: 'Special Instructions', value: specialInstructions });
+    if (isDelivery && body.deliveryAddress) {
+      const addr = body.deliveryAddress;
+      attributes.push(
+        { key: 'Delivery Street', value: addr.street },
+        { key: 'Delivery City', value: addr.city },
+        { key: 'Delivery Province', value: addr.province },
+        { key: 'Delivery Postal Code', value: addr.postalCode },
+      );
+    }
 
     const isFr = locale === 'fr';
     const noteLines: string[] = [
       `Type: ${isFr ? 'Commande de gâteau' : 'Cake Order'}`,
-      `${isFr ? 'Cueillette' : 'Pickup'}: ${formatPickupDate(pickupDate)}`,
+      `${isFr ? 'Mode' : 'Method'}: ${isDelivery ? (isFr ? 'Livraison' : 'Delivery') : (isFr ? 'Cueillette' : 'Pickup')}`,
+      `${isFr ? 'Date' : 'Date'}: ${formatPickupDate(pickupDate)}`,
       `${isFr ? 'Personnes' : 'People'}: ${numberOfPeople}`,
       `${isFr ? 'Événement' : 'Event'}: ${eventType}`,
     ];
@@ -116,6 +136,10 @@ export async function POST(request: NextRequest) {
       noteLines.push(`${item.quantity}× ${item.productName} — ${item.variantLabel}`);
     }
     if (specialInstructions) noteLines.push(`${isFr ? 'Instructions spéciales' : 'Special instructions'}: ${specialInstructions}`);
+    if (isDelivery && body.deliveryAddress) {
+      const addr = body.deliveryAddress;
+      noteLines.push(`${isFr ? 'Adresse de livraison' : 'Delivery address'}: ${addr.street}, ${addr.city}, ${addr.province} ${addr.postalCode}`);
+    }
     const note = noteLines.join('\n');
 
     const cart = await createCart({ lines, attributes, note });
