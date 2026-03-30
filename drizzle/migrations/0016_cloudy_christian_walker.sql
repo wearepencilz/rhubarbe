@@ -1,1 +1,1 @@
-ALTER TABLE "pickup_locations" ADD COLUMN "disabled_pickup_days" jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE "pickup_locations" ADD COLUMN IF NOT EXISTS "disabled_pickup_days" jsonb DEFAULT '[]'::jsonb;
