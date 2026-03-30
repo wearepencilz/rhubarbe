@@ -3,6 +3,7 @@ import {
   generatePickupDays,
   calculateServesEstimate,
   isSundayUnavailable,
+  isPickupDayDisabled,
   getActivePricingTier,
 } from './order-helpers';
 
@@ -79,6 +80,35 @@ describe('isSundayUnavailable', () => {
   it('returns false for a Monday', () => {
     // 2025-01-06 is a Monday
     expect(isSundayUnavailable(new Date(2025, 0, 6))).toBe(false);
+  });
+});
+
+describe('isPickupDayDisabled', () => {
+  it('returns false when disabledDays is undefined', () => {
+    expect(isPickupDayDisabled(new Date(2025, 0, 5))).toBe(false);
+  });
+
+  it('returns false when disabledDays is empty', () => {
+    expect(isPickupDayDisabled(new Date(2025, 0, 5), [])).toBe(false);
+  });
+
+  it('returns true when day-of-week is in disabledDays', () => {
+    // 2025-01-05 is a Sunday (0)
+    expect(isPickupDayDisabled(new Date(2025, 0, 5), [0])).toBe(true);
+  });
+
+  it('returns false when day-of-week is not in disabledDays', () => {
+    // 2025-01-06 is a Monday (1)
+    expect(isPickupDayDisabled(new Date(2025, 0, 6), [0, 6])).toBe(false);
+  });
+
+  it('handles multiple disabled days', () => {
+    // 2025-01-04 is a Saturday (6)
+    expect(isPickupDayDisabled(new Date(2025, 0, 4), [0, 6])).toBe(true);
+    // 2025-01-05 is a Sunday (0)
+    expect(isPickupDayDisabled(new Date(2025, 0, 5), [0, 6])).toBe(true);
+    // 2025-01-06 is a Monday (1)
+    expect(isPickupDayDisabled(new Date(2025, 0, 6), [0, 6])).toBe(false);
   });
 });
 

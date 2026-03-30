@@ -1,7 +1,7 @@
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
 const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
-const endpoint = domain ? `https://${domain}/api/2024-01/graphql.json` : '';
+const endpoint = domain ? `https://${domain}/api/2025-01/graphql.json` : '';
 
 export async function shopifyFetch<T>({
   query,

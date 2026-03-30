@@ -33,6 +33,7 @@ interface FormData {
   mapOrDirectionsLink: string;
   operationalNotesForStaff: string;
   translations: ContentTranslations;
+  disabledPickupDays: number[];
 }
 
 const EMPTY_FORM: FormData = {
@@ -46,6 +47,7 @@ const EMPTY_FORM: FormData = {
   mapOrDirectionsLink: '',
   operationalNotesForStaff: '',
   translations: {},
+  disabledPickupDays: [],
 };
 
 function toApiPayload(form: FormData) {
@@ -65,6 +67,7 @@ function toApiPayload(form: FormData) {
     sortOrder: form.sortOrder,
     mapOrDirectionsLink: form.mapOrDirectionsLink || null,
     operationalNotesForStaff: form.operationalNotesForStaff || null,
+    disabledPickupDays: form.disabledPickupDays,
   };
 }
 
@@ -98,6 +101,7 @@ export default function EditPickupLocationPage({ params }: { params: { id: strin
         sortOrder: d.sortOrder ?? 0,
         mapOrDirectionsLink: d.mapOrDirectionsLink || '',
         operationalNotesForStaff: d.operationalNotesForStaff || '',
+        disabledPickupDays: Array.isArray(d.disabledPickupDays) ? d.disabledPickupDays : [],
         translations: {
           fr: {
             publicLabel: d.publicLabel?.fr || '',
@@ -200,6 +204,37 @@ export default function EditPickupLocationPage({ params }: { params: { id: strin
                 onChange={(v) => set({ active: v })}
               />
             </div>
+          </div>
+        </SectionCard>
+
+        {/* Disabled Pickup Days */}
+        <SectionCard title="Disabled Pickup Days" description="Days of the week when pickup is not available at this location. Affects menus, catering, and cake orders using this location.">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { day: 0, label: 'Sunday' },
+              { day: 1, label: 'Monday' },
+              { day: 2, label: 'Tuesday' },
+              { day: 3, label: 'Wednesday' },
+              { day: 4, label: 'Thursday' },
+              { day: 5, label: 'Friday' },
+              { day: 6, label: 'Saturday' },
+            ].map(({ day, label }) => (
+              <label key={day} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.disabledPickupDays.includes(day)}
+                  onChange={(e) => {
+                    set({
+                      disabledPickupDays: e.target.checked
+                        ? [...form.disabledPickupDays, day].sort()
+                        : form.disabledPickupDays.filter((d) => d !== day),
+                    });
+                  }}
+                  className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                />
+                <span className="text-sm text-gray-700">{label}</span>
+              </label>
+            ))}
           </div>
         </SectionCard>
 

@@ -90,6 +90,7 @@ export async function PATCH(
     if (body.sortOrder !== undefined) updateData.sortOrder = body.sortOrder;
     if (body.mapOrDirectionsLink !== undefined) updateData.mapOrDirectionsLink = body.mapOrDirectionsLink;
     if (body.operationalNotesForStaff !== undefined) updateData.operationalNotesForStaff = body.operationalNotesForStaff;
+    if (body.disabledPickupDays !== undefined) updateData.disabledPickupDays = body.disabledPickupDays;
 
     const [updated] = await db
       .update(pickupLocations)

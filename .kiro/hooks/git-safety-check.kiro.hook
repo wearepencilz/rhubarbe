@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Git Safety Check",
+  "description": "Before any shell command that could discard uncommitted changes (git checkout, git restore, git reset, git stash), verify there are no uncommitted changes first. If there are, commit or stash them before proceeding.",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "shell"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "CRITICAL SAFETY CHECK: If this shell command contains \"git checkout\", \"git restore\", \"git reset --hard\", or \"git stash\" — STOP. You MUST first run \"git stash\" or \"git add . && git commit -m 'wip: save before revert'\" to preserve ALL uncommitted work. NEVER run a destructive git command without saving work first. If the command is safe (not a destructive git operation), proceed normally."
+  }
+}

@@ -74,10 +74,12 @@ export default function DatePickerField({ label, ...props }: DatePickerFieldProp
                   return (
                     <AriaCalendarCell
                       date={date}
-                      className={({ isSelected, isDisabled, isFocusVisible, isOutsideMonth }) =>
-                        `flex size-9 items-center justify-center rounded-full text-sm outline-none cursor-pointer transition-colors
-                        ${isDisabled ? 'text-gray-300 pointer-events-none' : isOutsideMonth ? 'text-gray-500' : ''}
-                        ${isSelected ? 'bg-gray-900 text-white font-medium' : 'hover:bg-gray-100'}
+                      className={({ isSelected, isDisabled, isUnavailable, isFocusVisible, isOutsideMonth }) =>
+                        `flex size-9 items-center justify-center rounded-full text-sm outline-none transition-colors
+                        ${(isDisabled || isUnavailable) && !isOutsideMonth ? 'text-gray-300 line-through pointer-events-none cursor-default' : ''}
+                        ${isOutsideMonth ? 'text-gray-300 pointer-events-none cursor-default' : ''}
+                        ${!isDisabled && !isUnavailable && !isOutsideMonth ? 'cursor-pointer' : ''}
+                        ${isSelected ? 'bg-gray-900 text-white font-medium' : !isDisabled && !isUnavailable && !isOutsideMonth ? 'hover:bg-gray-100' : ''}
                         ${isToday && !isSelected ? 'ring-1 ring-gray-900' : ''}
                         ${isFocusVisible ? 'ring-2 ring-gray-900 ring-offset-1' : ''}`
                       }

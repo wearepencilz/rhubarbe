@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         sortOrder: body.sortOrder !== undefined ? body.sortOrder : 0,
         mapOrDirectionsLink: body.mapOrDirectionsLink,
         operationalNotesForStaff: body.operationalNotesForStaff,
+        disabledPickupDays: body.disabledPickupDays ?? [],
       })
       .returning();
 

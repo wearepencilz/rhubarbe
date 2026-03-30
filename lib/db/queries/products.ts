@@ -130,6 +130,11 @@ export async function setProductIngredients(
 export async function getTaxConfigByIds(productIds: string[]): Promise<Map<string, TaxConfig>> {
   if (productIds.length === 0) return new Map();
 
+  // Filter to valid UUIDs only — legacy slug-based IDs (e.g. from launch_products) are skipped
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const validIds = productIds.filter((id) => uuidRegex.test(id));
+  if (validIds.length === 0) return new Map();
+
   const rows = await db
     .select({
       id: products.id,
@@ -139,7 +144,7 @@ export async function getTaxConfigByIds(productIds: string[]): Promise<Map<strin
       shopifyTaxExemptVariantId: products.shopifyTaxExemptVariantId,
     })
     .from(products)
-    .where(inArray(products.id, productIds));
+    .where(inArray(products.id, validIds));
 
   const map = new Map<string, TaxConfig>();
   for (const row of rows) {

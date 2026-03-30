@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         pickupLocationId: launches.pickupLocationId,
         createdAt: launches.createdAt,
         updatedAt: launches.updatedAt,
-        productCount: sql<number>`(SELECT count(*) FROM launch_products WHERE launch_id = ${launches.id})`.as('product_count'),
+        productCount: sql<number>`(SELECT count(*)::int FROM launch_products WHERE launch_id = launches.id)`.as('product_count'),
       })
       .from(launches)
       .where(conditions.length > 0 ? and(...conditions) : undefined)

@@ -172,6 +172,7 @@ export const pickupLocations = pgTable('pickup_locations', {
   sortOrder: integer('sort_order').notNull().default(0),
   mapOrDirectionsLink: text('map_or_directions_link'),
   operationalNotesForStaff: text('operational_notes_for_staff'),
+  disabledPickupDays: customJsonb<number[]>('disabled_pickup_days').default([]),
   
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

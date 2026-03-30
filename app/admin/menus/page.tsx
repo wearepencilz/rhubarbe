@@ -18,18 +18,29 @@ interface Launch {
   orderOpens: string;
   orderCloses: string;
   pickupDate: string;
+  pickupWindowStart: string | null;
+  pickupWindowEnd: string | null;
   productCount: number;
 }
 
-function formatDate(iso: string) {
-  try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
+function fmtDate(iso: string) {
+  try { return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }); }
+  catch { return iso; }
 }
 
-function formatDatetime(iso: string) {
-  try { return new Date(iso).toLocaleString(); } catch { return iso; }
+function fmtDatetime(iso: string) {
+  try { return new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  catch { return iso; }
 }
 
-const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning'> = {
+function pickupLabel(l: Launch): string {
+  if (l.pickupWindowStart && l.pickupWindowEnd) {
+    return `${fmtDate(l.pickupWindowStart)} – ${fmtDate(l.pickupWindowEnd)}`;
+  }
+  return fmtDate(l.pickupDate);
+}
+
+const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning' | 'blue'> = {
   active: 'success',
   draft: 'warning',
   archived: 'gray',
@@ -135,18 +146,14 @@ export default function MenusPage() {
             <Table.Header>
               <Table.Head isRowHeader label="Title" />
               <Table.Head label="Status" />
-              <Table.Head label="Order Closes" />
-              <Table.Head label="Pickup Date" />
+              <Table.Head label="Order Window" />
+              <Table.Head label="Pickup" />
               <Table.Head label="Products" />
               <Table.Head label="" />
             </Table.Header>
             <Table.Body items={launches}>
               {(launch) => (
-                <Table.Row
-                  key={launch.id}
-                  id={launch.id}
-                  onAction={() => router.push(`/admin/menus/${launch.id}`)}
-                >
+                <Table.Row key={launch.id} id={launch.id} onAction={() => router.push(`/admin/menus/${launch.id}`)}>
                   <Table.Cell>
                     <div>
                       <p className="text-sm font-medium text-primary">{launch.title.en}</p>
@@ -154,18 +161,19 @@ export default function MenusPage() {
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <Badge color={STATUS_COLOR[launch.status] ?? 'gray'}>
-                      {launch.status}
-                    </Badge>
+                    <Badge color={STATUS_COLOR[launch.status] ?? 'gray'}>{launch.status}</Badge>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className="text-sm text-secondary">{formatDatetime(launch.orderCloses)}</span>
+                    <div className="text-xs text-secondary space-y-0.5">
+                      <p>Opens {fmtDatetime(launch.orderOpens)}</p>
+                      <p>Closes {fmtDatetime(launch.orderCloses)}</p>
+                    </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className="text-sm text-secondary">{formatDate(launch.pickupDate)}</span>
+                    <span className="text-sm text-secondary">{pickupLabel(launch)}</span>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className="text-sm text-secondary">{launch.productCount}</span>
+                    <span className="text-sm text-secondary">{Number(launch.productCount) || 0}</span>
                   </Table.Cell>
                   <Table.Cell>
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -174,18 +182,12 @@ export default function MenusPage() {
                           <Edit01 className="w-4 h-4" />
                         </button>
                       </Link>
-                      <button
-                        className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded"
-                        title="Duplicate"
-                        onClick={() => handleDuplicate(launch.id, launch.title.en)}
-                      >
+                      <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Duplicate"
+                        onClick={() => handleDuplicate(launch.id, launch.title.en)}>
                         <Copy01 className="w-4 h-4" />
                       </button>
-                      <button
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded"
-                        title="Archive"
-                        onClick={() => setDeleteConfirm({ show: true, id: launch.id, title: launch.title.en })}
-                      >
+                      <button className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded" title="Archive"
+                        onClick={() => setDeleteConfirm({ show: true, id: launch.id, title: launch.title.en })}>
                         <Trash01 className="w-4 h-4" />
                       </button>
                     </div>

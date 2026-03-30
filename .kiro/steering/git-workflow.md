@@ -11,6 +11,7 @@ description: Git branching strategy, commit conventions, and workflow rules for 
 - `main` auto-deploys to Vercel production
 - Commit after each logical unit of work
 - Push to remote regularly (at least every hour of active work)
+- **NEVER run destructive git commands (checkout, restore, reset, stash) without first committing or stashing ALL uncommitted work.** Always run `git stash` or `git add . && git commit -m "wip: save before revert"` before any operation that could discard changes. This is non-negotiable.
 
 ## Branch Naming
 

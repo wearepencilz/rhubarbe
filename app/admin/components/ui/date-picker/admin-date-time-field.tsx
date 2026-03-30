@@ -121,9 +121,10 @@ interface AdminDateFieldProps {
   description?: string;
   errorMessage?: string;
   isRequired?: boolean;
+  isDateUnavailable?: (date: DateValue) => boolean;
 }
 
-export function AdminDateField({ label, value, onChange, description, errorMessage, isRequired }: AdminDateFieldProps) {
+export function AdminDateField({ label, value, onChange, description, errorMessage, isRequired, isDateUnavailable }: AdminDateFieldProps) {
   const dateValue = useMemo(() => parseLocalDate(value), [value]);
 
   return (
@@ -134,6 +135,7 @@ export function AdminDateField({ label, value, onChange, description, errorMessa
       description={description}
       errorMessage={errorMessage}
       isRequired={isRequired}
+      isDateUnavailable={isDateUnavailable}
     />
   );
 }

@@ -14,12 +14,14 @@ export function generatePickupDays(
   pickupDate: string
 ): string[] {
   if (!pickupWindowStart || !pickupWindowEnd) {
-    return [pickupDate];
+    return [pickupDate.split('T')[0]];
   }
 
   const days: string[] = [];
-  const start = new Date(pickupWindowStart + 'T00:00:00');
-  const end = new Date(pickupWindowEnd + 'T00:00:00');
+  const startStr = pickupWindowStart.split('T')[0];
+  const endStr = pickupWindowEnd.split('T')[0];
+  const start = new Date(startStr + 'T00:00:00');
+  const end = new Date(endStr + 'T00:00:00');
 
   const current = new Date(start);
   while (current <= end) {
@@ -46,9 +48,20 @@ export function calculateServesEstimate(
 
 /**
  * Returns true if the given date falls on a Sunday.
+ * @deprecated Use isPickupDayDisabled with configurable disabled days instead.
  */
 export function isSundayUnavailable(date: Date): boolean {
   return date.getDay() === 0;
+}
+
+/**
+ * Returns true if the given date's day-of-week is in the disabledDays array.
+ * Days use JS convention: 0 = Sunday, 1 = Monday, … 6 = Saturday.
+ * Returns false when disabledDays is empty or undefined.
+ */
+export function isPickupDayDisabled(date: Date, disabledDays?: number[]): boolean {
+  if (!disabledDays || disabledDays.length === 0) return false;
+  return disabledDays.includes(date.getDay());
 }
 
 /**
