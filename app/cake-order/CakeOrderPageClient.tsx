@@ -7,6 +7,7 @@ import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 import { getActivePricingTier } from '@/lib/utils/order-helpers';
+import MobileCartModal from '@/components/ui/MobileCartModal';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -513,6 +514,7 @@ export default function CakeOrderPageClient() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   // Report cart count to nav
   useEffect(() => {
@@ -714,25 +716,47 @@ export default function CakeOrderPageClient() {
         </div>
       </div>
 
+      {/* Mobile cart modal */}
+      <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>
+        <CakeInlineCart
+          selectedProduct={selectedProduct}
+          numberOfPeople={numberOfPeople}
+          calculatedPrice={calculatedPrice}
+          pickupDate={pickupDate}
+          eventType={eventType}
+          specialInstructions={specialInstructions}
+          fulfillmentType={fulfillmentType}
+          deliveryAddress={deliveryAddress}
+          dateWarning={dateWarning}
+          earliestDateStr={earliestDateStr}
+          maxLeadTimeDays={maxLeadTimeDays}
+          onDateChange={setPickupDate}
+          onNumberOfPeopleChange={setNumberOfPeople}
+          onEventTypeChange={setEventType}
+          onSpecialInstructionsChange={setSpecialInstructions}
+          onFulfillmentTypeChange={setFulfillmentType}
+          onDeliveryAddressChange={setDeliveryAddress}
+          onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
+          onRemove={handleRemove}
+          checkoutLoading={checkoutLoading}
+          checkoutError={checkoutError}
+          locale={locale}
+          belowMin={belowMin}
+          C={C}
+        />
+      </MobileCartModal>
+
       {/* Mobile bottom bar */}
       {selectedProduct && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          {checkoutError && <p className="text-xs text-red-600 mb-2">{checkoutError}</p>}
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {selectedProduct.name}
-                {calculatedPrice != null && ` · $${(calculatedPrice / 100).toFixed(2)}`}
-              </p>
-              <p className="text-xs text-gray-400">
-                {numberOfPeople} {C.numberOfPeopleShort}
-              </p>
-            </div>
-            <button onClick={handleCheckout}
-              disabled={checkoutLoading || !pickupDate || !!dateWarning || belowMin || calculatedPrice == null}
-              className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              {selectedProduct.name}{calculatedPrice != null && ` · $${(calculatedPrice / 100).toFixed(2)}`}
+            </p>
+            <button onClick={() => setShowMobileCart(true)}
+              className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {checkoutLoading ? '…' : C.mobileCheckout}
+              {isFr ? 'Voir la commande' : 'View order'}
             </button>
           </div>
         </div>

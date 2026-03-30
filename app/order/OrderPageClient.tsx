@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState } from '@/lib/hooks/use-persisted-state';
+import MobileCartModal from '@/components/ui/MobileCartModal';
 
 interface LaunchProduct {
   id: string;
@@ -570,7 +571,7 @@ export default function OrderPageClient() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [shopifyStock, setShopifyStock] = useState<Record<string, number | null>>({});
-
+  const [showMobileCart, setShowMobileCart] = useState(false);
   // Report cart count to nav
   useEffect(() => {
     const total = cart.reduce((s, i) => s + i.quantity, 0);
@@ -1234,7 +1235,7 @@ export default function OrderPageClient() {
       </div>
 
       {/* Mobile pickup slot selector */}
-      {cart.length > 0 && launch && launch.pickupSlots.length > 0 && (
+      {cart.length > 0 && launch && launch.pickupSlots.length > 0 && !showMobileCart && (
         <div className="lg:hidden fixed bottom-[60px] inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
           <label
             className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
@@ -1257,12 +1258,28 @@ export default function OrderPageClient() {
         </div>
       )}
 
+      {/* Mobile cart modal */}
+      <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>
+        <InlineCart
+          items={cart}
+          onUpdateQty={updateCartQty}
+          onRemove={removeFromCart}
+          locale={locale}
+          getMax={getMaxForProduct}
+          pickupSlots={launch?.pickupSlots || []}
+          selectedSlotId={selectedSlotId}
+          onSelectSlot={setSelectedSlotId}
+          onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
+          checkoutLoading={checkoutLoading}
+          checkoutError={checkoutError}
+          pickupDate={launch?.pickupDate || null}
+          orderCloses={launch?.orderCloses || null}
+        />
+      </MobileCartModal>
+
       {/* Mobile cart summary (fixed bottom bar) */}
       {cart.length > 0 && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          {checkoutError && (
-            <p className="text-xs text-red-600 mb-2">{checkoutError}</p>
-          )}
           <div className="flex items-center justify-between">
             <div>
               <span className="text-sm font-medium">
@@ -1273,14 +1290,11 @@ export default function OrderPageClient() {
               </span>
             </div>
             <button
-              onClick={handleCheckout}
-              disabled={checkoutLoading || (launch != null && launch.pickupSlots.length > 0 && !selectedSlotId)}
-              className="px-5 py-2.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setShowMobileCart(true)}
+              className="px-5 py-2.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
-              {checkoutLoading
-                ? (isFr ? 'Chargement…' : 'Loading…')
-                : (isFr ? 'Commander' : 'Checkout')}
+              {isFr ? 'Voir la commande' : 'View order'}
             </button>
           </div>
         </div>
