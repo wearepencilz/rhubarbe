@@ -94,6 +94,8 @@ export default function FlavourIngredientSelector({ selectedIngredients, onChang
   }, []);
 
   const add = (ingredient: Ingredient) => {
+    // Prevent duplicate ingredients
+    if (selectedIngredients.some(si => si.ingredientId === ingredient.id)) return;
     const maxOrder = selectedIngredients.length > 0
       ? Math.max(...selectedIngredients.map(si => si.displayOrder))
       : -1;
@@ -146,12 +148,12 @@ export default function FlavourIngredientSelector({ selectedIngredients, onChang
       {/* Selected pills */}
       {sorted.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {sorted.map(si => {
+          {sorted.map((si, idx) => {
             const ing = allIngredients.find(i => i.id === si.ingredientId);
             if (!ing) return null;
             return (
               <span
-                key={si.ingredientId}
+                key={`${si.ingredientId}-${idx}`}
                 className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-800 ring-1 ring-gray-200"
               >
                 {ing.name}

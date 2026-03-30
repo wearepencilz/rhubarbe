@@ -416,7 +416,10 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error('Validation failed', 'Please fix the highlighted errors before saving.');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
