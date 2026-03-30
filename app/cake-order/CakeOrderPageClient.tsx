@@ -127,7 +127,7 @@ function CakeProductCard({
       aria-label={`${product.name}${isSelected ? ` (${C.selected})` : ''}`}
     >
       {product.image ? (
-        <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
+        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
           <img src={product.image} alt={product.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
           {isSelected && (
@@ -138,7 +138,7 @@ function CakeProductCard({
           )}
         </div>
       ) : (
-        <div className="aspect-[3/4] relative" style={{ backgroundColor: brandColor }}>
+        <div className="aspect-[4/5] relative" style={{ backgroundColor: brandColor }}>
           {isSelected && (
             <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
@@ -149,17 +149,21 @@ function CakeProductCard({
       )}
 
       <div className="flex flex-col gap-1 px-2 pb-3">
-        <h3 className="text-sm uppercase tracking-widest"
+        <h3 className="text-xs uppercase tracking-widest"
           style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
           {product.name}
         </h3>
 
-        {product.serves && (
-          <p className="text-[10px] uppercase tracking-wider text-gray-400"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-            {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
-          </p>
-        )}
+        <div className="flex items-center gap-2 text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+          {activeTier && (
+            <span>${(activeTier.priceInCents / 100).toFixed(2)}</span>
+          )}
+          {product.serves && (
+            <span className="uppercase tracking-wider">
+              {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
+            </span>
+          )}
+        </div>
 
         {flavourNotes && (
           <p className="text-xs text-gray-500 italic">{flavourNotes}</p>

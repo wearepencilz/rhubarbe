@@ -132,13 +132,13 @@ function ProductCard({
   return (
     <div className={`group flex flex-col gap-3 ${soldOut ? 'opacity-60' : ''}`}>
       {product.image && (
-        <div className="aspect-[3/4] overflow-hidden bg-gray-100 relative">
+        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
           <img
             src={product.image}
             alt={displayName}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          {soldOut ? (
+          {soldOut && (
             <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
               <p
                 className="text-center text-white text-xs uppercase tracking-widest font-medium"
@@ -153,62 +153,26 @@ function ProductCard({
                 </p>
               )}
             </div>
-          ) : (
-          /* Quick-add overlay */
-          <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-            {quantity === 0 ? (
-              <button
-                onClick={onAdd}
-                disabled={atMax || (hasVariants && !activeVariant)}
-                className="w-full py-2 bg-white text-black text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}
-              >
-                {isFr ? 'Ajouter' : 'Add to order'}
-              </button>
-            ) : (
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  onClick={onRemove}
-                  className="w-8 h-8 bg-white text-black rounded flex items-center justify-center text-lg hover:bg-gray-100"
-                >
-                  −
-                </button>
-                <span className="text-white font-medium text-sm min-w-[2rem] text-center">{quantity}</span>
-                <button
-                  onClick={onAdd}
-                  disabled={atMax}
-                  className="w-8 h-8 bg-white text-black rounded flex items-center justify-center text-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
           )}
         </div>
       )}
       <div className="flex flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3
-            className="text-sm uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
-          >
-            {displayName}
-          </h3>
+        <h3
+          className="text-xs uppercase tracking-widest"
+          style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
+        >
+          {displayName}
+        </h3>
+        <div className="flex items-center gap-2 text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
           {displayPrice != null && displayPrice > 0 && (
-            <span className="text-sm shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              ${(displayPrice / 100).toFixed(2)}
+            <span>${(displayPrice / 100).toFixed(2)}</span>
+          )}
+          {product.serves && (
+            <span className="uppercase tracking-wider">
+              {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
             </span>
           )}
         </div>
-        {product.serves && (
-          <p
-            className="text-[10px] uppercase tracking-wider text-gray-400"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
-          >
-            {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
-          </p>
-        )}
         {shortCopy && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{shortCopy}</p>
         )}
@@ -255,11 +219,11 @@ function ProductCard({
           </div>
         )}
 
-        {/* Mobile quick-add */}
-        <div className="mt-2 md:hidden">
+        {/* Quick-add */}
+        <div className="mt-2">
           {soldOut ? (
             <p
-              className="w-full py-2 text-center text-xs uppercase tracking-widest font-medium text-gray-400"
+              className="w-full h-10 flex items-center justify-center text-xs uppercase tracking-widest font-medium text-gray-400"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
               {isFr ? 'Épuisé' : 'Sold out'}
@@ -268,16 +232,16 @@ function ProductCard({
             <button
               onClick={onAdd}
               disabled={atMax || (hasVariants && !activeVariant)}
-              className="w-full py-2 border border-gray-300 text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-10 border border-gray-300 text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
               {isFr ? '+ Ajouter' : '+ Add'}
             </button>
           ) : (
-            <div className="flex items-center justify-between border border-gray-300 rounded">
-              <button onClick={onRemove} className="px-3 py-2 hover:bg-gray-50 text-lg">−</button>
+            <div className="flex items-center justify-between border border-gray-300 rounded h-10">
+              <button onClick={onRemove} className="px-3 h-10 hover:bg-gray-50 text-lg">−</button>
               <span className="text-sm font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
-              <button onClick={onAdd} disabled={atMax} className="px-3 py-2 hover:bg-gray-50 text-lg disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+              <button onClick={onAdd} disabled={atMax} className="px-3 h-10 hover:bg-gray-50 text-lg disabled:opacity-30 disabled:cursor-not-allowed">+</button>
             </div>
           )}
         </div>
@@ -1233,30 +1197,6 @@ export default function OrderPageClient() {
           />
         </div>
       </div>
-
-      {/* Mobile pickup slot selector */}
-      {cart.length > 0 && launch && launch.pickupSlots.length > 0 && !showMobileCart && (
-        <div className="lg:hidden fixed bottom-[60px] inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          <label
-            className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
-          >
-            {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
-          </label>
-          <select
-            value={selectedSlotId || ''}
-            onChange={(e) => setSelectedSlotId(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
-          >
-            <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
-            {launch.pickupSlots.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {slot.startTime} – {slot.endTime}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* Mobile cart modal */}
       <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>

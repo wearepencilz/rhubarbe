@@ -124,14 +124,14 @@ function VolumeProductCard({
     <div className="border border-gray-200 rounded-lg p-3">
       <div className="flex gap-3">
         {product.image ? (
-          <div className="w-20 h-[100px] shrink-0 rounded overflow-hidden bg-gray-100">
+          <div className="w-20 aspect-[4/5] shrink-0 rounded overflow-hidden bg-gray-100">
             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="w-20 h-[100px] shrink-0 rounded" style={{ backgroundColor: brandColor }} />
+          <div className="w-20 aspect-[4/5] shrink-0 rounded" style={{ backgroundColor: brandColor }} />
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm uppercase tracking-widest leading-tight"
+          <h3 className="text-xs uppercase tracking-widest leading-tight"
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
             {product.name}
           </h3>
@@ -192,7 +192,7 @@ function VolumeProductCard({
                 <input id={`qty-${v.id}`} type="number" min={0} inputMode="numeric"
                   value={(cart.get(v.id) ?? 0) || ''} placeholder="0"
                   onChange={(e) => onQuantityChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                  className="w-14 px-2 py-1.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="w-14 px-2 h-10 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
                   aria-label={`${tr(v.label, locale)} quantity`} />
               </div>
             );
@@ -208,7 +208,7 @@ function VolumeProductCard({
             <input id={`qty-${product.id}`} type="number" min={0} inputMode="numeric"
               value={(cart.get(product.id) ?? 0) || ''} placeholder="0"
               onChange={(e) => onQuantityChange(product.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-              className="w-14 px-2 py-1.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className="w-14 px-2 h-10 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
               aria-label={`${product.name} quantity`} />
           </div>
         )}
