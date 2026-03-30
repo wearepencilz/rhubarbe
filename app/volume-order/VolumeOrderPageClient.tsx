@@ -8,6 +8,7 @@ import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
+import MobileCartModal from '@/components/ui/MobileCartModal';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -120,14 +121,14 @@ function VolumeProductCard({
   if (product.pickupOnly) metaPills.push(isFr ? 'cueillette seul.' : 'pickup only');
 
   return (
-    <div className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+    <div className="border border-gray-200 rounded-lg p-3">
       <div className="flex gap-3">
         {product.image ? (
-          <div className="w-20 h-20 shrink-0 rounded overflow-hidden bg-gray-100">
+          <div className="w-20 h-[100px] shrink-0 rounded overflow-hidden bg-gray-100">
             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="w-20 h-20 shrink-0 rounded" style={{ backgroundColor: brandColor }} />
+          <div className="w-20 h-[100px] shrink-0 rounded" style={{ backgroundColor: brandColor }} />
         )}
         <div className="flex-1 min-w-0">
           <h3 className="text-sm uppercase tracking-widest leading-tight"
@@ -154,6 +155,26 @@ function VolumeProductCard({
               ))}
             </div>
           )}
+          {product.leadTimeTiers.length > 0 && (
+            <div className="mt-1">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {product.leadTimeTiers.slice().sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => (
+                  <span key={i}
+                    className={`text-[10px] tracking-wide ${totalQty >= tier.minQuantity ? 'text-gray-600 font-medium' : 'text-gray-300'}`}
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    {tier.minQuantity}+ {'\u2192'} {tier.leadTimeDays}{isFr ? 'j' : 'd'}
+                  </span>
+                ))}
+              </div>
+              {totalQty > 0 && (
+                <p className="text-[10px] text-gray-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  {isFr
+                    ? `Votre d\u00e9lai actuel : ${currentLeadDays} jour${currentLeadDays > 1 ? 's' : ''}`
+                    : `Your current lead time: ${currentLeadDays} day${currentLeadDays > 1 ? 's' : ''}`}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-3 flex flex-col gap-1.5">
@@ -162,7 +183,7 @@ function VolumeProductCard({
             const variantPrice = v.price ?? product.price;
             return (
               <div key={v.id} className="flex items-center gap-2">
-                <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1 truncate"
+                <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1"
                   style={{ fontFamily: 'var(--font-diatype-mono)' }}>{tr(v.label, locale)}</label>
                 {variantPrice != null && variantPrice > 0 && (
                   <span className="text-xs text-gray-400 shrink-0 tabular-nums"
@@ -192,26 +213,6 @@ function VolumeProductCard({
           </div>
         )}
       </div>
-      {product.leadTimeTiers.length > 0 && (
-        <div className="mt-2">
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-            {product.leadTimeTiers.slice().sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => (
-              <span key={i}
-                className={`text-[10px] tracking-wide ${totalQty >= tier.minQuantity ? 'text-gray-600 font-medium' : 'text-gray-300'}`}
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {tier.minQuantity}+ {'\u2192'} {tier.leadTimeDays}{isFr ? 'j' : 'd'}
-              </span>
-            ))}
-          </div>
-          {totalQty > 0 && (
-            <p className="text-[10px] text-gray-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {isFr
-                ? `Votre d\u00e9lai actuel : ${currentLeadDays} jour${currentLeadDays > 1 ? 's' : ''}`
-                : `Your current lead time: ${currentLeadDays} day${currentLeadDays > 1 ? 's' : ''}`}
-            </p>
-          )}
-        </div>
-      )}
       {belowMin && (
         <p className="text-[11px] text-red-500 mt-1" role="alert">
           {isFr ? `Minimum: ${minQty} (actuel : ${totalQty})` : `Minimum: ${minQty} (current: ${totalQty})`}
@@ -427,6 +428,7 @@ export default function VolumeOrderPageClient() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings').then((r) => r.json())
@@ -571,7 +573,7 @@ export default function VolumeOrderPageClient() {
             <div className="text-center py-20"><p className="text-sm text-gray-400">{V.noProducts}</p></div>
           )}
           {!loading && !error && products.length > 0 && (
-            <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-x-6 md:gap-y-10">
+            <div className="flex flex-col gap-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-x-6 md:gap-y-10">
               {products.map((product) => (
                 <VolumeProductCard key={product.id} product={product} locale={locale}
                   cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
@@ -592,18 +594,33 @@ export default function VolumeOrderPageClient() {
             locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} />
         </div>
       </div>
+
+      {/* Mobile cart modal */}
+      <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>
+        <VolumeInlineCart groups={cartGroups} totalQuantity={totalQuantity} subtotal={subtotal}
+          fulfillmentDate={fulfillmentDate} fulfillmentTime={fulfillmentTime}
+          fulfillmentType={fulfillmentType} allergenNote={allergenNote}
+          dateWarning={dateWarning} earliestDateStr={earliestDateStr}
+          maxLeadTimeDays={maxLeadTimeDays} servesEstimate={servesEstimate}
+          onDateChange={setFulfillmentDate} onTimeChange={setFulfillmentTime}
+          onFulfillmentTypeChange={setFulfillmentType} onAllergenNoteChange={setAllergenNote}
+          onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
+          onRemoveProduct={handleRemoveProduct}
+          checkoutLoading={checkoutLoading} checkoutError={checkoutError}
+          locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} />
+      </MobileCartModal>
+
+      {/* Mobile bottom bar */}
       {totalQuantity > 0 && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          {checkoutError && <p className="text-xs text-red-600 mb-2">{checkoutError}</p>}
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {totalQuantity} {V.items}{subtotal > 0 && ` \u00b7 ${(subtotal / 100).toFixed(2)}`}
+              {totalQuantity} {V.items}{subtotal > 0 && ` · $${(subtotal / 100).toFixed(2)}`}
             </p>
-            <button onClick={handleCheckout}
-              disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation}
-              className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            <button onClick={() => setShowMobileCart(true)}
+              className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {checkoutLoading ? '\u2026' : V.mobileCheckout}
+              {isFr ? 'Voir la commande' : 'View order'}
             </button>
           </div>
         </div>

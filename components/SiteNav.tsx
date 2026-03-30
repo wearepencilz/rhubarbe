@@ -32,7 +32,7 @@ export default function SiteNav() {
 
   return (
     <nav
-      className="flex items-center gap-4 md:gap-6 text-[11px] md:text-[13px] tracking-[0.28px] uppercase leading-none"
+      className="flex items-center gap-6 text-[13px] tracking-[0.28px] uppercase leading-none"
       style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500, color: '#333112' }}
     >
       <Link href="/order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
