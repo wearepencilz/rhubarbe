@@ -118,7 +118,7 @@ function CakeProductCard({
     <button
       type="button"
       onClick={() => onSelect(product.id)}
-      className={`group flex flex-col gap-3 text-left transition-all rounded-lg overflow-hidden ${
+      className={`group flex flex-col text-left transition-all rounded-lg overflow-hidden border border-gray-200 ${
         isSelected
           ? 'ring-2 ring-[#333112] ring-offset-2'
           : 'hover:ring-1 hover:ring-gray-300 hover:ring-offset-1'
@@ -678,7 +678,7 @@ export default function CakeOrderPageClient() {
             </div>
           )}
           {!loading && !error && products.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
               {products.map((product) => (
                 <CakeProductCard key={product.id} product={product} locale={locale}
                   isSelected={selectedProductId === product.id}

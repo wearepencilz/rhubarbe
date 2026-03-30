@@ -130,7 +130,7 @@ function ProductCard({
   const displayPrice = activeVariant?.price ?? product.price;
 
   return (
-    <div className={`group flex flex-col gap-3 ${soldOut ? 'opacity-60' : ''}`}>
+    <div className={`group border border-gray-200 rounded-lg overflow-hidden flex flex-col ${soldOut ? 'opacity-60' : ''}`}>
       {product.image && (
         <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
           <img
@@ -156,19 +156,19 @@ function ProductCard({
           )}
         </div>
       )}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col flex-1 p-2.5 gap-1">
         <h3
-          className="text-xs uppercase tracking-widest"
+          className="text-xs uppercase tracking-widest leading-tight"
           style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
         >
           {displayName}
         </h3>
-        <div className="flex items-center gap-2 text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+        <div className="flex items-center justify-between text-[11px]" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
           {displayPrice != null && displayPrice > 0 && (
-            <span>${(displayPrice / 100).toFixed(2)}</span>
+            <span className="text-gray-900 font-medium">${(displayPrice / 100).toFixed(2)}</span>
           )}
           {product.serves && (
-            <span className="uppercase tracking-wider">
+            <span className="text-gray-400 uppercase tracking-wider">
               {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
             </span>
           )}
@@ -176,13 +176,10 @@ function ProductCard({
         {shortCopy && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{shortCopy}</p>
         )}
-        {description && (
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{description}</p>
-        )}
 
         {/* Allergen badges */}
         {product.allergens && product.allergens.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-0.5">
             {product.allergens.map((a) => (
               <span
                 key={a}
@@ -197,7 +194,7 @@ function ProductCard({
 
         {/* Variant selector */}
         {hasVariants && availableVariants.length > 1 && (
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
+          <div className="flex flex-wrap gap-1.5 mt-1">
             {availableVariants.map((v) => {
               const isActive = v.id === (activeVariant?.id);
               const label = isFr && v.labelFr ? v.labelFr : v.label;
@@ -219,7 +216,10 @@ function ProductCard({
           </div>
         )}
 
-        {/* Quick-add */}
+        {/* Spacer to push add/qty to bottom */}
+        <div className="flex-1" />
+
+        {/* Quick-add — pinned to card bottom */}
         <div className="mt-2">
           {soldOut ? (
             <p
@@ -1143,7 +1143,7 @@ export default function OrderPageClient() {
                         {group.label}
                       </h2>
                     )}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-10">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
                       {group.products.map((product) => (
                         <ProductCard
                           key={product.id}
