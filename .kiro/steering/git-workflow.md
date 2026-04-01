@@ -52,7 +52,7 @@ git push origin feature/your-feature-name
 ## PR to Main
 
 1. Push feature branch
-2. Run `npm run build` locally — must pass
+2. Run `npm run build:check` locally — must pass (runs typecheck + lint + build)
 3. Open PR on GitHub: feature branch → main
 4. Merge only after build passes
 5. Delete branch after merge

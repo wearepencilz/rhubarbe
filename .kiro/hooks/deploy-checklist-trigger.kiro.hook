@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Deploy Checklist Trigger",
+  "description": "Detects when the user wants to deploy or push to production and reminds the agent to run the full Vercel pre-deployment checklist before proceeding.",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check if the user's message indicates they want to deploy, push to production, merge to main/master, or ship to Vercel. Look for phrases like: \"push to vercel\", \"deploy\", \"merge to main\", \"merge to master\", \"push to main\", \"push to master\", \"go live\", \"ship it\", \"send to prod\", \"ready to deploy\". If the message matches any deploy intent, you MUST follow the Deploy to Vercel skill in .kiro/steering/skill-deploy-vercel.md — run `npm run typecheck`, then `npm run lint`, then `npm run build` sequentially. Fix any errors before proceeding. Only after all checks pass should you proceed with the actual git push or deploy command. If the message is NOT about deploying, ignore this instruction entirely and respond normally."
+  }
+}

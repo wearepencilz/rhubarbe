@@ -56,6 +56,16 @@ const nextConfig = {
     },
   },
   
+  // Match Vercel production: fail builds on type/lint errors
+  typescript: {
+    // Set to false to catch TS errors locally before pushing
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    // Set to false to catch lint errors locally before pushing
+    ignoreDuringBuilds: false,
+  },
+
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

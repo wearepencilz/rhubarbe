@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Vercel Build Check",
+  "description": "Runs typecheck + lint + build to verify the project will pass on Vercel before pushing.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npm run build:check",
+    "timeout": 120
+  }
+}
