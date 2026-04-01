@@ -183,7 +183,7 @@ async function processShopifyOrder(shopifyOrder: any) {
     customerName,
     customerEmail,
     customerPhone,
-    specialInstructions: buildSpecialInstructions(orderType, shopifyOrder.note, cakeNumberOfPeople, cakeEventType, launchTitle, pickupLocation, pickupAddress, pickupSlotRaw, pickupDate),
+    specialInstructions: buildSpecialInstructions(orderType, shopifyOrder.note, cakeNumberOfPeople, cakeEventType, launchTitle, pickupLocation ?? null, pickupAddress ?? null, pickupSlotRaw ?? null, pickupDate ?? null),
     subtotal: toCents(shopifyOrder.subtotal_price),
     tax: toCents(shopifyOrder.total_tax),
     total: toCents(shopifyOrder.total_price),
