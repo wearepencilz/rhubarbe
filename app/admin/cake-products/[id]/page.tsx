@@ -15,6 +15,7 @@ import type { ContentTranslations } from '@/types';
 interface LeadTimeTier {
   minPeople: number;
   leadTimeDays: number;
+  deliveryOnly: boolean;
 }
 
 interface CakeProduct {
@@ -79,7 +80,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const [tierErrors, setTierErrors] = useState<string | null>(null);
   const [flavourNotesEn, setFlavourNotesEn] = useState('');
   const [flavourNotesFr, setFlavourNotesFr] = useState('');
-  const [cakeDeliveryAvailable, setCakeDeliveryAvailable] = useState(true);
 
   useEffect(() => {
     fetchProduct();
@@ -100,10 +100,9 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setDescriptionFr(data.cakeDescription?.fr ?? '');
       setInstructionsEn(data.cakeInstructions?.en ?? '');
       setInstructionsFr(data.cakeInstructions?.fr ?? '');
-      setTiers(data.leadTimeTiers.map((t) => ({ minPeople: t.minPeople, leadTimeDays: t.leadTimeDays })));
+      setTiers(data.leadTimeTiers.map((t) => ({ minPeople: t.minPeople, leadTimeDays: t.leadTimeDays, deliveryOnly: t.deliveryOnly ?? false })));
       setFlavourNotesEn(data.cakeFlavourNotes?.en ?? '');
       setFlavourNotesFr(data.cakeFlavourNotes?.fr ?? '');
-      setCakeDeliveryAvailable(data.cakeDeliveryAvailable ?? true);
     } catch {
       setError('Failed to load cake product');
     } finally {
@@ -136,14 +135,18 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   // --- Lead time tiers ---
   function addTier() {
     const lastMin = tiers.length > 0 ? tiers[tiers.length - 1].minPeople : 0;
-    setTiers([...tiers, { minPeople: lastMin + 1, leadTimeDays: 1 }]);
+    setTiers([...tiers, { minPeople: lastMin + 1, leadTimeDays: 1, deliveryOnly: false }]);
     setTierErrors(null);
     markDirty();
   }
 
-  function updateTier(index: number, field: keyof LeadTimeTier, value: string) {
-    const num = parseInt(value) || 0;
-    setTiers((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: num } : t)));
+  function updateTier(index: number, field: keyof LeadTimeTier, value: string | boolean) {
+    if (field === 'deliveryOnly') {
+      setTiers((prev) => prev.map((t, i) => (i === index ? { ...t, deliveryOnly: value as boolean } : t)));
+    } else {
+      const num = parseInt(value as string) || 0;
+      setTiers((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: num } : t)));
+    }
     setTierErrors(null);
     markDirty();
   }
@@ -194,7 +197,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         cakeFlavourNotes: flavourNotesEn || flavourNotesFr
           ? { en: flavourNotesEn, fr: flavourNotesFr }
           : null,
-        cakeDeliveryAvailable,
       };
 
       const res = await fetch(`/api/cake-products/${params.id}`, {
@@ -310,6 +312,25 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                       aria-label={`Tier ${index + 1} lead time days`}
                     />
                     <span className="text-xs text-gray-500">days</span>
+                    <label className="inline-flex items-center gap-1.5 ml-2 cursor-pointer">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={tier.deliveryOnly}
+                        aria-label={`Tier ${index + 1} delivery only`}
+                        onClick={() => updateTier(index, 'deliveryOnly', !tier.deliveryOnly)}
+                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                          tier.deliveryOnly ? 'bg-brand-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                            tier.deliveryOnly ? 'translate-x-3.5' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                      <span className="text-[10px] text-gray-500 whitespace-nowrap">Delivery only</span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => removeTier(index)}
@@ -414,30 +435,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                 </span>
               </div>
             )}
-          </SectionCard>
-
-          {/* Delivery */}
-          <SectionCard title="Delivery" description="Whether delivery is available for this cake.">
-            <label className="inline-flex items-center gap-3 cursor-pointer">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={cakeDeliveryAvailable}
-                onClick={() => { setCakeDeliveryAvailable(!cakeDeliveryAvailable); markDirty(); }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  cakeDeliveryAvailable ? 'bg-brand-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    cakeDeliveryAvailable ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className="text-sm text-gray-700">
-                {cakeDeliveryAvailable ? 'Delivery available' : 'Pickup only'}
-              </span>
-            </label>
           </SectionCard>
 
           {/* Links */}

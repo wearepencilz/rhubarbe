@@ -66,12 +66,14 @@ export async function PUT(
       volumeDescription?: { en: string; fr: string } | null;
       volumeInstructions?: { en: string; fr: string } | null;
       volumeMinOrderQuantity?: number | null;
+      volumeUnitLabel?: string;
     } = {};
 
     if (body.volumeEnabled !== undefined) configFields.volumeEnabled = body.volumeEnabled;
     if (body.volumeDescription !== undefined) configFields.volumeDescription = body.volumeDescription;
     if (body.volumeInstructions !== undefined) configFields.volumeInstructions = body.volumeInstructions;
     if (body.volumeMinOrderQuantity !== undefined) configFields.volumeMinOrderQuantity = body.volumeMinOrderQuantity;
+    if (body.volumeUnitLabel !== undefined) configFields.volumeUnitLabel = body.volumeUnitLabel;
 
     if (Object.keys(configFields).length > 0) {
       await volumeProductQueries.updateVolumeConfig(params.id, configFields);

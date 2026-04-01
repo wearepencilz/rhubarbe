@@ -101,7 +101,7 @@ export async function getCakeLeadTimeTiers(productId: string) {
  */
 export async function setCakeLeadTimeTiers(
   productId: string,
-  tiers: { minPeople: number; leadTimeDays: number }[],
+  tiers: { minPeople: number; leadTimeDays: number; deliveryOnly?: boolean }[],
 ) {
   // Validate ascending minPeople order
   for (let i = 1; i < tiers.length; i++) {
@@ -125,6 +125,7 @@ export async function setCakeLeadTimeTiers(
       productId,
       minPeople: tier.minPeople,
       leadTimeDays: tier.leadTimeDays,
+      deliveryOnly: tier.deliveryOnly ?? false,
     }));
 
     return tx.insert(cakeLeadTimeTiers).values(rows).returning();

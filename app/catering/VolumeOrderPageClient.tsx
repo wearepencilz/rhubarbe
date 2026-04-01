@@ -42,6 +42,7 @@ interface VolumeProduct {
   variants: VolumeVariant[];
   pickupOnly: boolean;
   servesPerUnit: number | null;
+  volumeUnitLabel: 'quantity' | 'people';
 }
 
 function tr(field: TranslationObject | null | undefined, locale: string): string {
@@ -91,6 +92,7 @@ interface CartGroup {
   shopifyProductId: string | null;
   basePrice: number;
   allergens: string[];
+  volumeUnitLabel: 'quantity' | 'people';
   variants: Array<{ variantId: string; variantLabel: string; quantity: number; shopifyVariantId: string; price: number }>;
   totalQty: number;
   totalPrice: number;
@@ -130,7 +132,10 @@ function VolumeProductCard({
   if (product.servesPerUnit) {
     metaPills.push(isFr ? `${product.servesPerUnit} portions/u` : `serves ${product.servesPerUnit}`);
   }
-  if (minQty > 1) metaPills.push(`min ${minQty}`);
+  const unitLabel = product.volumeUnitLabel === 'people'
+    ? (isFr ? 'pers.' : 'people')
+    : '';
+  if (minQty > 1) metaPills.push(`min ${minQty}${unitLabel ? ` ${unitLabel}` : ''}`);
   if (product.pickupOnly) metaPills.push(isFr ? 'cueillette seul.' : 'pickup only');
 
   return (
@@ -179,7 +184,7 @@ function VolumeProductCard({
                   </span>
                 ))}
               </div>
-              {totalQty > 0 && (
+              {totalQty >= minQty && totalQty > 0 && (
                 <p className="text-[10px] text-gray-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                   {isFr
                     ? `Votre d\u00e9lai actuel : ${currentLeadDays} jour${currentLeadDays > 1 ? 's' : ''}`
@@ -190,7 +195,9 @@ function VolumeProductCard({
           )}
           {belowMin && (
             <p className="text-[11px] text-red-500 mt-1" role="alert">
-              {isFr ? `Minimum: ${minQty} (actuel : ${totalQty})` : `Minimum: ${minQty} (current: ${totalQty})`}
+              {product.volumeUnitLabel === 'people'
+                ? (isFr ? `Minimum: ${minQty} pers. (actuel : ${totalQty})` : `Minimum: ${minQty} people (current: ${totalQty})`)
+                : (isFr ? `Minimum: ${minQty} (actuel : ${totalQty})` : `Minimum: ${minQty} (current: ${totalQty})`)}
             </p>
           )}
         </div>
@@ -212,16 +219,16 @@ function VolumeProductCard({
                   <button type="button"
                     onClick={() => handleVariantQtyChange(v.id, Math.max(0, qty - 1))}
                     className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-sm leading-none"
-                    aria-label={`Decrease ${tr(v.label, locale)} quantity`}>&minus;</button>
+                    aria-label={`Decrease ${tr(v.label, locale)} ${product.volumeUnitLabel === 'people' ? 'people' : 'quantity'}`}>&minus;</button>
                   <input id={`qty-${v.id}`} type="number" min={0} inputMode="numeric"
                     value={qty || ''} placeholder="0"
                     onChange={(e) => handleVariantQtyChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
                     className="w-10 h-7 text-xs text-center border-y border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    aria-label={`${tr(v.label, locale)} quantity`} />
+                    aria-label={`${tr(v.label, locale)} ${product.volumeUnitLabel === 'people' ? 'people' : 'quantity'}`} />
                   <button type="button"
                     onClick={() => handleVariantQtyChange(v.id, qty + 1)}
                     className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-sm leading-none"
-                    aria-label={`Increase ${tr(v.label, locale)} quantity`}>+</button>
+                    aria-label={`Increase ${tr(v.label, locale)} ${product.volumeUnitLabel === 'people' ? 'people' : 'quantity'}`}>+</button>
                 </div>
               </div>
             );
@@ -229,7 +236,7 @@ function VolumeProductCard({
         ) : (
           <div className="flex items-center gap-2">
             <label htmlFor={`qty-${product.id}`} className="text-xs text-gray-600 flex-1"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>{V.quantity}</label>
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}>{product.volumeUnitLabel === 'people' ? (isFr ? 'Personnes' : 'People') : V.quantity}</label>
             {product.price != null && product.price > 0 && (
               <span className="text-xs text-gray-400 shrink-0 tabular-nums"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(product.price / 100).toFixed(2)}</span>
@@ -333,7 +340,7 @@ function VolumeInlineCart({
                           style={{ fontFamily: 'var(--font-diatype-mono)' }}>{v.variantLabel}</span>
                         <span className="text-[11px] text-gray-500 whitespace-nowrap shrink-0"
                           style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                          {v.quantity} {'\u00d7'} ${(v.price / 100).toFixed(2)}
+                          {v.quantity} {group.volumeUnitLabel === 'people' ? (isFr ? 'pers.' : 'ppl') : '\u00d7'} ${(v.price / 100).toFixed(2)}
                         </span>
                       </div>
                     ))}
@@ -341,9 +348,9 @@ function VolumeInlineCart({
                 ) : (
                   <p className="text-xs text-gray-400 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                     {group.variants[0]?.variantLabel
-                      ? `${group.variants[0].variantLabel} \u2014 \u00d7${group.totalQty}`
-                      : `\u00d7${group.totalQty}`}
-                    {group.variants[0]?.price > 0 && ` @ ${(group.variants[0].price / 100).toFixed(2)}`}
+                      ? `${group.variants[0].variantLabel} \u2014 ${group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}`
+                      : group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}
+                    {group.variants[0]?.price > 0 && ` @ $${(group.variants[0].price / 100).toFixed(2)}`}
                   </p>
                 )}
                 <button type="button" onClick={() => onRemoveProduct(group.productId)}
@@ -537,7 +544,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
         if (qty > 0) variants.push({ variantId: product.id, variantLabel: '', quantity: qty, shopifyVariantId: '', price: product.price ?? 0 });
       }
       if (variants.length > 0) {
-        groups.push({ productId: product.id, productName: product.name, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
+        groups.push({ productId: product.id, productName: product.name, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: product.volumeUnitLabel ?? 'quantity', variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
       }
     }
     return groups;

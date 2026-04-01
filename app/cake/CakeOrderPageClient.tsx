@@ -22,6 +22,7 @@ interface TranslationObject {
 interface LeadTimeTier {
   minPeople: number;
   leadTimeDays: number;
+  deliveryOnly: boolean;
 }
 
 interface PricingTier {
@@ -46,7 +47,6 @@ interface CakeProduct {
   leadTimeTiers: LeadTimeTier[];
   pricingTiers: PricingTier[];
   serves: string | null;
-  cakeDeliveryAvailable: boolean;
 }
 
 // ── Helpers ──
@@ -62,6 +62,13 @@ function getLeadTimeDays(tiers: LeadTimeTier[], numberOfPeople: number): number 
     .filter((t) => t.minPeople <= numberOfPeople)
     .sort((a, b) => b.minPeople - a.minPeople);
   return applicable[0]?.leadTimeDays ?? 0;
+}
+
+function getActiveLeadTimeTier(tiers: LeadTimeTier[], numberOfPeople: number): LeadTimeTier | null {
+  const applicable = tiers
+    .filter((t) => t.minPeople <= numberOfPeople)
+    .sort((a, b) => b.minPeople - a.minPeople);
+  return applicable[0] ?? null;
 }
 
 function getPriceFromTiers(tiers: PricingTier[], numberOfPeople: number): PricingTier | null {
@@ -194,42 +201,6 @@ function CakeProductCard({
             ))}
           </div>
         )}
-
-        {/* Pricing tiers preview */}
-        {product.pricingTiers.length > 0 && (
-          <div className="mt-2">
-            <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-0.5"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {C.pricingTitle}
-            </p>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-              {product.pricingTiers
-                .slice()
-                .sort((a, b) => a.minPeople - b.minPeople)
-                .map((tier, i) => {
-                  const isActive = activeTier && tier.minPeople === activeTier.minPeople && tier.priceInCents === activeTier.priceInCents;
-                  return (
-                    <span key={i} className={`text-[10px] tracking-wide ${
-                      isActive
-                        ? 'bg-[#333112]/10 text-gray-900 font-medium rounded px-1'
-                        : 'text-gray-500'
-                    }`}
-                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                      {tier.minPeople}+ → ${(tier.priceInCents / 100).toFixed(0)}
-                    </span>
-                  );
-                })}
-            </div>
-          </div>
-        )}
-
-        {/* Min people — derived from first pricing tier */}
-        {product.pricingTiers.length > 0 && (
-          <p className="text-[11px] uppercase tracking-wider text-gray-400 mt-1"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-            {C.minimum}: {product.pricingTiers[0].minPeople} {C.numberOfPeopleShort}
-          </p>
-        )}
       </div>
     </button>
   );
@@ -245,7 +216,7 @@ function CakeInlineCart({
   onDateChange, onNumberOfPeopleChange, onEventTypeChange, onSpecialInstructionsChange,
   onFulfillmentTypeChange, onDeliveryAddressChange,
   onCheckout, onRemove, checkoutLoading, checkoutError,
-  locale, belowMin, C,
+  locale, belowMin, isDeliveryOnly, C,
 }: {
   selectedProduct: CakeProduct | null;
   numberOfPeople: number;
@@ -270,11 +241,17 @@ function CakeInlineCart({
   checkoutError: string | null;
   locale: string;
   belowMin: boolean;
+  isDeliveryOnly: boolean;
   C: Record<string, any>;
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
-  const deliveryUnavailable = fulfillmentType === 'delivery' && selectedProduct != null && !selectedProduct.cakeDeliveryAvailable;
+  const [headcountTouched, setHeadcountTouched] = useState(false);
+
+  const minPeople = selectedProduct?.pricingTiers?.length
+    ? selectedProduct.pricingTiers.slice().sort((a, b) => a.minPeople - b.minPeople)[0].minPeople
+    : 1;
+  const headcountValid = numberOfPeople >= minPeople;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
@@ -291,167 +268,137 @@ function CakeInlineCart({
           <p className="text-xs text-gray-300 mt-1">{C.startHint}</p>
         </div>
       ) : (
-        <>
-          {/* Selected product */}
-          <div className="px-5 py-3 border-b border-gray-100">
+        <div className="px-5 py-4 space-y-4">
+          {/* 1. Cake name + remove */}
+          <div>
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium text-gray-900">{selectedProduct.name}</p>
-            </div>
-            <button onClick={onRemove}
-              className="text-[11px] text-gray-400 underline hover:text-red-500 mt-1"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {isFr ? 'retirer' : 'remove'}
-            </button>
-            {calculatedPrice != null && (
-              <p className="text-sm text-gray-900 font-medium mt-1"
+              <button onClick={onRemove}
+                className="text-[11px] text-gray-400 underline hover:text-red-500 shrink-0"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                ${(calculatedPrice / 100).toFixed(2)}
+                {isFr ? 'retirer' : 'remove'}
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Headcount input → resolved price */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 uppercase tracking-wide">
+              {C.numberOfPeople}
+            </label>
+            <input type="number" min={1}
+              value={numberOfPeople || ''}
+              placeholder=""
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') { onNumberOfPeopleChange(0); return; }
+                onNumberOfPeopleChange(Math.max(0, Math.floor(Number(raw) || 0)));
+              }}
+              onBlur={() => {
+                setHeadcountTouched(true);
+                if (numberOfPeople < 1) onNumberOfPeopleChange(1);
+              }}
+              className={`w-full px-3 py-2 text-sm border rounded focus:outline-none transition-colors bg-transparent ${
+                headcountTouched && belowMin ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'
+              }`}
+              aria-label={C.numberOfPeople} />
+            {headcountTouched && belowMin && (
+              <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                {isFr ? `Minimum ${minPeople} personnes` : `Minimum ${minPeople} people`}
               </p>
-            )}
-            {calculatedPrice == null && selectedProduct.pricingTiers.length === 0 && (
-              <p className="text-xs text-gray-400 mt-1">{C.noPricing}</p>
             )}
           </div>
 
-          {/* Allergen summary */}
-          {selectedProduct.allergens && selectedProduct.allergens.length > 0 && (
-            <div className="px-5 py-3 border-b border-gray-100">
-              <div className="rounded-md bg-amber-50 ring-1 ring-amber-200/60 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-widest text-amber-600 mb-1.5"
+          {/* Resolved price or minimum message */}
+          {calculatedPrice != null ? (
+            <div className="flex justify-between text-sm font-semibold">
+              <span>{numberOfPeople} {C.numberOfPeopleShort}</span>
+              <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                ${(calculatedPrice / 100).toFixed(2)}
+              </span>
+            </div>
+          ) : belowMin ? null : (
+            selectedProduct.pricingTiers.length === 0
+              ? <p className="text-xs text-gray-400">{C.noPricing}</p>
+              : null
+          )}
+          <p className="text-[11px] text-gray-400">{C.taxNote}</p>
+
+          {/* 3. Fulfillment toggle → address if delivery */}
+          <hr className="border-gray-200" />
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
+              {isFr ? 'Cueillette / Livraison' : 'Fulfillment'}
+            </p>
+            <div className="flex rounded overflow-hidden border border-gray-300">
+              {(['pickup', 'delivery'] as const).map((type) => (
+                <button key={type} type="button"
+                  onClick={() => onFulfillmentTypeChange(type)}
+                  disabled={type === 'pickup' && isDeliveryOnly}
+                  className={`flex-1 py-2 text-xs uppercase tracking-widest transition-colors ${
+                    fulfillmentType === type ? 'bg-[#333112] text-white'
+                      : type === 'pickup' && isDeliveryOnly ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
                   style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                  {isFr ? 'Contient' : 'Contains'}
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {selectedProduct.allergens.map((a) => (
-                    <span key={a}
-                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-white text-amber-700 ring-1 ring-amber-200/60"
-                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                      {a}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                  {type === 'pickup' ? (isFr ? 'Cueillette' : 'Pickup') : (isFr ? 'Livraison' : 'Delivery')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {fulfillmentType === 'delivery' && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500 uppercase tracking-wide">
+                {isFr ? 'Adresse de livraison' : 'Delivery address'}
+              </label>
+              <textarea value={deliveryAddress}
+                onChange={(e) => onDeliveryAddressChange(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
+                placeholder={isFr ? 'Entrez l\'adresse de livraison' : 'Enter delivery address'} />
             </div>
           )}
 
-          {/* Footer */}
-          <div className="px-5 py-4 space-y-4">
-            {/* Number of People */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 uppercase tracking-wide">
-                {C.numberOfPeople}
-              </label>
-              <input type="number" min={1}
-                value={numberOfPeople || ''}
-                placeholder=""
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === '') { onNumberOfPeopleChange(0); return; }
-                  onNumberOfPeopleChange(Math.max(0, Math.floor(Number(raw) || 0)));
-                }}
-                onBlur={() => { if (numberOfPeople < 1) onNumberOfPeopleChange(1); }}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors bg-transparent"
-                aria-label={C.numberOfPeople} />
-            </div>
+          {/* 4. Event date */}
+          <div>
+            <DatePickerField
+              label={C.date}
+              value={toDateValue(pickupDate)}
+              minValue={minDateValue ?? today(getLocalTimeZone())}
+              onChange={(val: DateValue | null) => {
+                if (val) {
+                  const y = val.year;
+                  const m = String(val.month).padStart(2, '0');
+                  const d = String(val.day).padStart(2, '0');
+                  onDateChange(`${y}-${m}-${d}`);
+                } else {
+                  onDateChange('');
+                }
+              }}
+            />
+          </div>
+          {maxLeadTimeDays > 0 && (
+            <p className="text-[11px] text-gray-400 -mt-2"
+              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              {C.earliest}{' '}
+              <span className="text-gray-600">{formatDateHuman(earliestDateStr, locale)}</span>
+              {' '}({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
+            </p>
+          )}
+          {dateWarning && (
+            <p className="text-[11px] text-red-500 -mt-2" role="alert">{dateWarning}</p>
+          )}
+          {pickupDate && !dateWarning && (
+            <p className="text-xs text-gray-600 font-medium -mt-2">
+              {fulfillmentType === 'pickup'
+                ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(pickupDate, locale)}`
+                : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(pickupDate, locale)}`}
+            </p>
+          )}
 
-            {/* Dynamic price display */}
-            {calculatedPrice != null && (
-              <div className="flex justify-between text-sm font-semibold">
-                <span>{C.estTotal}</span>
-                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                  ${(calculatedPrice / 100).toFixed(2)}
-                </span>
-              </div>
-            )}
-            <p className="text-[11px] text-gray-400">{C.taxNote}</p>
-
-            <hr className="border-gray-200" />
-
-            {/* Pickup / Delivery toggle */}
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
-                {isFr ? 'Cueillette / Livraison' : 'Fulfillment'}
-              </p>
-              <div className="flex rounded overflow-hidden border border-gray-300">
-                {(['pickup', 'delivery'] as const).map((type) => (
-                  <button key={type} type="button"
-                    onClick={() => onFulfillmentTypeChange(type)}
-                    className={`flex-1 py-2 text-xs uppercase tracking-widest transition-colors ${
-                      fulfillmentType === type
-                        ? 'bg-[#333112] text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {type === 'pickup' ? (isFr ? 'Cueillette' : 'Pickup') : (isFr ? 'Livraison' : 'Delivery')}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Delivery unavailable warning */}
-            {deliveryUnavailable && (
-              <p className="text-xs text-red-600" role="alert">
-                {isFr
-                  ? "La livraison n'est pas disponible pour ce gâteau."
-                  : 'Delivery is not available for this cake.'}
-              </p>
-            )}
-
-            {/* Delivery address */}
-            {fulfillmentType === 'delivery' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase tracking-wide">
-                  {isFr ? 'Adresse de livraison' : 'Delivery address'}
-                </label>
-                <textarea value={deliveryAddress}
-                  onChange={(e) => onDeliveryAddressChange(e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
-                  placeholder={isFr ? 'Entrez l\'adresse de livraison' : 'Enter delivery address'} />
-              </div>
-            )}
-
-            {/* Date */}
-            <div>
-              <DatePickerField
-                label={C.date}
-                value={toDateValue(pickupDate)}
-                minValue={minDateValue ?? today(getLocalTimeZone())}
-                onChange={(val: DateValue | null) => {
-                  if (val) {
-                    const y = val.year;
-                    const m = String(val.month).padStart(2, '0');
-                    const d = String(val.day).padStart(2, '0');
-                    onDateChange(`${y}-${m}-${d}`);
-                  } else {
-                    onDateChange('');
-                  }
-                }}
-              />
-            </div>
-            {/* Dynamic earliest date helper */}
-            {maxLeadTimeDays > 0 && (
-              <p className="text-[11px] text-gray-400 -mt-2"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {C.earliest}{' '}
-                <span className="text-gray-600">{formatDateHuman(earliestDateStr, locale)}</span>
-                {' '}({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
-              </p>
-            )}
-            {dateWarning && (
-              <p className="text-[11px] text-red-500 -mt-2" role="alert">{dateWarning}</p>
-            )}
-
-            {/* Date confirmation line */}
-            {pickupDate && !dateWarning && (
-              <p className="text-xs text-gray-600 font-medium -mt-2">
-                {fulfillmentType === 'pickup'
-                  ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(pickupDate, locale)}`
-                  : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(pickupDate, locale)}`}
-              </p>
-            )}
-
-            {/* Event Type */}
+          {/* 5. Event type — only after valid headcount */}
+          {headcountValid && (
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 uppercase tracking-wide">
                 {C.eventType}
@@ -467,39 +414,39 @@ function CakeInlineCart({
                 <option value="other">{C.eventOptions.other}</option>
               </select>
             </div>
+          )}
 
-            {/* Special Instructions */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 uppercase tracking-wide">
-                {C.specialInstructions}
-              </label>
-              <textarea value={specialInstructions}
-                onChange={(e) => onSpecialInstructionsChange(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
-                placeholder={C.specialInstructionsPlaceholder} />
-            </div>
-
-            {belowMin && (
-              <p className="text-xs text-amber-600">{C.minWarning}</p>
-            )}
-
-            {!pickupDate && selectedProduct && (
-              <p className="text-xs text-amber-600">{C.noDateError}</p>
-            )}
-
-            {checkoutError && (
-              <p className="text-xs text-red-600">{checkoutError}</p>
-            )}
-
-            <button onClick={onCheckout}
-              disabled={checkoutLoading || !pickupDate || !!dateWarning || belowMin || calculatedPrice == null || deliveryUnavailable}
-              className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {checkoutLoading ? C.loading : C.checkout}
-            </button>
+          {/* 6. Notes */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 uppercase tracking-wide">
+              {C.specialInstructions}
+            </label>
+            <textarea value={specialInstructions}
+              onChange={(e) => onSpecialInstructionsChange(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
+              placeholder={C.specialInstructionsPlaceholder} />
           </div>
-        </>
+
+          {/* Errors */}
+          {!pickupDate && (
+            <p className="text-xs text-amber-600">{C.noDateError}</p>
+          )}
+          {checkoutError && (
+            <p className="text-xs text-red-600">{checkoutError}</p>
+          )}
+
+          {/* 7. Checkout */}
+          <button onClick={() => {
+            setHeadcountTouched(true);
+            onCheckout();
+          }}
+            disabled={checkoutLoading || !pickupDate || !!dateWarning || belowMin || calculatedPrice == null}
+            className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+            {checkoutLoading ? C.loading : C.checkout}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -562,10 +509,11 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const calculatedPrice = matchedTier?.priceInCents ?? null;
 
   // Lead time based on selected product and number of people
-  const { maxLeadTimeDays, earliestDateStr } = useMemo(() => {
-    if (!selectedProduct) return { maxLeadTimeDays: 0, earliestDateStr: toDateString(new Date()) };
-    const days = getLeadTimeDays(selectedProduct.leadTimeTiers, numberOfPeople);
-    return { maxLeadTimeDays: days, earliestDateStr: toDateString(getEarliestDate(days)) };
+  const { maxLeadTimeDays, earliestDateStr, isDeliveryOnly } = useMemo(() => {
+    if (!selectedProduct) return { maxLeadTimeDays: 0, earliestDateStr: toDateString(new Date()), isDeliveryOnly: false };
+    const activeTierLT = getActiveLeadTimeTier(selectedProduct.leadTimeTiers, numberOfPeople);
+    const days = activeTierLT?.leadTimeDays ?? 0;
+    return { maxLeadTimeDays: days, earliestDateStr: toDateString(getEarliestDate(days)), isDeliveryOnly: activeTierLT?.deliveryOnly ?? false };
   }, [selectedProduct, numberOfPeople]);
 
   // Validate date against lead time
@@ -588,6 +536,13 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       setPickupDate('');
     }
   }, [earliestDateStr]);
+
+  // Force delivery when active tier is delivery only
+  useEffect(() => {
+    if (isDeliveryOnly && fulfillmentType !== 'delivery') {
+      setFulfillmentType('delivery');
+    }
+  }, [isDeliveryOnly]);
 
   const belowMin = useMemo(() => {
     if (!selectedProduct || selectedProduct.pricingTiers.length === 0) return false;
@@ -727,6 +682,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
             checkoutError={checkoutError}
             locale={locale}
             belowMin={belowMin}
+            isDeliveryOnly={isDeliveryOnly}
             C={C}
           />
         </div>
@@ -758,6 +714,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           checkoutError={checkoutError}
           locale={locale}
           belowMin={belowMin}
+          isDeliveryOnly={isDeliveryOnly}
           C={C}
         />
       </MobileCartModal>

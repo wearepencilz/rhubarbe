@@ -70,6 +70,7 @@ export const products = pgTable('products', {
   volumeDescription: customJsonb<{ en: string; fr: string }>('volume_description'),
   volumeInstructions: customJsonb<{ en: string; fr: string }>('volume_instructions'),
   volumeMinOrderQuantity: integer('volume_min_order_quantity'),
+  volumeUnitLabel: text('volume_unit_label').notNull().default('quantity'), // 'quantity' | 'people'
 
   // Cake sales fields
   cakeEnabled: boolean('cake_enabled').notNull().default(false),
@@ -114,6 +115,7 @@ export const cakeLeadTimeTiers = pgTable('cake_lead_time_tiers', {
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
   minPeople: integer('min_people').notNull(),
   leadTimeDays: integer('lead_time_days').notNull(),
+  deliveryOnly: boolean('delivery_only').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('cake_lead_time_tiers_product_id_idx').on(table.productId),

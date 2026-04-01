@@ -31,6 +31,7 @@ export async function GET() {
         variants: products.variants,
         pickupOnly: products.pickupOnly,
         servesPerUnit: products.servesPerUnit,
+        volumeUnitLabel: products.volumeUnitLabel,
       })
       .from(products)
       .where(
@@ -74,6 +75,9 @@ export async function GET() {
       shopifyVariantId: string | null;
       image: string | null;
     }>>();
+
+    // Capture price from "Default Title" single-variant products
+    const defaultVariantPriceByGid = new Map<string, number>();
 
     if (shopifyIds.length > 0) {
       try {
@@ -121,8 +125,18 @@ export async function GET() {
             const taxOption = v.selectedOptions?.find((o: any) => isTaxOption(o.name));
             if (hasTaxOption && taxOption?.value !== 'true') continue;
 
-            // Skip "Default Title" single-variant products
-            if (v.title === 'Default Title') continue;
+            // Skip "Default Title" single-variant products but capture their price
+            if (v.title === 'Default Title') {
+              if (v.price?.amount) {
+                defaultVariantPriceByGid.set(node.id, Math.round(parseFloat(v.price.amount) * 100));
+              }
+              continue;
+            }
+
+            // Also capture first variant price as fallback for product price
+            if (!defaultVariantPriceByGid.has(node.id) && v.price?.amount) {
+              defaultVariantPriceByGid.set(node.id, Math.round(parseFloat(v.price.amount) * 100));
+            }
 
             const optionLabel = v.selectedOptions
               ?.filter((o: any) => !isTaxOption(o.name) && o.name !== 'Title')
@@ -168,12 +182,16 @@ export async function GET() {
         productVariants = [];
       }
 
+      // Use Shopify variant price if CMS price is missing or zero
+      const shopifyDefaultPrice = p.shopifyProductId ? defaultVariantPriceByGid.get(p.shopifyProductId) : undefined;
+      const resolvedPrice = (p.price && p.price > 0) ? p.price : (shopifyDefaultPrice ?? null);
+
       return {
         id: p.id,
         name: p.name,
         slug: p.slug,
         image: p.image ?? null,
-        price: p.price ?? null,
+        price: resolvedPrice,
         shopifyProductId: p.shopifyProductId ?? null,
         volumeDescription: p.volumeDescription ?? { en: '', fr: '' },
         volumeInstructions: p.volumeInstructions ?? { en: '', fr: '' },
@@ -182,6 +200,7 @@ export async function GET() {
         allergens: p.allergens ?? [],
         pickupOnly: p.pickupOnly ?? false,
         servesPerUnit: p.servesPerUnit ?? null,
+        volumeUnitLabel: p.volumeUnitLabel ?? 'quantity',
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         variants: productVariants,
       };

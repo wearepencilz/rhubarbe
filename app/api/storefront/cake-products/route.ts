@@ -50,6 +50,7 @@ export async function GET() {
             productId: cakeLeadTimeTiers.productId,
             minPeople: cakeLeadTimeTiers.minPeople,
             leadTimeDays: cakeLeadTimeTiers.leadTimeDays,
+            deliveryOnly: cakeLeadTimeTiers.deliveryOnly,
           })
           .from(cakeLeadTimeTiers)
           .where(sql`${cakeLeadTimeTiers.productId} IN ${productIds}`)
@@ -57,10 +58,10 @@ export async function GET() {
       : [];
 
     // Group tiers by productId
-    const tiersByProduct = new Map<string, Array<{ minPeople: number; leadTimeDays: number }>>();
+    const tiersByProduct = new Map<string, Array<{ minPeople: number; leadTimeDays: number; deliveryOnly: boolean }>>();
     for (const tier of allTiers) {
       const list = tiersByProduct.get(tier.productId) ?? [];
-      list.push({ minPeople: tier.minPeople, leadTimeDays: tier.leadTimeDays });
+      list.push({ minPeople: tier.minPeople, leadTimeDays: tier.leadTimeDays, deliveryOnly: tier.deliveryOnly });
       tiersByProduct.set(tier.productId, list);
     }
 

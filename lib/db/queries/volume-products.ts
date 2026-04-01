@@ -69,6 +69,7 @@ export async function updateVolumeConfig(
     volumeDescription?: { en: string; fr: string } | null;
     volumeInstructions?: { en: string; fr: string } | null;
     volumeMinOrderQuantity?: number | null;
+    volumeUnitLabel?: string;
   },
 ) {
   const [updated] = await db

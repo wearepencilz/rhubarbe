@@ -7,6 +7,7 @@ import type { CartItemUnion, CakeCartItem, FulfillmentState } from '../types';
 interface LeadTimeTier {
   minPeople: number;
   leadTimeDays: number;
+  deliveryOnly: boolean;
 }
 
 /**
@@ -32,15 +33,15 @@ export const cakeOrderConfig: OrderTypeConfig = {
   // Checkout API endpoint
   checkoutEndpoint: '/api/checkout/cake',
 
-  // Delivery is disabled when any cart item has cakeDeliveryAvailable set to false
-  isDeliveryDisabled: (cartItems: CartItemUnion[]): boolean => {
-    return cartItems.some((item) => (item as any).cakeDeliveryAvailable === false);
+  // Delivery is now always available — per-tier deliveryOnly controls fulfillment mode on the client
+  isDeliveryDisabled: (_cartItems: CartItemUnion[]): boolean => {
+    return false;
   },
 
   deliveryDisabledReason: (locale: string): string =>
     locale === 'fr'
-      ? 'Cueillette seulement'
-      : 'Pickup only',
+      ? 'Livraison seulement'
+      : 'Delivery only',
 
   // Compute the earliest fulfillment date based on the first cart item's lead time tiers and numberOfPeople
   getEarliestDate: (cartItems: CartItemUnion[]): Date => {

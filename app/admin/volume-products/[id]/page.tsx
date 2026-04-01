@@ -25,6 +25,7 @@ interface VolumeProduct {
   volumeDescription: { en: string; fr: string } | null;
   volumeInstructions: { en: string; fr: string } | null;
   volumeMinOrderQuantity: number | null;
+  volumeUnitLabel: 'quantity' | 'people';
   shopifyProductId: string | null;
   shopifyProductHandle: string | null;
   leadTimeTiers: LeadTimeTier[];
@@ -82,6 +83,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const [instructionsFr, setInstructionsFr] = useState('');
   const [tiers, setTiers] = useState<LeadTimeTier[]>([]);
   const [tierErrors, setTierErrors] = useState<string | null>(null);
+  const [volumeUnitLabel, setVolumeUnitLabel] = useState<'quantity' | 'people'>('quantity');
   const [volumeVariants, setVolumeVariantsState] = useState<Array<{
     label: { en: string; fr: string };
     shopifyVariantId?: string | null;
@@ -110,6 +112,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setInstructionsEn(data.volumeInstructions?.en ?? '');
       setInstructionsFr(data.volumeInstructions?.fr ?? '');
       setTiers(data.leadTimeTiers.map((t) => ({ minQuantity: t.minQuantity, leadTimeDays: t.leadTimeDays })));
+      setVolumeUnitLabel(data.volumeUnitLabel ?? 'quantity');
       setVolumeVariantsState(
         (data.volumeVariants || []).map((v) => ({
           label: v.label || { en: '', fr: '' },
@@ -233,6 +236,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           ? { en: instructionsEn, fr: instructionsFr }
           : null,
         volumeMinOrderQuantity: tiers.length > 0 ? tiers[0].minQuantity : null,
+        volumeUnitLabel,
         leadTimeTiers: tiers,
         volumeVariants: volumeVariants.map((v, idx) => ({
           label: v.label,
@@ -507,6 +511,31 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
                 </span>
               </div>
             )}
+          </SectionCard>
+
+          {/* Unit label */}
+          <SectionCard title="Unit Label" description="How quantities are displayed to customers.">
+            <div className="flex gap-2">
+              {(['quantity', 'people'] as const).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => { setVolumeUnitLabel(opt); markDirty(); }}
+                  className={`flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-colors ${
+                    volumeUnitLabel === opt
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {opt === 'quantity' ? 'Quantity' : 'People'}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {volumeUnitLabel === 'people'
+                ? 'Card and summary will show "people" instead of quantity.'
+                : 'Standard quantity display.'}
+            </p>
           </SectionCard>
 
           {/* Links */}
