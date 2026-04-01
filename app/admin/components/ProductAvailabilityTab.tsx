@@ -4,7 +4,6 @@ import { Input } from '@/app/admin/components/ui/input';
 
 interface AvailabilityData {
   pickupOnly: boolean;
-  defaultPickupRequired: boolean;
   defaultMinQuantity: number;
   defaultQuantityStep: number;
   defaultMaxQuantity: number | null;
@@ -28,15 +27,6 @@ export default function ProductAvailabilityTab({ productId, data, onChange }: Pr
             className="rounded border-gray-300"
           />
           Pickup only
-        </label>
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={data.defaultPickupRequired}
-            onChange={(e) => onChange({ defaultPickupRequired: e.target.checked })}
-            className="rounded border-gray-300"
-          />
-          Pickup required
         </label>
       </div>
 

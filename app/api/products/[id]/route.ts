@@ -95,7 +95,31 @@ export async function PUT(
     delete productFields.id;
     delete productFields.createdAt;
 
-    const saved = await productQueries.update(params.id, productFields);
+    // Strip fields that don't exist in the products table to prevent Drizzle errors
+    const allowedFields = new Set([
+      'name', 'slug', 'shopifyProductId', 'shopifyProductHandle',
+      'legacyId', 'title', 'description', 'category', 'price', 'currency',
+      'image', 'serves', 'shortCardCopy', 'tastingNotes', 'status',
+      'allergens', 'tags', 'keyNotes', 'variants', 'translations',
+      'inventoryTracked', 'availabilityMode', 'dateSelectionType',
+      'slotSelectionType', 'variantType',
+      'syncStatus', 'lastSyncedAt', 'syncError',
+      'defaultMinQuantity', 'defaultQuantityStep', 'defaultMaxQuantity',
+      'defaultPickupRequired', 'onlineOrderable', 'pickupOnly',
+      'volumeEnabled', 'volumeDescription', 'volumeInstructions', 'volumeMinOrderQuantity',
+      'cakeEnabled', 'cakeDescription', 'cakeInstructions', 'cakeMinPeople',
+      'nextAvailableDate', 'servesPerUnit', 'cakeFlavourNotes', 'cakeDeliveryAvailable',
+      'taxBehavior', 'taxThreshold', 'taxUnitCount', 'shopifyTaxExemptVariantId',
+    ]);
+
+    const cleanFields: Record<string, any> = {};
+    for (const [key, val] of Object.entries(productFields)) {
+      if (allowedFields.has(key)) {
+        cleanFields[key] = val;
+      }
+    }
+
+    const saved = await productQueries.update(params.id, cleanFields);
 
     if (!saved) {
       return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });

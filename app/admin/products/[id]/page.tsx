@@ -11,7 +11,6 @@ import { Button } from '@/app/admin/components/ui/button';
 import { Input } from '@/app/admin/components/ui/input';
 import { Textarea } from '@/app/admin/components/ui/textarea';
 import { Select } from '@/app/admin/components/ui/select';
-import { Checkbox } from '@/app/admin/components/ui/checkbox';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import FlavourIngredientSelector from '@/app/admin/components/FlavourIngredientSelector';
@@ -61,13 +60,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     description: '',
     shortCardCopy: '',
     category: '',
-    price: '',
-    compareAtPrice: '',
     status: 'draft',
     tags: '',
-    inventoryTracked: false,
-    inventoryQuantity: '',
-    onlineOrderable: true,
     pickupOnly: false,
     shopifyProductId: '',
     shopifyProductHandle: '',
@@ -86,7 +80,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     defaultMaxQuantity: '',
     inventoryMode: '',
     capMode: '',
-    defaultPickupRequired: false,
     defaultLocationRestriction: '',
     dateSelectionType: 'none',
     slotSelectionType: 'none',
@@ -145,13 +138,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           description: offeringData.description || '',
           shortCardCopy: offeringData.shortCardCopy || '',
           category: offeringData.category || '',
-          price: offeringData.price ? (offeringData.price / 100).toFixed(2) : '',
-          compareAtPrice: offeringData.compareAtPrice ? (offeringData.compareAtPrice / 100).toFixed(2) : '',
           status: offeringData.status || 'draft',
           tags: (offeringData.tags || []).join(', '),
-          inventoryTracked: offeringData.inventoryTracked || false,
-          inventoryQuantity: offeringData.inventoryQuantity?.toString() || '',
-          onlineOrderable: offeringData.onlineOrderable !== undefined ? offeringData.onlineOrderable : true,
           pickupOnly: offeringData.pickupOnly || false,
           shopifyProductId: offeringData.shopifyProductId || '',
           shopifyProductHandle: offeringData.shopifyProductHandle || '',
@@ -169,7 +157,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           defaultMaxQuantity: offeringData.defaultMaxQuantity != null ? String(offeringData.defaultMaxQuantity) : '',
           inventoryMode: offeringData.inventoryMode || '',
           capMode: offeringData.capMode || '',
-          defaultPickupRequired: offeringData.defaultPickupRequired ?? false,
           defaultLocationRestriction: (offeringData.defaultLocationRestriction || []).join(', '),
           dateSelectionType: offeringData.dateSelectionType || 'none',
           slotSelectionType: offeringData.slotSelectionType || 'none',
@@ -194,21 +181,14 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     setSaving(true);
     setErrors([]);
     try {
-      const price = formData.price ? Math.round(parseFloat(formData.price) * 100) : 0;
-      const compareAtPrice = formData.compareAtPrice ? Math.round(parseFloat(formData.compareAtPrice) * 100) : undefined;
       const payload = {
         title: formData.title,
         slug: formData.slug,
         description: formData.description,
         shortCardCopy: formData.shortCardCopy,
         category: formData.category || undefined,
-        price,
-        compareAtPrice,
         status: formData.status,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-        inventoryTracked: formData.inventoryTracked,
-        inventoryQuantity: formData.inventoryQuantity ? parseInt(formData.inventoryQuantity) : undefined,
-        onlineOrderable: formData.onlineOrderable,
         pickupOnly: formData.pickupOnly,
         shopifyProductId: formData.shopifyProductId || null,
         shopifyProductHandle: formData.shopifyProductHandle || null,
@@ -227,7 +207,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         defaultMaxQuantity: formData.defaultMaxQuantity ? parseInt(formData.defaultMaxQuantity) : undefined,
         inventoryMode: formData.inventoryMode || undefined,
         capMode: formData.capMode || undefined,
-        defaultPickupRequired: formData.defaultPickupRequired,
         defaultLocationRestriction: formData.defaultLocationRestriction
           ? formData.defaultLocationRestriction.split(',').map(s => s.trim()).filter(Boolean)
           : undefined,
@@ -459,12 +438,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 placeholder="Select a category"
               />
               <Input label="Tags (comma-separated)" value={formData.tags} onChange={(v) => setFormData({ ...formData, tags: v })} />
-              <div className="flex items-center gap-6 pt-1">
-                <Checkbox isSelected={formData.inventoryTracked} onChange={(v) => setFormData({ ...formData, inventoryTracked: v })} label="Track inventory" />
-              </div>
-              {formData.inventoryTracked && (
-                <Input label="Inventory quantity" type="number" value={formData.inventoryQuantity} onChange={(v) => setFormData({ ...formData, inventoryQuantity: v })} />
-              )}
             </div>
           </div>
 
@@ -517,15 +490,31 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-sm font-semibold text-gray-900">Image</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Product photo shown on the menu.</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {formData.shopifyProductId ? 'Managed by Shopify. Updates automatically.' : 'Product photo shown on the menu.'}
+              </p>
             </div>
             <div className="px-6 py-6">
-              <ImageUploader
-                value={formData.image}
-                onChange={(url) => setFormData({ ...formData, image: url })}
-                aspectRatio="1:1"
-                label=""
-              />
+              {formData.shopifyProductId ? (
+                formData.image ? (
+                  <img
+                    src={formData.image}
+                    alt={formData.title || 'Product image'}
+                    className="w-full aspect-square object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                    <span className="text-sm text-gray-400">No image</span>
+                  </div>
+                )
+              ) : (
+                <ImageUploader
+                  value={formData.image}
+                  onChange={(url) => setFormData({ ...formData, image: url })}
+                  aspectRatio="1:1"
+                  label=""
+                />
+              )}
             </div>
           </div>
 
@@ -620,7 +609,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                   <ShopifyProductPicker
                     selectedProductId={formData.shopifyProductId}
                     selectedProductHandle={formData.shopifyProductHandle}
-                    onSelect={(product) => setFormData({ ...formData, shopifyProductId: product?.id || '', shopifyProductHandle: product?.handle || '' })}
+                    onSelect={(product) => setFormData({ ...formData, shopifyProductId: product?.id || '', shopifyProductHandle: product?.handle || '', image: product?.featuredImage?.url || formData.image })}
                     onOpenRef={shopifyPickerOpenRef}
                   />
                   <Button variant="secondary" size="sm" className="flex-shrink-0" onClick={() => shopifyPickerOpenRef.current?.()}>Link</Button>
@@ -682,7 +671,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                   defaultMinQuantity: formData.defaultMinQuantity,
                   defaultQuantityStep: formData.defaultQuantityStep,
                   defaultMaxQuantity: formData.defaultMaxQuantity ? parseInt(formData.defaultMaxQuantity) : null,
-                  defaultPickupRequired: formData.defaultPickupRequired,
                   pickupOnly: formData.pickupOnly,
                 }}
                 onChange={(avail) => {

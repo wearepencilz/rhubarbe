@@ -120,6 +120,13 @@
       "when": 1774706333240,
       "tag": "0016_cloudy_christian_walker",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1775050064856,
+      "tag": "0017_soft_mandroid",
+      "breakpoints": true
     }
   ]
 }

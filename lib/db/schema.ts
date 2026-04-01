@@ -41,6 +41,7 @@ export const products = pgTable('products', {
   tags: customJsonb<string[]>('tags'),
   keyNotes: customJsonb<string[]>('key_notes'),
   variants: customJsonb<Record<string, unknown>[]>('variants'),
+  translations: customJsonb<Record<string, Record<string, string>>>('translations'),
 
   // Availability & selection
   inventoryTracked: boolean('inventory_tracked').default(false),

@@ -12,24 +12,17 @@ export default function CreateProductPage() {
   const [errors, setErrors] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
-    internalName: '',
     publicName: '',
     description: '',
     shortCardCopy: '',
     category: '',
-    price: '',
-    compareAtPrice: '',
     status: 'draft',
-    inventoryTracked: false,
-    inventoryQuantity: '',
-    onlineOrderable: true,
     pickupOnly: false,
   });
 
   function validate() {
     const errs: string[] = [];
-    if (!formData.internalName.trim()) errs.push('Internal name is required');
-    if (!formData.publicName.trim()) errs.push('Public name is required');
+    if (!formData.publicName.trim()) errs.push('Product name is required');
     if (!formData.description.trim()) errs.push('Description is required');
     setErrors(errs);
     return errs.length === 0;
@@ -40,23 +33,16 @@ export default function CreateProductPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const price = formData.price ? Math.round(parseFloat(formData.price) * 100) : 0;
-      const compareAtPrice = formData.compareAtPrice ? Math.round(parseFloat(formData.compareAtPrice) * 100) : undefined;
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.internalName,
+          name: formData.publicName,
           title: formData.publicName,
           description: formData.description,
           shortCardCopy: formData.shortCardCopy,
           category: formData.category || undefined,
-          price,
-          compareAtPrice,
           status: formData.status,
-          inventoryTracked: formData.inventoryTracked,
-          inventoryQuantity: formData.inventoryQuantity ? parseInt(formData.inventoryQuantity) : undefined,
-          onlineOrderable: formData.onlineOrderable,
           pickupOnly: formData.pickupOnly,
         }),
       });
@@ -90,21 +76,12 @@ export default function CreateProductPage() {
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Internal Name *</label>
-            <input type="text" value={formData.internalName}
-              onChange={(e) => setFormData({ ...formData, internalName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Admin reference name" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Public Name *</label>
-            <input type="text" value={formData.publicName}
-              onChange={(e) => setFormData({ ...formData, publicName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Customer-facing name" />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
+          <input type="text" value={formData.publicName}
+            onChange={(e) => setFormData({ ...formData, publicName: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Customer-facing name" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
@@ -129,22 +106,6 @@ export default function CreateProductPage() {
           description="Used to group products on the order page"
           placeholder="Select a category"
         />
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-            <input type="number" step="0.01" value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0.00" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Compare At Price ($)</label>
-            <input type="number" step="0.01" value={formData.compareAtPrice}
-              onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0.00" />
-          </div>
-        </div>
         <Select
           label="Status"
           value={formData.status}
@@ -158,25 +119,10 @@ export default function CreateProductPage() {
           ]}
         />
         <div className="flex items-center gap-6 pt-1">
-          <Checkbox isSelected={formData.inventoryTracked}
-            onChange={(v) => setFormData({ ...formData, inventoryTracked: v })}
-            label="Track Inventory" />
-          <Checkbox isSelected={formData.onlineOrderable}
-            onChange={(v) => setFormData({ ...formData, onlineOrderable: v })}
-            label="Online Orderable" />
           <Checkbox isSelected={formData.pickupOnly}
             onChange={(v) => setFormData({ ...formData, pickupOnly: v })}
             label="Pickup Only" />
         </div>
-        {formData.inventoryTracked && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Inventory Quantity</label>
-            <input type="number" value={formData.inventoryQuantity}
-              onChange={(e) => setFormData({ ...formData, inventoryQuantity: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0" />
-          </div>
-        )}
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={() => router.push('/admin/products')}
             className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">

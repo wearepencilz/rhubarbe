@@ -23,12 +23,18 @@ function toLocalDatetime(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** Convert a UTC ISO string to a local date value (YYYY-MM-DD) */
+/** Extract the date portion (YYYY-MM-DD) from an ISO string without timezone conversion */
 function toLocalDate(iso: string): string {
   if (!iso) return '';
+  // If it's already YYYY-MM-DD, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  // Extract date portion from ISO string directly (before the T)
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  // Fallback: parse and use UTC methods to avoid day shift
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
