@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { products, volumeLeadTimeTiers, volumeVariants } from '@/lib/db/schema';
+import { products, volumeLeadTimeTiers } from '@/lib/db/schema';
 import { eq, asc, sql, and } from 'drizzle-orm';
 import { shopifyFetch } from '@/lib/shopify/client';
 import { isTaxOption } from '@/lib/tax/constants';
@@ -62,47 +62,9 @@ export async function GET() {
       tiersByProduct.set(tier.productId, list);
     }
 
-    // Fetch volume variants from the database
-    const allVolumeVariants = productIds.length > 0
-      ? await db
-          .select({
-            id: volumeVariants.id,
-            productId: volumeVariants.productId,
-            label: volumeVariants.label,
-            shopifyVariantId: volumeVariants.shopifyVariantId,
-            active: volumeVariants.active,
-            sortOrder: volumeVariants.sortOrder,
-            description: volumeVariants.description,
-          })
-          .from(volumeVariants)
-          .where(sql`${volumeVariants.productId} IN ${productIds}`)
-          .orderBy(asc(volumeVariants.sortOrder))
-      : [];
-
-    const dbVariantsByProduct = new Map<string, Array<{
-      id: string;
-      label: { en: string; fr: string };
-      shopifyVariantId: string | null;
-      active: boolean;
-      sortOrder: number;
-      description: { en: string; fr: string } | null;
-    }>>();
-    for (const v of allVolumeVariants) {
-      const list = dbVariantsByProduct.get(v.productId) ?? [];
-      list.push({
-        id: v.id,
-        label: v.label as { en: string; fr: string },
-        shopifyVariantId: v.shopifyVariantId,
-        active: v.active,
-        sortOrder: v.sortOrder,
-        description: v.description as { en: string; fr: string } | null,
-      });
-      dbVariantsByProduct.set(v.productId, list);
-    }
-
-    // Fetch Shopify variants for products that need them
+    // Fetch Shopify variants — Shopify is the source of truth for catering variants
     const shopifyIds = volumeProducts
-      .filter((p) => p.shopifyProductId && (!p.variants || (p.variants as any[]).length === 0))
+      .filter((p) => p.shopifyProductId)
       .map((p) => p.shopifyProductId!);
 
     const shopifyVariantsByGid = new Map<string, Array<{
@@ -186,9 +148,7 @@ export async function GET() {
     }
 
     const result = volumeProducts.map((p) => {
-      // Use DB volume variants if available, then CMS variants, then Shopify
-      const dbVars = dbVariantsByProduct.get(p.id) ?? [];
-      const cmsVariants = (p.variants ?? []) as any[];
+      // Shopify is the source of truth for variants
       let productVariants: Array<{
         id: string;
         label: { en: string; fr: string };
@@ -198,30 +158,7 @@ export async function GET() {
         image: string | null;
       }>;
 
-      if (dbVars.length > 0) {
-        productVariants = dbVars
-          .filter((v) => v.active)
-          .map((v) => ({
-            id: v.id,
-            label: v.label,
-            price: null,
-            shopifyVariantId: v.shopifyVariantId,
-            description: v.description ?? null,
-            image: null,
-          }));
-      } else if (cmsVariants.length > 0) {
-        productVariants = cmsVariants.map((v: any) => ({
-          id: v.id || v.label || `${p.id}-${v.sortOrder ?? 0}`,
-          label: {
-            en: v.label || v.name || '',
-            fr: v.labelFr || v.label || v.name || '',
-          },
-          price: v.price ?? null,
-          shopifyVariantId: v.shopifyVariantId ?? null,
-          description: null,
-          image: null,
-        }));
-      } else if (p.shopifyProductId) {
+      if (p.shopifyProductId) {
         const shopifyVars = shopifyVariantsByGid.get(p.shopifyProductId) ?? [];
         productVariants = shopifyVars.map((v) => ({
           ...v,
