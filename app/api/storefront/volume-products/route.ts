@@ -110,6 +110,7 @@ export async function GET() {
       label: { en: string; fr: string };
       price: number | null;
       shopifyVariantId: string | null;
+      image: string | null;
     }>>();
 
     if (shopifyIds.length > 0) {
@@ -126,6 +127,7 @@ export async function GET() {
                       title
                       selectedOptions { name value }
                       price { amount currencyCode }
+                      image { url altText }
                     }
                   }
                 }
@@ -147,6 +149,7 @@ export async function GET() {
             label: { en: string; fr: string };
             price: number | null;
             shopifyVariantId: string | null;
+            image: string | null;
           }> = [];
 
           for (const edge of node.variants.edges) {
@@ -169,6 +172,7 @@ export async function GET() {
               label: { en: optionLabel, fr: optionLabel },
               price: v.price?.amount ? Math.round(parseFloat(v.price.amount) * 100) : null,
               shopifyVariantId: v.id,
+              image: v.image?.url ?? null,
             });
           }
 
@@ -191,6 +195,7 @@ export async function GET() {
         price: number | null;
         shopifyVariantId: string | null;
         description: { en: string; fr: string } | null;
+        image: string | null;
       }>;
 
       if (dbVars.length > 0) {
@@ -202,6 +207,7 @@ export async function GET() {
             price: null,
             shopifyVariantId: v.shopifyVariantId,
             description: v.description ?? null,
+            image: null,
           }));
       } else if (cmsVariants.length > 0) {
         productVariants = cmsVariants.map((v: any) => ({
@@ -213,6 +219,7 @@ export async function GET() {
           price: v.price ?? null,
           shopifyVariantId: v.shopifyVariantId ?? null,
           description: null,
+          image: null,
         }));
       } else if (p.shopifyProductId) {
         const shopifyVars = shopifyVariantsByGid.get(p.shopifyProductId) ?? [];

@@ -21,6 +21,7 @@ interface VolumeVariant {
   description: TranslationObject | null;
   price: number | null;
   shopifyVariantId: string | null;
+  image: string | null;
 }
 
 interface LeadTimeTier { minQuantity: number; leadTimeDays: number; }
@@ -114,6 +115,17 @@ function VolumeProductCard({
   const belowMin = totalQty > 0 && totalQty < minQty;
   const currentLeadDays = getLeadTimeDays(product.leadTimeTiers, totalQty);
 
+  const [focusedVariantId, setFocusedVariantId] = useState<string | null>(null);
+
+  // Show the focused variant's image, or fall back to product image
+  const focusedVariant = product.variants.find((v) => v.id === focusedVariantId);
+  const displayImage = (focusedVariant?.image) || product.image;
+
+  const handleVariantQtyChange = (variantId: string, qty: number) => {
+    setFocusedVariantId(variantId);
+    onQuantityChange(variantId, qty);
+  };
+
   const metaPills: string[] = [];
   if (product.servesPerUnit) {
     metaPills.push(isFr ? `${product.servesPerUnit} portions/u` : `serves ${product.servesPerUnit}`);
@@ -124,9 +136,9 @@ function VolumeProductCard({
   return (
     <div className="border border-gray-200 rounded-lg p-3 md:flex md:gap-4">
       <div className="flex gap-3 md:w-1/3 md:shrink-0">
-        {product.image ? (
+        {displayImage ? (
           <div className="shrink-0 rounded overflow-hidden bg-gray-100 w-[112px] h-[140px] md:w-[96px] md:h-[120px] relative">
-            <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover object-center" />
+            <img src={displayImage} alt={product.name} className="absolute inset-0 w-full h-full object-cover object-center" />
           </div>
         ) : (
           <div className="shrink-0 rounded w-[112px] h-[140px] md:w-[96px] md:h-[120px]" style={{ backgroundColor: brandColor }} />
@@ -140,10 +152,10 @@ function VolumeProductCard({
             <p className="text-xs text-gray-500 leading-relaxed mt-0.5 line-clamp-2">{description}</p>
           )}
           {metaPills.length > 0 && (
-            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1">
               {metaPills.map((pill, i) => (
                 <span key={i} className="text-[10px] text-gray-400 tracking-wide"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>{pill}</span>
+                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>{i > 0 && '• '}{pill}</span>
               ))}
             </div>
           )}
@@ -198,16 +210,16 @@ function VolumeProductCard({
                 )}
                 <div className="flex items-center">
                   <button type="button"
-                    onClick={() => onQuantityChange(v.id, Math.max(0, qty - 1))}
+                    onClick={() => handleVariantQtyChange(v.id, Math.max(0, qty - 1))}
                     className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-sm leading-none"
                     aria-label={`Decrease ${tr(v.label, locale)} quantity`}>&minus;</button>
                   <input id={`qty-${v.id}`} type="number" min={0} inputMode="numeric"
                     value={qty || ''} placeholder="0"
-                    onChange={(e) => onQuantityChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                    onChange={(e) => handleVariantQtyChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
                     className="w-10 h-7 text-xs text-center border-y border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     aria-label={`${tr(v.label, locale)} quantity`} />
                   <button type="button"
-                    onClick={() => onQuantityChange(v.id, qty + 1)}
+                    onClick={() => handleVariantQtyChange(v.id, qty + 1)}
                     className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-sm leading-none"
                     aria-label={`Increase ${tr(v.label, locale)} quantity`}>+</button>
                 </div>
