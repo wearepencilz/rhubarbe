@@ -346,12 +346,17 @@ function VolumeInlineCart({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {group.variants[0]?.variantLabel
-                      ? `${group.variants[0].variantLabel} \u2014 ${group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}`
-                      : group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}
-                    {group.variants[0]?.price > 0 && ` @ $${(group.variants[0].price / 100).toFixed(2)}`}
-                  </p>
+                  <div className="flex items-start justify-between gap-2 mt-0.5">
+                    <span className="text-xs text-gray-400 min-w-0"
+                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                      {group.variants[0]?.variantLabel || group.productName}
+                      {group.variants[0]?.price > 0 && ` @ $${(group.variants[0].price / 100).toFixed(2)}`}
+                    </span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0"
+                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                      {group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}
+                    </span>
+                  </div>
                 )}
                 <button type="button" onClick={() => onRemoveProduct(group.productId)}
                   className="text-[11px] text-gray-400 underline hover:text-red-500 mt-1"
