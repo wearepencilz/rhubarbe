@@ -188,6 +188,7 @@ export const launches = pgTable('launches', {
   
   // Menu Details
   title: customJsonb<{ en: string; fr: string }>('title').notNull(),
+  slug: text('slug').unique(),
   introCopy: customJsonb<{ en: string; fr: string }>('intro_copy').notNull(),
   status: text('status', { enum: ['draft', 'active', 'archived'] }).notNull().default('draft'),
   
@@ -221,6 +222,7 @@ export const launches = pgTable('launches', {
 }, (table) => ({
   statusIdx: index('launches_status_idx').on(table.status),
   pickupDateIdx: index('launches_pickup_date_idx').on(table.pickupDate),
+  slugIdx: index('launches_slug_idx').on(table.slug),
 }));
 
 // Launch Products — products linked to a specific launch

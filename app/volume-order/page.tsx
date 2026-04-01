@@ -1,11 +1,5 @@
-import VolumeOrderPageClient from './VolumeOrderPageClient';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Commande traiteur / Catering Order - Rhubarbe',
-  description:
-    'Commandez des produits artisanaux de Rhubarbe pour vos événements. Order artisanal catering products from Rhubarbe.',
-};
-
-export default function VolumeOrderPage() {
-  return <VolumeOrderPageClient />;
+export default function VolumeOrderRedirect() {
+  redirect('/catering');
 }

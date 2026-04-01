@@ -31,8 +31,8 @@ const cartKeys: Record<string, string> = {
 
 const orderPaths: Record<string, string> = {
   regular: '/order',
-  volume: '/volume-order',
-  cake: '/cake-order',
+  volume: '/catering',
+  cake: '/cake',
 };
 
 const defaultFulfillment: FulfillmentState = {

@@ -3,19 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/app/admin/components/ui/buttons/button';
-import { Select } from '@/src/app/admin/components/ui/base/select/select';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import OrderTypeSelector from '@/app/admin/components/OrderTypeSelector';
 import { parseCakeMetadata } from '@/lib/utils/parse-cake-metadata';
 
 type OrderType = 'launch' | 'volume' | 'cake';
-
-interface Launch {
-  id: string;
-  title: { en: string; fr: string };
-  pickupDate: string;
-  status: string;
-}
 
 interface OrderItem {
   productName: string;
@@ -33,6 +25,7 @@ interface Order {
   fulfillmentDate: string | null;
   orderType: string;
   status: string;
+  launchTitle: string | null;
   items: OrderItem[];
 }
 
@@ -104,6 +97,7 @@ function formatDate(iso: string): string {
 }
 
 function groupByDate(orders: Order[], mode: OrderType): DateGroup[] {
+  if (mode === 'launch') return groupByLaunch(orders);
   const map = new Map<string, Order[]>();
   for (const order of orders) {
     const dateKey = order.fulfillmentDate?.split('T')[0] ?? 'unknown';
@@ -122,6 +116,30 @@ function groupByDate(orders: Order[], mode: OrderType): DateGroup[] {
       cakeMeta: extractCakeMeta(dateOrders),
       totalQty: dateOrders.reduce((s, o) => s + o.items.reduce((si, i) => si + i.quantity, 0), 0),
     }));
+}
+
+function groupByLaunch(orders: Order[]): DateGroup[] {
+  const map = new Map<string, Order[]>();
+  for (const order of orders) {
+    const key = order.launchTitle || 'No menu';
+    const arr = map.get(key) || [];
+    arr.push(order);
+    map.set(key, arr);
+  }
+  return Array.from(map.entries())
+    .map(([title, launchOrders]) => {
+      const date = launchOrders[0]?.fulfillmentDate?.split('T')[0] ?? '';
+      return {
+        date,
+        dateLabel: `${title}${date ? ` — ${formatDate(date)}` : ''}`,
+        orders: launchOrders,
+        prepEntries: aggregatePrepEntries(launchOrders),
+        cateringMeta: [],
+        cakeMeta: [],
+        totalQty: launchOrders.reduce((s, o) => s + o.items.reduce((si, i) => si + i.quantity, 0), 0),
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function generateCsv(groups: DateGroup[], mode: OrderType): string {
@@ -151,34 +169,12 @@ export default function PrepSheetPage() {
   const toast = useToast();
   const [orderTypeMode, setOrderTypeMode] = useState<OrderType>('launch');
 
-  // Launch mode state
-  const [launches, setLaunches] = useState<Launch[]>([]);
-  const [selectedLaunch, setSelectedLaunch] = useState('');
-  const [launchOrders, setLaunchOrders] = useState<Order[]>([]);
-  const [loadingLaunches, setLoadingLaunches] = useState(true);
-  const [loadingLaunchOrders, setLoadingLaunchOrders] = useState(false);
-
-  // Upcoming mode state (catering / cake)
+  // Upcoming orders state (all modes)
   const [upcomingOrders, setUpcomingOrders] = useState<Order[]>([]);
   const [loadingUpcoming, setLoadingUpcoming] = useState(false);
 
+  // Auto-fetch upcoming orders for the selected mode
   useEffect(() => {
-    fetch('/api/launches').then((r) => r.json()).then(setLaunches)
-      .catch(() => toast.error('Error', 'Failed to load menus'))
-      .finally(() => setLoadingLaunches(false));
-  }, []);
-
-  useEffect(() => {
-    if (!selectedLaunch) return;
-    setLoadingLaunchOrders(true);
-    fetch(`/api/orders/by-launch/${selectedLaunch}`).then((r) => r.json()).then(setLaunchOrders)
-      .catch(() => toast.error('Error', 'Failed to load orders'))
-      .finally(() => setLoadingLaunchOrders(false));
-  }, [selectedLaunch]);
-
-  // Auto-fetch upcoming orders when switching to catering/cake
-  useEffect(() => {
-    if (orderTypeMode === 'launch') { setUpcomingOrders([]); return; }
     setLoadingUpcoming(true);
     fetch(`/api/orders/upcoming?orderType=${orderTypeMode}`)
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
@@ -187,26 +183,12 @@ export default function PrepSheetPage() {
       .finally(() => setLoadingUpcoming(false));
   }, [orderTypeMode]);
 
-  const isLaunchMode = orderTypeMode === 'launch';
   const dateGroups = useMemo(() => groupByDate(upcomingOrders, orderTypeMode), [upcomingOrders, orderTypeMode]);
 
-  // Launch mode aggregation
-  const launchPrepEntries = useMemo(() => aggregatePrepEntries(launchOrders), [launchOrders]);
-
   function handleExportCsv() {
-    let csv: string;
-    let filename: string;
-    if (isLaunchMode) {
-      csv = generateCsv([{
-        date: '', dateLabel: launches.find((l) => l.id === selectedLaunch)?.title.en || 'menu',
-        orders: launchOrders, prepEntries: launchPrepEntries,
-        cateringMeta: [], cakeMeta: [], totalQty: 0,
-      }], 'launch');
-      filename = `prep-sheet-menu.csv`;
-    } else {
-      csv = generateCsv(dateGroups, orderTypeMode);
-      filename = `prep-sheet-${orderTypeMode === 'volume' ? 'catering' : 'cake'}-upcoming.csv`;
-    }
+    const csv = generateCsv(dateGroups, orderTypeMode);
+    const label = orderTypeMode === 'volume' ? 'catering' : orderTypeMode === 'cake' ? 'cake' : 'menu';
+    const filename = `prep-sheet-${label}-upcoming.csv`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -227,7 +209,7 @@ export default function PrepSheetPage() {
 
       <div className="flex items-center justify-between mb-4">
         <OrderTypeSelector value={orderTypeMode} onChange={setOrderTypeMode} />
-        {!isLaunchMode && dateGroups.length > 0 && (
+        {dateGroups.length > 0 && (
           <div className="flex gap-2">
             <Button color="secondary" size="sm" onClick={handleExportCsv}>Export CSV</Button>
             <Button color="secondary" size="sm" onClick={() => window.print()}>Print</Button>
@@ -235,76 +217,17 @@ export default function PrepSheetPage() {
         )}
       </div>
 
-      {/* Launch mode: menu selector */}
-      {isLaunchMode && (
-        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Menu</label>
-          {loadingLaunches ? (
-            <div className="h-10 w-64 bg-gray-100 animate-pulse rounded-lg" />
-          ) : (
-            <Select placeholder="Choose a menu…" selectedKey={selectedLaunch}
-              onSelectionChange={(key) => setSelectedLaunch(key as string)}
-              items={launches.map((l) => ({ id: l.id, label: `${l.title.en} — ${new Date(l.pickupDate).toLocaleDateString()}` }))}>
-              {(item) => <Select.Item id={item.id} label={item.label} />}
-            </Select>
-          )}
-        </div>
-      )}
-
-      {/* Launch mode: prep table */}
-      {isLaunchMode && loadingLaunchOrders && (
+      {loadingUpcoming && (
         <div className="flex items-center justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
         </div>
       )}
-      {isLaunchMode && selectedLaunch && !loadingLaunchOrders && (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-900">
-              Production Summary — {launchPrepEntries.length} products, {launchOrders.length} orders
-            </h2>
-            <div className="flex gap-2">
-              <Button color="secondary" size="sm" onClick={handleExportCsv} disabled={launchPrepEntries.length === 0}>Export CSV</Button>
-              <Button color="secondary" size="sm" onClick={() => window.print()} disabled={launchPrepEntries.length === 0}>Print</Button>
-            </div>
-          </div>
-          {launchPrepEntries.length === 0 ? (
-            <p className="px-5 py-10 text-sm text-gray-500 text-center">No orders for this menu yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-5 py-3 text-left font-medium text-gray-600">Product</th>
-                  <th className="px-5 py-3 text-right font-medium text-gray-600">Total Qty</th>
-                  <th className="px-5 py-3 text-left font-medium text-gray-600">Notes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {launchPrepEntries.map((e) => (
-                  <tr key={e.productName}>
-                    <td className="px-5 py-3 font-medium text-gray-900">{e.productName}</td>
-                    <td className="px-5 py-3 text-right font-mono text-lg font-bold text-gray-900">{e.totalQuantity}</td>
-                    <td className="px-5 py-3 text-xs text-gray-500">{e.notes.length ? e.notes.join('; ') : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      {/* Catering/Cake mode: upcoming orders grouped by date */}
-      {!isLaunchMode && loadingUpcoming && (
-        <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
-        </div>
-      )}
-      {!isLaunchMode && !loadingUpcoming && dateGroups.length === 0 && (
+      {!loadingUpcoming && dateGroups.length === 0 && (
         <p className="text-sm text-gray-500 text-center py-16">
-          No upcoming {orderTypeMode === 'volume' ? 'catering' : 'cake'} orders.
+          No upcoming {orderTypeMode === 'volume' ? 'catering' : orderTypeMode === 'cake' ? 'cake' : 'menu'} orders.
         </p>
       )}
-      {!isLaunchMode && !loadingUpcoming && dateGroups.map((group) => (
+      {!loadingUpcoming && dateGroups.map((group) => (
         <div key={group.date} className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-900">

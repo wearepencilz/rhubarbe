@@ -68,13 +68,11 @@ export default function ReviewStep({
           setLoading(false);
           // Still redirect after a short delay so user can see the warning
           setTimeout(() => {
-            localStorage.removeItem('rhubarbe:checkout:state');
             window.location.href = data.checkoutUrl;
           }, 3000);
           return;
         }
 
-        localStorage.removeItem('rhubarbe:checkout:state');
         window.location.href = data.checkoutUrl;
         return;
       }

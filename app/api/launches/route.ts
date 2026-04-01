@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       .insert(launches)
       .values({
         title: body.title,
+        slug: body.slug || null,
         introCopy: body.introCopy,
         status: body.status ?? 'draft',
         orderOpens: new Date(body.orderOpens),

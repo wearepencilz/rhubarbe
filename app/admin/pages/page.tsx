@@ -32,6 +32,18 @@ const PAGES = [
     href: '/admin/pages/gateaux',
   },
   {
+    key: 'cake-order',
+    label: 'Cake Order',
+    description: 'Cake order page — title, subtitle (FR & EN)',
+    href: '/admin/pages/cake-order',
+  },
+  {
+    key: 'catering-order',
+    label: 'Catering Order',
+    description: 'Catering/volume order page — title, subtitle (FR & EN)',
+    href: '/admin/pages/catering-order',
+  },
+  {
     key: 'thank-you',
     label: 'Thank You / Merci',
     description: 'Post-checkout confirmation — heading, message, pickup reminder (FR & EN)',

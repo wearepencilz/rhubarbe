@@ -41,13 +41,13 @@ export default function SiteNav() {
           <span className="text-[10px] opacity-50">({orderCount})</span>
         )}
       </Link>
-      <Link href="/volume-order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
+      <Link href="/catering" className="hover:opacity-60 transition-opacity flex items-center gap-1">
         {label('volumeOrder', T.nav.volumeOrder)}
         {volumeCount > 0 && (
           <span className="text-[10px] opacity-50">({volumeCount})</span>
         )}
       </Link>
-      <Link href="/cake-order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
+      <Link href="/cake" className="hover:opacity-60 transition-opacity flex items-center gap-1">
         {label('cakeOrder', T.nav.cakeOrder)}
         {cakeCount > 0 && (
           <span className="text-[10px] opacity-50">({cakeCount})</span>

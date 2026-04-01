@@ -107,6 +107,30 @@ export async function POST(request: NextRequest) {
       const isPaid = so.displayFinancialStatus === 'PAID' || so.displayFinancialStatus === 'PARTIALLY_PAID';
       const isFulfilled = so.displayFulfillmentStatus === 'FULFILLED';
 
+      // Determine order type
+      const orderTypeAttr = attrs.get('Order Type');
+      const orderType = orderTypeAttr === 'volume' ? 'volume' : orderTypeAttr === 'cake' ? 'cake' : 'launch';
+
+      // Strip structured data from note for launch orders
+      let specialInstructions: string | null = so.note || null;
+      if (orderType === 'launch' && specialInstructions) {
+        specialInstructions = specialInstructions
+          .split('\n')
+          .filter((line: string) => {
+            const l = line.trim();
+            if (!l) return false;
+            if (/^Menu:/i.test(l)) return false;
+            if (/^(Pickup|Cueillette):/i.test(l)) return false;
+            if (/^(Location|Lieu):/i.test(l)) return false;
+            if (/^(Slot|Créneau):/i.test(l)) return false;
+            if (/^(Not linked to Shopify|Non liés à Shopify):/i.test(l)) return false;
+            if (/^\d+×/.test(l)) return false;
+            return true;
+          })
+          .join('\n')
+          .trim() || null;
+      }
+
       const orderData = {
         orderNumber: so.name || String(so.orderNumber),
         shopifyOrderId: String(shopifyOrderId),
@@ -115,7 +139,7 @@ export async function POST(request: NextRequest) {
         customerName: [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown',
         customerEmail: customer.email || so.email || '',
         customerPhone: customer.phone || so.phone || '',
-        specialInstructions: so.note || null,
+        specialInstructions,
         subtotal: toCents(so.subtotalPriceSet?.shopMoney?.amount),
         tax: toCents(so.totalTaxSet?.shopMoney?.amount),
         total: toCents(so.totalPriceSet?.shopMoney?.amount),

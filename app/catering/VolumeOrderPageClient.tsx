@@ -9,6 +9,7 @@ import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
 import MobileCartModal from '@/components/ui/MobileCartModal';
+import { CateringCardSkeleton } from '@/components/ui/OrderPageSkeleton';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -121,14 +122,14 @@ function VolumeProductCard({
   if (product.pickupOnly) metaPills.push(isFr ? 'cueillette seul.' : 'pickup only');
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3 md:flex-1 md:min-w-0">
-      <div className="flex gap-3">
+    <div className="border border-gray-200 rounded-lg p-3 md:flex md:gap-4">
+      <div className="flex gap-3 md:w-1/3 md:shrink-0">
         {product.image ? (
-          <div className="w-20 aspect-[4/5] shrink-0 rounded overflow-hidden bg-gray-100">
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+          <div className="shrink-0 rounded overflow-hidden bg-gray-100 w-[112px] h-[140px] md:w-[96px] md:h-[120px] relative">
+            <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover object-center" />
           </div>
         ) : (
-          <div className="w-20 aspect-[4/5] shrink-0 rounded" style={{ backgroundColor: brandColor }} />
+          <div className="shrink-0 rounded w-[112px] h-[140px] md:w-[96px] md:h-[120px]" style={{ backgroundColor: brandColor }} />
         )}
         <div className="flex-1 min-w-0">
           <h3 className="text-xs uppercase tracking-widest leading-tight"
@@ -175,12 +176,18 @@ function VolumeProductCard({
               )}
             </div>
           )}
+          {belowMin && (
+            <p className="text-[11px] text-red-500 mt-1" role="alert">
+              {isFr ? `Minimum: ${minQty} (actuel : ${totalQty})` : `Minimum: ${minQty} (current: ${totalQty})`}
+            </p>
+          )}
         </div>
       </div>
-      <div className="mt-3 flex flex-col gap-1.5">
+      <div className="mt-3 md:mt-0 md:flex-1 md:min-w-0 flex flex-col gap-1.5 md:justify-center">
         {product.variants.length > 0 ? (
           product.variants.map((v) => {
             const variantPrice = v.price ?? product.price;
+            const qty = cart.get(v.id) ?? 0;
             return (
               <div key={v.id} className="flex items-center gap-2">
                 <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1"
@@ -189,11 +196,21 @@ function VolumeProductCard({
                   <span className="text-xs text-gray-400 shrink-0 tabular-nums"
                     style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(variantPrice / 100).toFixed(2)}</span>
                 )}
-                <input id={`qty-${v.id}`} type="number" min={0} inputMode="numeric"
-                  value={(cart.get(v.id) ?? 0) || ''} placeholder="0"
-                  onChange={(e) => onQuantityChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                  className="w-14 px-2 h-10 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
-                  aria-label={`${tr(v.label, locale)} quantity`} />
+                <div className="flex items-center">
+                  <button type="button"
+                    onClick={() => onQuantityChange(v.id, Math.max(0, qty - 1))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-sm leading-none"
+                    aria-label={`Decrease ${tr(v.label, locale)} quantity`}>&minus;</button>
+                  <input id={`qty-${v.id}`} type="number" min={0} inputMode="numeric"
+                    value={qty || ''} placeholder="0"
+                    onChange={(e) => onQuantityChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                    className="w-10 h-7 text-xs text-center border-y border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    aria-label={`${tr(v.label, locale)} quantity`} />
+                  <button type="button"
+                    onClick={() => onQuantityChange(v.id, qty + 1)}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-sm leading-none"
+                    aria-label={`Increase ${tr(v.label, locale)} quantity`}>+</button>
+                </div>
               </div>
             );
           })
@@ -205,19 +222,26 @@ function VolumeProductCard({
               <span className="text-xs text-gray-400 shrink-0 tabular-nums"
                 style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(product.price / 100).toFixed(2)}</span>
             )}
-            <input id={`qty-${product.id}`} type="number" min={0} inputMode="numeric"
-              value={(cart.get(product.id) ?? 0) || ''} placeholder="0"
-              onChange={(e) => onQuantityChange(product.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-              className="w-14 px-2 h-10 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-400"
-              aria-label={`${product.name} quantity`} />
+            {(() => { const qty = cart.get(product.id) ?? 0; return (
+              <div className="flex items-center">
+                <button type="button"
+                  onClick={() => onQuantityChange(product.id, Math.max(0, qty - 1))}
+                  className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-sm leading-none"
+                  aria-label={`Decrease ${product.name} quantity`}>&minus;</button>
+                <input id={`qty-${product.id}`} type="number" min={0} inputMode="numeric"
+                  value={qty || ''} placeholder="0"
+                  onChange={(e) => onQuantityChange(product.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                  className="w-10 h-7 text-xs text-center border-y border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  aria-label={`${product.name} quantity`} />
+                <button type="button"
+                  onClick={() => onQuantityChange(product.id, qty + 1)}
+                  className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-sm leading-none"
+                  aria-label={`Increase ${product.name} quantity`}>+</button>
+              </div>
+            ); })()}
           </div>
         )}
       </div>
-      {belowMin && (
-        <p className="text-[11px] text-red-500 mt-1" role="alert">
-          {isFr ? `Minimum: ${minQty} (actuel : ${totalQty})` : `Minimum: ${minQty} (current: ${totalQty})`}
-        </p>
-      )}
     </div>
   );
 }
@@ -410,11 +434,16 @@ function VolumeInlineCart({
   );
 }
 
-export default function VolumeOrderPageClient() {
+export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any }) {
   const { T, locale } = useT();
   const isFr = locale === 'fr';
   const V = T.volumeOrder;
   const { setVolumeCount } = useOrderItems();
+
+  // CMS-managed title/subtitle with i18n fallback
+  const localeContent = isFr ? cmsContent?.fr : cmsContent?.en;
+  const pageTitle = localeContent?.title || V.title;
+  const pageSubtitle = localeContent?.subtitle || V.subtitle;
 
   const [products, setProducts] = useState<VolumeProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -549,7 +578,6 @@ export default function VolumeOrderPageClient() {
       });
       const data = await res.json();
       if (!res.ok) { setCheckoutError(data.error || V.checkoutError); return; }
-      try { localStorage.removeItem('rhubarbe:volume:cart'); } catch {}
       window.location.href = data.checkoutUrl;
     } catch { setCheckoutError(V.checkoutError); }
     finally { setCheckoutLoading(false); }
@@ -568,19 +596,17 @@ export default function VolumeOrderPageClient() {
       <div className="flex gap-8">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl uppercase tracking-widest mb-2"
-            style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>{V.title}</h1>
-          <p className="text-sm text-gray-500 mb-10 max-w-xl">{V.subtitle}</p>
+            style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>{pageTitle}</h1>
+          <p className="text-sm text-gray-500 mb-10 max-w-xl">{pageSubtitle}</p>
           {loading && (
-            <div className="flex justify-center py-20">
-              <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-            </div>
+            <CateringCardSkeleton />
           )}
           {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
           {!loading && !error && products.length === 0 && (
             <div className="text-center py-20"><p className="text-sm text-gray-400">{V.noProducts}</p></div>
           )}
           {!loading && !error && products.length > 0 && (
-            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-4">
+            <div className="flex flex-col gap-3">
               {products.map((product) => (
                 <VolumeProductCard key={product.id} product={product} locale={locale}
                   cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />

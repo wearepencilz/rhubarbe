@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
 /**
  * Build the specialInstructions field for the order.
  * For cake orders, include number of people and event type metadata alongside the order note.
+ * For launch orders, strip out the structured info (menu, pickup, items) and keep only genuine customer notes.
  * For other order types, just use the Shopify order note.
  */
 function buildSpecialInstructions(
@@ -62,15 +63,43 @@ function buildSpecialInstructions(
   orderNote: string | null,
   numberOfPeople: string | null,
   eventType: string | null,
+  launchTitle: string | null,
+  pickupLocation: string | null,
+  pickupAddress: string | null,
+  pickupSlot: string | null,
+  pickupDate: string | null,
 ): string | null {
-  if (orderType !== 'cake') return orderNote || null;
+  if (orderType === 'cake') {
+    const parts: string[] = [];
+    if (numberOfPeople) parts.push(`Number of People: ${numberOfPeople}`);
+    if (eventType) parts.push(`Event Type: ${eventType}`);
+    if (orderNote) parts.push(orderNote);
+    return parts.length > 0 ? parts.join('\n') : null;
+  }
 
-  const parts: string[] = [];
-  if (numberOfPeople) parts.push(`Number of People: ${numberOfPeople}`);
-  if (eventType) parts.push(`Event Type: ${eventType}`);
-  if (orderNote) parts.push(orderNote);
+  if (orderType === 'launch' && orderNote) {
+    // Strip out the structured lines we already store in dedicated DB columns
+    const stripped = orderNote
+      .split('\n')
+      .filter((line) => {
+        const l = line.trim();
+        if (!l) return false;
+        // Skip lines that match structured data patterns
+        if (/^Menu:/i.test(l)) return false;
+        if (/^(Pickup|Cueillette):/i.test(l)) return false;
+        if (/^(Location|Lieu):/i.test(l)) return false;
+        if (/^(Slot|Créneau):/i.test(l)) return false;
+        if (/^(Not linked to Shopify|Non liés à Shopify):/i.test(l)) return false;
+        // Skip item lines like "2× Croissant"
+        if (/^\d+×/.test(l)) return false;
+        return true;
+      })
+      .join('\n')
+      .trim();
+    return stripped || null;
+  }
 
-  return parts.length > 0 ? parts.join('\n') : null;
+  return orderNote || null;
 }
 
 
@@ -154,7 +183,7 @@ async function processShopifyOrder(shopifyOrder: any) {
     customerName,
     customerEmail,
     customerPhone,
-    specialInstructions: buildSpecialInstructions(orderType, shopifyOrder.note, cakeNumberOfPeople, cakeEventType),
+    specialInstructions: buildSpecialInstructions(orderType, shopifyOrder.note, cakeNumberOfPeople, cakeEventType, launchTitle, pickupLocation, pickupAddress, pickupSlotRaw, pickupDate),
     subtotal: toCents(shopifyOrder.subtotal_price),
     tax: toCents(shopifyOrder.total_tax),
     total: toCents(shopifyOrder.total_price),

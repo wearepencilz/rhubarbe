@@ -6,6 +6,7 @@ import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState } from '@/lib/hooks/use-persisted-state';
 import { generatePickupDays, isPickupDayDisabled } from '@/lib/utils/order-helpers';
 import MobileCartModal from '@/components/ui/MobileCartModal';
+import { OrderPageSkeleton } from '@/components/ui/OrderPageSkeleton';
 
 interface LaunchProduct {
   id: string;
@@ -49,6 +50,7 @@ interface PickupLocation {
 
 interface Launch {
   id: string;
+  slug: string | null;
   title: { en: string; fr: string };
   introCopy: { en: string; fr: string };
   status: string;
@@ -160,30 +162,32 @@ function ProductCard({
   const displayPrice = activeVariant?.price ?? product.price;
 
   return (
-    <div className={`group border border-gray-200 rounded-lg overflow-hidden flex flex-col ${soldOut ? 'opacity-60' : ''}`}>
+    <div className={`group border border-gray-200 rounded-lg flex flex-col ${soldOut ? 'opacity-60' : ''}`}>
       {product.image && (
-        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
-          <img
-            src={product.image}
-            alt={displayName}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-          {soldOut && (
-            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-              <p
-                className="text-center text-white text-xs uppercase tracking-widest font-medium"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}
-              >
-                {isFr ? 'Épuisé' : 'Sold out'}
-              </p>
-              {product.nextAvailableDate && (
-                <p className="text-center text-[10px] text-white/80 mt-1">
-                  {isFr ? 'Prochaine disponibilité\u00a0: ' : 'Next available: '}
-                  {formatDate(product.nextAvailableDate, locale)}
+        <div className="p-2 pb-0">
+          <div className="aspect-[4/5] overflow-hidden bg-gray-100 rounded-md relative">
+            <img
+              src={product.image}
+              alt={displayName}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            {soldOut && (
+              <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent rounded-b-md">
+                <p
+                  className="text-center text-white text-xs uppercase tracking-widest font-medium"
+                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                >
+                  {isFr ? 'Épuisé' : 'Sold out'}
                 </p>
-              )}
-            </div>
-          )}
+                {product.nextAvailableDate && (
+                  <p className="text-center text-[10px] text-white/80 mt-1">
+                    {isFr ? 'Prochaine disponibilité\u00a0: ' : 'Next available: '}
+                    {formatDate(product.nextAvailableDate, locale)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
       <div className="flex flex-col flex-1 p-2.5 gap-1">
@@ -616,7 +620,7 @@ function InlineCart({
   );
 }
 
-export default function OrderPageClient() {
+export default function OrderPageClient({ initialSlug }: { initialSlug?: string } = {}) {
   const { T, locale } = useT();
   const isFr = locale === 'fr';
   const { setOrderCount } = useOrderItems();
@@ -647,8 +651,26 @@ export default function OrderPageClient() {
     fetch('/api/launches/current')
       .then((r) => r.json())
       .then((data) => {
-        const list = Array.isArray(data) ? data : data ? [data] : [];
+        const raw = Array.isArray(data) ? data : data ? [data] : [];
+        // Normalize: ensure all expected fields have safe defaults
+        const list = raw.map((l: any) => ({
+          ...l,
+          title: l.title || { en: '', fr: '' },
+          introCopy: l.introCopy || { en: '', fr: '' },
+          products: l.products || [],
+          pickupSlots: l.pickupSlots || [],
+          pickupLocation: l.pickupLocation || null,
+        }));
         setLaunches(list);
+        // Auto-select launch matching the URL slug
+        if (initialSlug && list.length > 0) {
+          const idx = list.findIndex((l: any) => l.slug === initialSlug);
+          if (idx >= 0) setActiveLaunchIdx(idx);
+        }
+        // Set URL to the active launch's slug on initial load
+        if (!initialSlug && list.length > 0 && list[0].slug) {
+          window.history.replaceState(null, '', `/order/${list[0].slug}`);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -713,7 +735,7 @@ export default function OrderPageClient() {
   // Collect unique categories from current launch products
   const categoryMap = new Map<string, string>();
   if (launch) {
-    for (const p of launch.products) {
+    for (const p of launch.products || []) {
       if (p.category) {
         categoryMap.set(p.category, p.categoryLabel || p.category);
       }
@@ -722,7 +744,7 @@ export default function OrderPageClient() {
   const categories = Array.from(categoryMap.entries()); // [slug, label][]
 
   const filteredProducts = launch
-    ? launch.products.filter((p) => categoryFilter === 'all' || p.category === categoryFilter)
+    ? (launch.products || []).filter((p) => categoryFilter === 'all' || p.category === categoryFilter)
     : [];
 
   // Group filtered products by category for sectioned display
@@ -745,6 +767,15 @@ export default function OrderPageClient() {
   })();
 
   // Menu switch handler — warns if cart has items from a different menu
+  // Update browser URL to reflect the active menu slug
+  const updateUrlForLaunch = (launch: Launch) => {
+    const slug = launch.slug;
+    const newPath = slug ? `/order/${slug}` : '/order';
+    if (window.location.pathname !== newPath) {
+      window.history.replaceState(null, '', newPath);
+    }
+  };
+
   const handleMenuSwitch = (idx: number) => {
     if (idx === activeLaunchIdx) return;
     const targetLaunch = launches[idx];
@@ -754,6 +785,7 @@ export default function OrderPageClient() {
     }
     setActiveLaunchIdx(idx);
     setCategoryFilter('all');
+    updateUrlForLaunch(targetLaunch);
   };
 
   const confirmMenuSwitch = () => {
@@ -762,6 +794,7 @@ export default function OrderPageClient() {
     setCartLaunchId(launches[pendingSwitchIdx].id);
     setActiveLaunchIdx(pendingSwitchIdx);
     setCategoryFilter('all');
+    updateUrlForLaunch(launches[pendingSwitchIdx]);
     setPendingSwitchIdx(null);
   };
 
@@ -920,7 +953,7 @@ export default function OrderPageClient() {
         body: JSON.stringify({
           items,
           launchId: launch.id,
-          launchTitle: isFr ? launch.title.fr : launch.title.en,
+          launchTitle: isFr ? launch.title?.fr : launch.title?.en,
           pickupDate: pickupDateFormatted,
           pickupLocationName: locationName,
           pickupLocationAddress: locationAddress,
@@ -986,7 +1019,7 @@ export default function OrderPageClient() {
               <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                 Menu
               </p>
-              <p className="text-sm text-gray-900 mt-0.5">{isFr ? launch.title.fr : launch.title.en}</p>
+              <p className="text-sm text-gray-900 mt-0.5">{isFr ? launch.title?.fr : launch.title?.en}</p>
             </div>
 
             <div>
@@ -1075,7 +1108,7 @@ export default function OrderPageClient() {
               // Save order details for the thank-you page
               try {
                 sessionStorage.setItem('rhubarbe_order', JSON.stringify({
-                  menu: isFr ? launch.title.fr : launch.title.en,
+                  menu: isFr ? launch.title?.fr : launch.title?.en,
                   pickupDate: selectedPickupDay ? formatDate(selectedPickupDay, locale) : formatPickupRange(launch, locale),
                   pickupLocation: locationName + (locationAddress ? ` — ${locationAddress}` : ''),
                   pickupSlot: selectedSlot ? `${selectedSlot.startTime} – ${selectedSlot.endTime}` : '',
@@ -1086,13 +1119,6 @@ export default function OrderPageClient() {
                   })),
                   subtotal,
                 }));
-              } catch {}
-              // Clear persisted cart
-              try {
-                localStorage.removeItem('rhubarbe:order:cart');
-                localStorage.removeItem('rhubarbe:order:launchId');
-                localStorage.removeItem('rhubarbe:order:slotId');
-                localStorage.removeItem('rhubarbe:order:pickupDay');
               } catch {}
             }}
             className="inline-block px-10 py-3.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
@@ -1109,13 +1135,7 @@ export default function OrderPageClient() {
   }
 
   if (loading) {
-    return (
-      <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
-        <div className="flex justify-center py-24">
-          <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#333112]" />
-        </div>
-      </main>
-    );
+    return <OrderPageSkeleton variant="grid" />;
   }
 
   // Check if all launches are preview-only (ordering not yet open)
@@ -1163,7 +1183,7 @@ export default function OrderPageClient() {
                   }`}
                   style={{ fontFamily: 'var(--font-diatype-mono)' }}
                 >
-                  {isFr ? l.title.fr : l.title.en}
+                  {isFr ? l.title?.fr : l.title?.en}
                 </button>
               ))}
             </div>
@@ -1183,10 +1203,10 @@ export default function OrderPageClient() {
                   className="text-2xl md:text-3xl uppercase tracking-widest mb-4"
                   style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
                 >
-                  {isFr ? launch.title.fr : launch.title.en}
+                  {isFr ? launch.title?.fr : launch.title?.en}
                 </h1>
                 <p className="text-sm text-gray-500 max-w-lg leading-relaxed mb-6">
-                  {isFr ? launch.introCopy.fr : launch.introCopy.en}
+                  {isFr ? launch.introCopy?.fr : launch.introCopy?.en}
                 </p>
 
                 {/* Menu details bar */}
@@ -1247,10 +1267,10 @@ export default function OrderPageClient() {
                     }`}
                     style={{ fontFamily: 'var(--font-diatype-mono)' }}
                   >
-                    {isFr ? 'Tout' : 'All'} ({launch.products.length})
+                    {isFr ? 'Tout' : 'All'} ({(launch.products || []).length})
                   </button>
                   {categories.map(([slug, label]) => {
-                    const count = launch.products.filter((p) => p.category === slug).length;
+                    const count = (launch.products || []).filter((p) => p.category === slug).length;
                     return (
                       <button
                         key={slug}
@@ -1396,7 +1416,7 @@ export default function OrderPageClient() {
         onCancel={cancelMenuSwitch}
         targetMenuName={
           pendingSwitchIdx !== null
-            ? (isFr ? launches[pendingSwitchIdx].title.fr : launches[pendingSwitchIdx].title.en)
+            ? (isFr ? launches[pendingSwitchIdx].title?.fr : launches[pendingSwitchIdx].title?.en)
             : ''
         }
         locale={locale}

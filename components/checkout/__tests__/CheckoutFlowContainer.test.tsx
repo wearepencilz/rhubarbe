@@ -85,14 +85,14 @@ describe('CheckoutFlowContainer', () => {
     expect(mockReplace).toHaveBeenCalledWith('/order');
   });
 
-  it('redirects to /volume-order when volume cart is missing', () => {
+  it('redirects to /catering when volume cart is missing', () => {
     render(<CheckoutFlowContainer orderType="volume" />);
-    expect(mockReplace).toHaveBeenCalledWith('/volume-order');
+    expect(mockReplace).toHaveBeenCalledWith('/catering');
   });
 
-  it('redirects to /cake-order when cake cart is missing', () => {
+  it('redirects to /cake when cake cart is missing', () => {
     render(<CheckoutFlowContainer orderType="cake" />);
-    expect(mockReplace).toHaveBeenCalledWith('/cake-order');
+    expect(mockReplace).toHaveBeenCalledWith('/cake');
   });
 
   it('renders fulfillment step when regular cart has items', () => {

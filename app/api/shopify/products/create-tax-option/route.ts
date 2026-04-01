@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
       return {
         price: v.price,
         taxable: false,
+        inventoryItem: { tracked: false },
         optionValues: [
           ...otherOptions,
           { optionName: TAX_OPTION_CREATE_NAME, name: 'false' },
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
       const taxableUpdates = createdVariants.map((v: any) => ({
         id: v.id,
         taxable: false,
+        inventoryItem: { tracked: false },
       }));
       try {
         await shopifyAdminFetch(
@@ -163,6 +165,27 @@ export async function POST(request: NextRequest) {
         );
       } catch (err) {
         console.warn('[Tax Option] Failed to set taxable=false on exempt variants:', err);
+      }
+    }
+
+    // Also disable inventory tracking on the original (Tax=true) variants
+    if (existingVariants.length > 0) {
+      const trackingUpdates = existingVariants.map((v: any) => ({
+        id: v.id,
+        inventoryItem: { tracked: false },
+      }));
+      try {
+        await shopifyAdminFetch(
+          `mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+            productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+              productVariants { id }
+              userErrors { field message }
+            }
+          }`,
+          { productId: shopifyProductId, variants: trackingUpdates },
+        );
+      } catch (err) {
+        console.warn('[Tax Option] Failed to disable tracking on existing variants:', err);
       }
     }
 

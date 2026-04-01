@@ -8,6 +8,7 @@ import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 import { getActivePricingTier } from '@/lib/utils/order-helpers';
 import MobileCartModal from '@/components/ui/MobileCartModal';
+import { ProductGridSkeleton } from '@/components/ui/OrderPageSkeleton';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -118,7 +119,7 @@ function CakeProductCard({
     <button
       type="button"
       onClick={() => onSelect(product.id)}
-      className={`group flex flex-col text-left transition-all rounded-lg overflow-hidden border border-gray-200 ${
+      className={`group flex flex-col text-left transition-all rounded-lg border border-gray-200 ${
         isSelected
           ? 'ring-2 ring-[#333112] ring-offset-2'
           : 'hover:ring-1 hover:ring-gray-300 hover:ring-offset-1'
@@ -127,28 +128,32 @@ function CakeProductCard({
       aria-label={`${product.name}${isSelected ? ` (${C.selected})` : ''}`}
     >
       {product.image ? (
-        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
-          <img src={product.image} alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-          {isSelected && (
-            <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {C.selected}
-            </div>
-          )}
+        <div className="p-2 pb-0">
+          <div className="aspect-[4/5] overflow-hidden bg-gray-100 rounded-md relative">
+            <img src={product.image} alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            {isSelected && (
+              <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
+                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                {C.selected}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="aspect-[4/5] relative" style={{ backgroundColor: brandColor }}>
-          {isSelected && (
-            <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {C.selected}
-            </div>
-          )}
+        <div className="p-2 pb-0">
+          <div className="aspect-[4/5] rounded-md relative" style={{ backgroundColor: brandColor }}>
+            {isSelected && (
+              <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
+                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                {C.selected}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="flex flex-col gap-1 px-2 pb-3">
+      <div className="flex flex-col gap-1 px-2 pt-3 pb-3">
         <h3 className="text-xs uppercase tracking-widest"
           style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
           {product.name}
@@ -338,8 +343,13 @@ function CakeInlineCart({
               </label>
               <input type="number" min={1}
                 value={numberOfPeople || ''}
-                placeholder="1"
-                onChange={(e) => onNumberOfPeopleChange(Math.max(1, Math.floor(Number(e.target.value) || 1)))}
+                placeholder=""
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === '') { onNumberOfPeopleChange(0); return; }
+                  onNumberOfPeopleChange(Math.max(0, Math.floor(Number(raw) || 0)));
+                }}
+                onBlur={() => { if (numberOfPeople < 1) onNumberOfPeopleChange(1); }}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors bg-transparent"
                 aria-label={C.numberOfPeople} />
             </div>
@@ -497,11 +507,16 @@ function CakeInlineCart({
 
 // ── Main Page Component ──
 
-export default function CakeOrderPageClient() {
+export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }) {
   const { T, locale } = useT();
   const isFr = locale === 'fr';
   const C = T.cakeOrder;
   const { setCakeCount } = useOrderItems();
+
+  // CMS-managed title/subtitle with i18n fallback
+  const localeContent = isFr ? cmsContent?.fr : cmsContent?.en;
+  const pageTitle = localeContent?.title || C.title;
+  const pageSubtitle = localeContent?.subtitle || C.subtitle;
 
   const [products, setProducts] = useState<CakeProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -636,7 +651,6 @@ export default function CakeOrderPageClient() {
         setCheckoutError(data.error || C.checkoutError);
         return;
       }
-      try { localStorage.removeItem('rhubarbe:cake:cart'); } catch {}
       window.location.href = data.checkoutUrl;
     } catch {
       setCheckoutError(C.checkoutError);
@@ -660,16 +674,14 @@ export default function CakeOrderPageClient() {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl uppercase tracking-widest mb-2"
             style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
-            {C.title}
+            {pageTitle}
           </h1>
           <p className="text-sm text-gray-500 mb-10 max-w-xl">
-            {C.subtitle}
+            {pageSubtitle}
           </p>
 
           {loading && (
-            <div className="flex justify-center py-20">
-              <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-            </div>
+            <ProductGridSkeleton />
           )}
           {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
           {!loading && !error && products.length === 0 && (

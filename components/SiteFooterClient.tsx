@@ -49,9 +49,8 @@ export default function SiteFooterClient({
           style={{ fontFamily: 'var(--font-diatype-mono)' }}
         >
           <Link href="/order" className="hover:opacity-60 transition-opacity">{T.nav.order}</Link>
-          <Link href="/volume-order" className="hover:opacity-60 transition-opacity">{T.nav.volumeOrder}</Link>
-          <Link href="/cake-order" className="hover:opacity-60 transition-opacity">{T.nav.cakeOrder}</Link>
-          <Link href="/catering" className="hover:opacity-60 transition-opacity">{T.nav.cateringAndCakes}</Link>
+          <Link href="/catering" className="hover:opacity-60 transition-opacity">{T.nav.volumeOrder}</Link>
+          <Link href="/cake" className="hover:opacity-60 transition-opacity">{T.nav.cakeOrder}</Link>
           <Link href="/about" className="hover:opacity-60 transition-opacity">{T.nav.about}</Link>
         </nav>
         <p

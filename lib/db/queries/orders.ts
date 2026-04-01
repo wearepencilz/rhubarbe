@@ -139,7 +139,12 @@ export async function listByLaunch(launchId: string) {
   const rows = await db
     .select()
     .from(orders)
-    .where(eq(orders.launchId, launchId))
+    .where(
+      and(
+        eq(orders.launchId, launchId),
+        sql`${orders.status} NOT IN ('cancelled', 'fulfilled')`,
+      ),
+    )
     .orderBy(desc(orders.orderDate));
 
   const orderIds = rows.map((r) => r.id);
@@ -174,6 +179,7 @@ export async function listByDate(date: string, orderType: string) {
       and(
         sql`${orders.fulfillmentDate}::date = ${date}::date`,
         eq(orders.orderType, orderType),
+        sql`${orders.status} NOT IN ('cancelled', 'fulfilled')`,
       ),
     )
     .orderBy(desc(orders.orderDate));
@@ -208,7 +214,7 @@ export async function listUpcoming(orderType: string) {
       and(
         eq(orders.orderType, orderType),
         sql`(${orders.fulfillmentDate}::date >= CURRENT_DATE OR ${orders.fulfillmentDate} IS NULL)`,
-        sql`${orders.status} != 'cancelled'`,
+        sql`${orders.status} NOT IN ('cancelled', 'fulfilled')`,
       ),
     )
     .orderBy(sql`${orders.fulfillmentDate}::date ASC NULLS LAST`, desc(orders.orderDate));

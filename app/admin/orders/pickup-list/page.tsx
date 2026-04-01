@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/src/app/admin/components/ui/base/badges/badges';
-import { Select } from '@/src/app/admin/components/ui/base/select/select';
 import { Button } from '@/app/admin/components/ui/buttons/button';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import OrderTypeSelector from '@/app/admin/components/OrderTypeSelector';
@@ -11,13 +10,6 @@ import OrderTypeBadge from '@/app/admin/components/OrderTypeBadge';
 import { parseCakeMetadata } from '@/lib/utils/parse-cake-metadata';
 
 type OrderType = 'launch' | 'volume' | 'cake';
-
-interface Launch {
-  id: string;
-  title: { en: string; fr: string };
-  pickupDate: string;
-  status: string;
-}
 
 interface OrderItem {
   productName: string;
@@ -36,6 +28,7 @@ interface Order {
   orderType?: string;
   fulfillmentType?: string | null;
   fulfillmentDate?: string | null;
+  launchTitle?: string | null;
   status: string;
   items: OrderItem[];
 }
@@ -50,14 +43,7 @@ export default function PickupListPage() {
   const toast = useToast();
   const [orderTypeMode, setOrderTypeMode] = useState<OrderType>('launch');
 
-  // Launch mode state
-  const [launches, setLaunches] = useState<Launch[]>([]);
-  const [selectedLaunch, setSelectedLaunch] = useState('');
-  const [launchOrders, setLaunchOrders] = useState<Order[]>([]);
-  const [loadingLaunches, setLoadingLaunches] = useState(true);
-  const [loadingLaunchOrders, setLoadingLaunchOrders] = useState(false);
-
-  // Upcoming mode state (catering / cake)
+  // Upcoming orders state (all modes)
   const [upcomingOrders, setUpcomingOrders] = useState<Order[]>([]);
   const [loadingUpcoming, setLoadingUpcoming] = useState(false);
 
@@ -67,32 +53,12 @@ export default function PickupListPage() {
   const [fulfilling, setFulfilling] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement>(null);
 
-  // Load launches on mount
+  // Auto-fetch upcoming orders for the selected mode
   useEffect(() => {
-    fetch('/api/launches')
-      .then((r) => r.json())
-      .then(setLaunches)
-      .catch(() => toast.error('Error', 'Failed to load menus'))
-      .finally(() => setLoadingLaunches(false));
-  }, []);
-
-  // Fetch launch orders when a launch is selected
-  const fetchLaunchOrders = useCallback(() => {
-    if (!selectedLaunch) return;
-    setLoadingLaunchOrders(true);
-    fetch(`/api/orders/by-launch/${selectedLaunch}`)
-      .then((r) => r.json())
-      .then(setLaunchOrders)
-      .catch(() => toast.error('Error', 'Failed to load orders'))
-      .finally(() => setLoadingLaunchOrders(false));
-  }, [selectedLaunch]);
-
-  useEffect(() => { fetchLaunchOrders(); }, [fetchLaunchOrders]);
-
-  // Auto-fetch upcoming orders when switching to catering/cake
-  useEffect(() => {
-    if (orderTypeMode === 'launch') { setUpcomingOrders([]); return; }
     setLoadingUpcoming(true);
+    setUpcomingOrders([]);
+    setScanMode(false);
+    setScanInput('');
     fetch(`/api/orders/upcoming?orderType=${orderTypeMode}`)
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setUpcomingOrders)
@@ -100,22 +66,14 @@ export default function PickupListPage() {
       .finally(() => setLoadingUpcoming(false));
   }, [orderTypeMode]);
 
-  // Reset when switching modes
-  useEffect(() => {
-    setUpcomingOrders([]);
-    setScanMode(false);
-    setScanInput('');
-  }, [orderTypeMode]);
-
   // Focus scan input when scan mode is activated
   useEffect(() => {
     if (scanMode && scanRef.current) scanRef.current.focus();
   }, [scanMode]);
 
-  const isLaunchMode = orderTypeMode === 'launch';
-  const activeOrders = isLaunchMode ? launchOrders : upcomingOrders;
-  const isLoading = isLaunchMode ? loadingLaunchOrders : loadingUpcoming;
-  const hasContent = isLaunchMode ? !!selectedLaunch : upcomingOrders.length > 0 || loadingUpcoming;
+  const isLoading = loadingUpcoming;
+  const activeOrders = upcomingOrders;
+  const hasContent = upcomingOrders.length > 0 || loadingUpcoming;
 
   // Mark an order as fulfilled
   async function fulfillOrder(orderId: string) {
@@ -127,8 +85,7 @@ export default function PickupListPage() {
         body: JSON.stringify({ status: 'fulfilled' }),
       });
       if (res.ok) {
-        const setter = isLaunchMode ? setLaunchOrders : setUpcomingOrders;
-        setter((prev) =>
+        setUpcomingOrders((prev) =>
           prev.map((o) => (o.id === orderId ? { ...o, status: 'fulfilled' } : o))
         );
         toast.success('Picked up', 'Order marked as fulfilled');
@@ -175,23 +132,45 @@ export default function PickupListPage() {
     setScanInput('');
   }
 
-  // Group launch orders by pickup slot
+  // Group launch orders by menu title, then by pickup slot within each menu
   const launchGrouped = useMemo(() => {
-    if (!isLaunchMode) return [];
-    const map = new Map<string, Order[]>();
+    if (orderTypeMode !== 'launch') return [];
+    const menuMap = new Map<string, Order[]>();
     for (const order of activeOrders) {
-      const slot = order.items[0]?.pickupSlot;
-      const key = slot ? `${slot.startTime} – ${slot.endTime}` : 'No slot';
-      const arr = map.get(key) || [];
+      const key = order.launchTitle || 'No menu';
+      const arr = menuMap.get(key) || [];
       arr.push(order);
-      map.set(key, arr);
+      menuMap.set(key, arr);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [activeOrders, isLaunchMode]);
+    return Array.from(menuMap.entries())
+      .sort((a, b) => {
+        const dateA = a[1][0]?.fulfillmentDate ?? '';
+        const dateB = b[1][0]?.fulfillmentDate ?? '';
+        return dateA.localeCompare(dateB);
+      })
+      .map(([menuTitle, menuOrders]) => {
+        // Sub-group by pickup slot
+        const slotMap = new Map<string, Order[]>();
+        for (const order of menuOrders) {
+          const slot = order.items[0]?.pickupSlot;
+          const slotKey = slot ? `${slot.startTime} – ${slot.endTime}` : 'No slot';
+          const arr = slotMap.get(slotKey) || [];
+          arr.push(order);
+          slotMap.set(slotKey, arr);
+        }
+        const date = menuOrders[0]?.fulfillmentDate?.split('T')[0] ?? '';
+        return {
+          menuTitle,
+          dateLabel: date ? formatDate(date) : '',
+          slots: Array.from(slotMap.entries()).sort((a, b) => a[0].localeCompare(b[0])),
+          orders: menuOrders,
+        };
+      });
+  }, [activeOrders, orderTypeMode]);
 
   // Group upcoming orders by fulfillment date
   const dateGrouped = useMemo(() => {
-    if (isLaunchMode) return [];
+    if (orderTypeMode === 'launch') return [];
     const map = new Map<string, Order[]>();
     for (const order of activeOrders) {
       const dateKey = order.fulfillmentDate?.split('T')[0] ?? 'unknown';
@@ -200,7 +179,7 @@ export default function PickupListPage() {
       map.set(dateKey, arr);
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [activeOrders, isLaunchMode]);
+  }, [activeOrders, orderTypeMode]);
 
   const fulfilled = activeOrders.filter((o) => o.status === 'fulfilled');
 
@@ -259,22 +238,6 @@ export default function PickupListPage() {
         <OrderTypeSelector value={orderTypeMode} onChange={setOrderTypeMode} />
       </div>
 
-      {/* Launch mode: menu selector */}
-      {isLaunchMode && (
-        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Menu</label>
-          {loadingLaunches ? (
-            <div className="h-10 w-64 bg-gray-100 animate-pulse rounded-lg" />
-          ) : (
-            <Select placeholder="Choose a menu…" selectedKey={selectedLaunch}
-              onSelectionChange={(key) => setSelectedLaunch(key as string)}
-              items={launches.map((l) => ({ id: l.id, label: `${l.title.en} — ${new Date(l.pickupDate).toLocaleDateString()}` }))}>
-              {(item) => <Select.Item id={item.id} label={item.label} />}
-            </Select>
-          )}
-        </div>
-      )}
-
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
@@ -283,8 +246,8 @@ export default function PickupListPage() {
 
       {hasContent && !isLoading && (
         <>
-          {/* QR Scanner — launch mode only */}
-          {isLaunchMode && (
+          {/* QR Scanner */}
+          {orderTypeMode === 'launch' && (
             <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -329,58 +292,61 @@ export default function PickupListPage() {
           )}
 
           {/* Orders list */}
-          {isLaunchMode ? (
-            /* Launch mode */
-            launchOrders.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-10">No orders for this menu yet.</p>
-            ) : (
-              <div className="space-y-6">
-                {launchGrouped.map(([slot, slotOrders]) => {
-                  const slotFulfilled = slotOrders.filter((o) => o.status === 'fulfilled').length;
-                  return (
-                    <div key={slot}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900">{slot}</h3>
-                        <span className="text-xs text-gray-500">{slotFulfilled}/{slotOrders.length} picked up</span>
-                      </div>
-                      <div className="space-y-2">
-                        {slotOrders.map((order) => (
-                          <OrderCard key={order.id} order={order} statusColor={statusColor}
-                            fulfilling={fulfilling} onFulfill={fulfillOrder} meta={null} />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
+          {activeOrders.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-10">
+              No upcoming {orderTypeMode === 'volume' ? 'catering' : orderTypeMode === 'cake' ? 'cake' : 'menu'} orders.
+            </p>
+          ) : orderTypeMode === 'launch' ? (
+            /* Launch mode: grouped by menu, then by pickup slot */
+            <div className="space-y-8">
+              {launchGrouped.map((menu) => (
+                <div key={menu.menuTitle}>
+                  <h2 className="text-sm font-semibold text-gray-900 mb-4">
+                    {menu.menuTitle}{menu.dateLabel ? ` — ${menu.dateLabel}` : ''}
+                  </h2>
+                  <div className="space-y-6">
+                    {menu.slots.map(([slot, slotOrders]) => {
+                      const slotFulfilled = slotOrders.filter((o) => o.status === 'fulfilled').length;
+                      return (
+                        <div key={slot}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xs font-medium text-gray-600">{slot}</h3>
+                            <span className="text-xs text-gray-500">{slotFulfilled}/{slotOrders.length} picked up</span>
+                          </div>
+                          <div className="space-y-2">
+                            {slotOrders.map((order) => (
+                              <OrderCard key={order.id} order={order} statusColor={statusColor}
+                                fulfilling={fulfilling} onFulfill={fulfillOrder} meta={null} />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            /* Upcoming catering/cake mode: grouped by date */
-            upcomingOrders.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-10">
-                No upcoming {orderTypeMode === 'volume' ? 'catering' : 'cake'} orders.
-              </p>
-            ) : (
-              <div className="space-y-6">
-                {dateGrouped.map(([dateKey, dateOrders]) => {
-                  const dateFulfilled = dateOrders.filter((o) => o.status === 'fulfilled').length;
-                  return (
-                    <div key={dateKey}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900">{formatDate(dateKey)}</h3>
-                        <span className="text-xs text-gray-500">{dateFulfilled}/{dateOrders.length} fulfilled</span>
-                      </div>
-                      <div className="space-y-2">
-                        {dateOrders.map((order) => (
-                          <OrderCard key={order.id} order={order} statusColor={statusColor}
-                            fulfilling={fulfilling} onFulfill={fulfillOrder} meta={getOrderMeta(order)} />
-                        ))}
-                      </div>
+            /* Catering/cake mode: grouped by date */
+            <div className="space-y-6">
+              {dateGrouped.map(([dateKey, dateOrders]) => {
+                const dateFulfilled = dateOrders.filter((o) => o.status === 'fulfilled').length;
+                return (
+                  <div key={dateKey}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900">{formatDate(dateKey)}</h3>
+                      <span className="text-xs text-gray-500">{dateFulfilled}/{dateOrders.length} fulfilled</span>
                     </div>
-                  );
-                })}
-              </div>
-            )
+                    <div className="space-y-2">
+                      {dateOrders.map((order) => (
+                        <OrderCard key={order.id} order={order} statusColor={statusColor}
+                          fulfilling={fulfilling} onFulfill={fulfillOrder} meta={getOrderMeta(order)} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </>
       )}

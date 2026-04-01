@@ -64,6 +64,17 @@ export default function ThankYouClient({ en, fr }: ThankYouClientProps) {
     } catch {}
 
     clearCart();
+
+    // Clear all order-type-specific persisted carts
+    try {
+      localStorage.removeItem('rhubarbe:order:cart');
+      localStorage.removeItem('rhubarbe:order:launchId');
+      localStorage.removeItem('rhubarbe:order:slotId');
+      localStorage.removeItem('rhubarbe:order:pickupDay');
+      localStorage.removeItem('rhubarbe:volume:cart');
+      localStorage.removeItem('rhubarbe:cake:cart');
+      localStorage.removeItem('rhubarbe:checkout:state');
+    } catch {}
   }, [clearCart]);
 
   return (

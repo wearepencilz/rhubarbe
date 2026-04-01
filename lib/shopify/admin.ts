@@ -774,3 +774,93 @@ export async function createDraftOrder(input: DraftOrderInput) {
 
   return data.draftOrderCreate.draftOrder;
 }
+
+
+/**
+ * Fulfill a Shopify order by its legacy (numeric) order ID.
+ * Uses the fulfillmentOrder → fulfillmentCreateV2 flow.
+ * Returns true if fulfilled, false if already fulfilled or no fulfillment orders found.
+ */
+export async function fulfillShopifyOrder(shopifyOrderId: string): Promise<boolean> {
+  // Convert legacy ID to GID if needed
+  const gid = shopifyOrderId.startsWith('gid://')
+    ? shopifyOrderId
+    : `gid://shopify/Order/${shopifyOrderId}`;
+
+  // Step 1: Get fulfillment orders for this order
+  const data = await shopifyAdminFetch(
+    `query getFulfillmentOrders($id: ID!) {
+      order(id: $id) {
+        fulfillmentOrders(first: 10) {
+          edges {
+            node {
+              id
+              status
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    id
+                    remainingQuantity
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }`,
+    { id: gid },
+  );
+
+  if (!data.order) {
+    console.warn(`[Shopify Fulfill] Order not found: ${gid}`);
+    return false;
+  }
+
+  const fulfillmentOrders = data.order.fulfillmentOrders.edges
+    .map((e: any) => e.node)
+    .filter((fo: any) => fo.status === 'OPEN' || fo.status === 'IN_PROGRESS');
+
+  if (fulfillmentOrders.length === 0) {
+    console.log(`[Shopify Fulfill] No open fulfillment orders for ${gid} — may already be fulfilled`);
+    return false;
+  }
+
+  // Step 2: Create fulfillment for each open fulfillment order
+  for (const fo of fulfillmentOrders) {
+    const lineItems = fo.lineItems.edges
+      .map((e: any) => e.node)
+      .filter((li: any) => li.remainingQuantity > 0)
+      .map((li: any) => ({ fulfillmentOrderLineItemId: li.id, quantity: li.remainingQuantity }));
+
+    if (lineItems.length === 0) continue;
+
+    const result = await shopifyAdminFetch(
+      `mutation fulfillmentCreateV2($fulfillment: FulfillmentV2Input!) {
+        fulfillmentCreateV2(fulfillment: $fulfillment) {
+          fulfillment { id status }
+          userErrors { field message }
+        }
+      }`,
+      {
+        fulfillment: {
+          lineItemsByFulfillmentOrder: [
+            {
+              fulfillmentOrderId: fo.id,
+              fulfillmentOrderLineItems: lineItems,
+            },
+          ],
+          notifyCustomer: false,
+        },
+      },
+    );
+
+    if (result.fulfillmentCreateV2.userErrors.length > 0) {
+      console.error(`[Shopify Fulfill] Errors:`, result.fulfillmentCreateV2.userErrors);
+      return false;
+    }
+  }
+
+  console.log(`[Shopify Fulfill] Successfully fulfilled ${gid}`);
+  return true;
+}

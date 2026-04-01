@@ -117,6 +117,7 @@ export async function PATCH(
     if (body.pickupInstructions !== undefined) updateData.pickupInstructions = body.pickupInstructions;
     if (body.pickupSlotConfig !== undefined) updateData.pickupSlotConfig = body.pickupSlotConfig;
     if (body.pickupSlots !== undefined) updateData.pickupSlots = body.pickupSlots;
+    if (body.slug !== undefined) updateData.slug = body.slug || null;
 
     // Pickup window fields
     if (body.pickupWindowStart !== undefined) {

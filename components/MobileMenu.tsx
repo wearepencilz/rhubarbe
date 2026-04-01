@@ -64,8 +64,8 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
 
   const menuItems = [
     { href: '/order', label: label('order', T.nav.order), count: orderCount },
-    { href: '/volume-order', label: label('volumeOrder', T.nav.volumeOrder), count: volumeCount },
-    { href: '/cake-order', label: label('cakeOrder', T.nav.cakeOrder), count: cakeCount },
+    { href: '/catering', label: label('volumeOrder', T.nav.volumeOrder), count: volumeCount },
+    { href: '/cake', label: label('cakeOrder', T.nav.cakeOrder), count: cakeCount },
     { href: '/about', label: label('about', T.nav.about), count: 0 },
   ];
 

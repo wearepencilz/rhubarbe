@@ -171,6 +171,7 @@ interface LinkedProduct {
 interface FormData {
   titleEn: string;
   titleFr: string;
+  slug: string;
   introCopyEn: string;
   introCopyFr: string;
   status: 'draft' | 'active' | 'archived';
@@ -192,6 +193,7 @@ interface FormData {
 
 const EMPTY_FORM: FormData = {
   titleEn: '', titleFr: '',
+  slug: '',
   introCopyEn: '', introCopyFr: '',
   status: 'draft',
   orderOpens: '', orderCloses: '',
@@ -255,6 +257,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       setForm({
         titleEn: d.title?.en || '',
         titleFr: d.title?.fr || '',
+        slug: d.slug || '',
         introCopyEn: d.introCopy?.en || '',
         introCopyFr: d.introCopy?.fr || '',
         status: d.status || 'draft',
@@ -430,6 +433,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
     try {
       const payload = {
         title: { en: form.titleEn, fr: form.titleFr },
+        slug: form.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || null,
         introCopy: { en: form.introCopyEn, fr: form.introCopyFr },
         status: form.status,
         orderOpens: form.orderOpens,
@@ -657,6 +661,21 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
+
+        {/* URL Slug */}
+        <SectionCard title="Shareable URL" description="Optional slug for a direct link to this menu (e.g. easter-menu → /order/easter-menu).">
+          <Input
+            label="Slug"
+            value={form.slug}
+            onChange={(v) => set({ slug: v })}
+            placeholder="e.g. easter-menu"
+          />
+          {form.slug && (
+            <p className="text-xs text-gray-400 mt-1">
+              URL: <span className="font-mono">/order/{form.slug}</span>
+            </p>
+          )}
+        </SectionCard>
 
         {/* Section 2: Ordering Window */}
         <SectionCard title="Ordering Window" description="When customers can place orders.">

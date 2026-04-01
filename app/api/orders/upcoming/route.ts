@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as ordersQuery from '@/lib/db/queries/orders';
 
-const VALID_ORDER_TYPES = ['volume', 'cake'] as const;
+const VALID_ORDER_TYPES = ['volume', 'cake', 'launch'] as const;
 
 /**
- * GET /api/orders/upcoming?orderType=volume|cake
- * Returns all upcoming (non-cancelled) orders for the given type,
+ * GET /api/orders/upcoming?orderType=volume|cake|launch
+ * Returns all upcoming (non-cancelled, non-fulfilled) orders for the given type,
  * ordered by fulfillment date ascending.
  */
 export async function GET(request: NextRequest) {
