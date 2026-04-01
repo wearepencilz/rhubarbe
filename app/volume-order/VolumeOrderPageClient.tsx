@@ -79,7 +79,7 @@ function toDateValue(dateStr: string): DateValue | null {
 function formatDateHuman(dateStr: string, locale: string): string {
   try {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
   } catch { return dateStr; }
 }
 
@@ -121,7 +121,7 @@ function VolumeProductCard({
   if (product.pickupOnly) metaPills.push(isFr ? 'cueillette seul.' : 'pickup only');
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3">
+    <div className="border border-gray-200 rounded-lg p-3 md:flex-1 md:min-w-0">
       <div className="flex gap-3">
         {product.image ? (
           <div className="w-20 aspect-[4/5] shrink-0 rounded overflow-hidden bg-gray-100">
@@ -251,6 +251,27 @@ function VolumeInlineCart({
         <h2 className="text-xs uppercase tracking-widest text-gray-400"
           style={{ fontFamily: 'var(--font-diatype-mono)' }}>{V.yourOrder}</h2>
       </div>
+      {/* Earliest date summary — mirrors regular order pickup info */}
+      {maxLeadTimeDays > 0 && (
+        <div className="px-5 py-3 border-b border-gray-100 space-y-1">
+          <p className="text-xs text-gray-600 font-medium">
+            {V.earliest}{' '}
+            <span>{formatDateHuman(earliestDateStr, locale)}</span>
+            {' '}
+            <span className="text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              ({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
+            </span>
+          </p>
+          {fulfillmentDate && !dateWarning && (
+            <p className="text-xs text-gray-600 font-medium">
+              {fulfillmentType === 'pickup'
+                ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(fulfillmentDate, locale)}`
+                : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(fulfillmentDate, locale)}`}
+              {' '}✓
+            </p>
+          )}
+        </div>
+      )}
       {totalQuantity === 0 ? (
         <div className="px-5 py-8 text-center">
           <p className="text-sm text-gray-400">{V.noItems}</p>
@@ -366,21 +387,7 @@ function VolumeInlineCart({
                 {isFr ? "Nous n'acceptons pas les commandes traiteur le dimanche" : "We don't take catering orders on Sundays"}
               </p>
             </div>
-            {maxLeadTimeDays > 0 && (
-              <p className="text-[11px] text-gray-400 -mt-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {V.earliest}{' '}
-                <span className="text-gray-600">{formatDateHuman(earliestDateStr, locale)}</span>
-                {' '}({maxLeadTimeDays}{isFr ? 'j d\u00e9lai' : 'd lead'})
-              </p>
-            )}
             {dateWarning && <p className="text-[11px] text-red-500 -mt-2" role="alert">{dateWarning}</p>}
-            {fulfillmentDate && !dateWarning && (
-              <p className="text-xs text-gray-600 font-medium -mt-2">
-                {fulfillmentType === 'pickup'
-                  ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(fulfillmentDate, locale)}`
-                  : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(fulfillmentDate, locale)}`}
-              </p>
-            )}
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500 uppercase tracking-wide">{V.allergenNote}</label>
               <textarea value={allergenNote} onChange={(e) => onAllergenNoteChange(e.target.value)} rows={2}
@@ -573,7 +580,7 @@ export default function VolumeOrderPageClient() {
             <div className="text-center py-20"><p className="text-sm text-gray-400">{V.noProducts}</p></div>
           )}
           {!loading && !error && products.length > 0 && (
-            <div className="flex flex-col gap-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-x-6 md:gap-y-10">
+            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-4">
               {products.map((product) => (
                 <VolumeProductCard key={product.id} product={product} locale={locale}
                   cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />

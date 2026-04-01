@@ -20,12 +20,15 @@ export function generatePickupDays(
   const days: string[] = [];
   const startStr = pickupWindowStart.split('T')[0];
   const endStr = pickupWindowEnd.split('T')[0];
-  const start = new Date(startStr + 'T00:00:00');
-  const end = new Date(endStr + 'T00:00:00');
+  const start = new Date(startStr + 'T12:00:00');
+  const end = new Date(endStr + 'T12:00:00');
 
   const current = new Date(start);
   while (current <= end) {
-    days.push(current.toISOString().slice(0, 10));
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    const d = String(current.getDate()).padStart(2, '0');
+    days.push(`${y}-${m}-${d}`);
     current.setDate(current.getDate() + 1);
   }
 

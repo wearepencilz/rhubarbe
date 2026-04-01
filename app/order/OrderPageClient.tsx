@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState } from '@/lib/hooks/use-persisted-state';
+import { generatePickupDays, isPickupDayDisabled } from '@/lib/utils/order-helpers';
 import MobileCartModal from '@/components/ui/MobileCartModal';
 
 interface LaunchProduct {
@@ -43,6 +44,7 @@ interface PickupLocation {
   internalName: string;
   publicLabel: { en: string; fr: string };
   address: string;
+  disabledPickupDays?: number[];
 }
 
 interface Launch {
@@ -54,6 +56,8 @@ interface Launch {
   orderCloses: string;
   orderingOpen: boolean;
   pickupDate: string;
+  pickupWindowStart: string | null;
+  pickupWindowEnd: string | null;
   pickupSlots: Array<{ id: string; startTime: string; endTime: string; capacity?: number }>;
   pickupLocation: PickupLocation | null;
   products: LaunchProduct[];
@@ -71,10 +75,17 @@ interface CartItem {
   allergens: string[];
 }
 
+/** Parse an ISO/timestamp string into a local Date, avoiding UTC day-shift. */
+function toLocalDate(iso: string): Date {
+  const dateOnly = iso.split('T')[0];
+  const [y, m, d] = dateOnly.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function formatDate(iso: string, locale: string) {
   try {
-    return new Date(iso).toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    return toLocalDate(iso).toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
+      weekday: 'short', month: 'short', day: 'numeric',
     });
   } catch { return iso; }
 }
@@ -82,9 +93,28 @@ function formatDate(iso: string, locale: string) {
 function formatDatetime(iso: string, locale: string) {
   try {
     return new Date(iso).toLocaleString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
-      month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   } catch { return iso; }
+}
+
+/** Format a pickup range like "Sat, Apr 18 – Mon, 21" or fall back to single date. */
+function formatPickupRange(launch: Launch, locale: string): string {
+  const { pickupWindowStart, pickupWindowEnd, pickupDate } = launch;
+  if (!pickupWindowStart || !pickupWindowEnd) return formatDate(pickupDate, locale);
+  const loc = locale === 'fr' ? 'fr-CA' : 'en-CA';
+  const start = toLocalDate(pickupWindowStart);
+  const end = toLocalDate(pickupWindowEnd);
+  if (start.getTime() === end.getTime()) return formatDate(pickupWindowStart, locale);
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    const startStr = start.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' });
+    const endStr = end.toLocaleDateString(loc, { weekday: 'short', day: 'numeric' });
+    return `${startStr} – ${endStr}`;
+  }
+  const startStr = start.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' });
+  const endStr = end.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' });
+  return `${startStr} – ${endStr}`;
 }
 
 function ProductCard({
@@ -238,10 +268,10 @@ function ProductCard({
               {isFr ? '+ Ajouter' : '+ Add'}
             </button>
           ) : (
-            <div className="flex items-center justify-between border border-gray-300 rounded h-10">
-              <button onClick={onRemove} className="px-3 h-10 hover:bg-gray-50 text-lg">−</button>
+            <div className="flex items-center justify-between border border-gray-300 rounded overflow-hidden h-10">
+              <button onClick={onRemove} className="px-3 h-full hover:bg-gray-50 text-lg">−</button>
               <span className="text-sm font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
-              <button onClick={onAdd} disabled={atMax} className="px-3 h-10 hover:bg-gray-50 text-lg disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+              <button onClick={onAdd} disabled={atMax} className="px-3 h-full hover:bg-gray-50 text-lg disabled:opacity-30 disabled:cursor-not-allowed">+</button>
             </div>
           )}
         </div>
@@ -311,10 +341,15 @@ function InlineCart({
   pickupSlots,
   selectedSlotId,
   onSelectSlot,
+  pickupDays,
+  selectedPickupDay,
+  onSelectPickupDay,
   onCheckout,
   checkoutLoading,
   checkoutError,
   pickupDate,
+  pickupWindowStart,
+  pickupWindowEnd,
   orderCloses,
 }: {
   items: CartItem[];
@@ -325,10 +360,15 @@ function InlineCart({
   pickupSlots: Array<{ id: string; startTime: string; endTime: string }>;
   selectedSlotId: string | null;
   onSelectSlot: (id: string) => void;
+  pickupDays: string[];
+  selectedPickupDay: string | null;
+  onSelectPickupDay: (day: string) => void;
   onCheckout: () => void;
   checkoutLoading: boolean;
   checkoutError: string | null;
   pickupDate?: string | null;
+  pickupWindowStart?: string | null;
+  pickupWindowEnd?: string | null;
   orderCloses?: string | null;
 }) {
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -345,12 +385,27 @@ function InlineCart({
         </h2>
       </div>
 
-      {/* Pickup date and cut-off reminder (Task 6.3 & 6.4) */}
+      {/* Pickup date and cut-off reminder */}
       {(pickupDate || orderCloses) && (
         <div className="px-5 py-3 border-b border-gray-100 space-y-1">
           {pickupDate && (
             <p className="text-xs text-gray-600 font-medium">
-              {isFr ? 'Cueillette\u00a0: ' : 'Pickup: '}{formatDate(pickupDate, locale)}
+              {isFr ? 'Cueillette\u00a0: ' : 'Pickup: '}
+              {selectedPickupDay
+                ? formatDate(selectedPickupDay, locale)
+                : pickupWindowStart && pickupWindowEnd
+                  ? (() => {
+                      const loc = locale === 'fr' ? 'fr-CA' : 'en-CA';
+                      const s = toLocalDate(pickupWindowStart);
+                      const e = toLocalDate(pickupWindowEnd);
+                      if (s.getTime() === e.getTime()) return formatDate(pickupWindowStart, locale);
+                      const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+                      if (sameMonth) {
+                        return `${s.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { weekday: 'short', day: 'numeric' })}`;
+                      }
+                      return `${s.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' })}`;
+                    })()
+                  : formatDate(pickupDate, locale)}
             </p>
           )}
           {orderCloses && (
@@ -462,31 +517,76 @@ function InlineCart({
                 <span>{isFr ? 'Articles' : 'Items'}</span>
                 <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>{items.reduce((s, i) => s + i.quantity, 0)}</span>
               </div>
+              {pickupDate && (
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span>{isFr ? 'Cueillette' : 'Pickup'}</span>
+                  <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    {selectedPickupDay
+                      ? formatDate(selectedPickupDay, locale)
+                      : pickupWindowStart && pickupWindowEnd
+                        ? (() => {
+                            const loc = locale === 'fr' ? 'fr-CA' : 'en-CA';
+                            const s = toLocalDate(pickupWindowStart);
+                            const e = toLocalDate(pickupWindowEnd);
+                            if (s.getTime() === e.getTime()) return formatDate(pickupWindowStart, locale);
+                            const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+                            if (sameMonth) {
+                              return `${s.toLocaleDateString(loc, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { day: 'numeric' })}`;
+                            }
+                            return `${s.toLocaleDateString(loc, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { month: 'short', day: 'numeric' })}`;
+                          })()
+                        : formatDate(pickupDate, locale)}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Pickup slot selector */}
-            {pickupSlots.length > 0 && (
+            {/* Pickup slot — day + time selectors under one label */}
+            {(pickupDays.length > 1 || pickupSlots.length > 0) && (
               <>
                 <hr className="border-gray-200" />
-                <div>
+                <div className="space-y-2">
                   <label
-                    className="block text-xs uppercase tracking-widest text-gray-400 mb-1.5"
+                    className="block text-xs uppercase tracking-widest text-gray-400"
                     style={{ fontFamily: 'var(--font-diatype-mono)' }}
                   >
                     {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
                   </label>
-                  <select
-                    value={selectedSlotId || ''}
-                    onChange={(e) => onSelectSlot(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
-                  >
-                    <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
-                    {pickupSlots.map((slot) => (
-                      <option key={slot.id} value={slot.id}>
-                        {slot.startTime} – {slot.endTime}
-                      </option>
-                    ))}
-                  </select>
+                  {pickupDays.length > 1 && (
+                    <select
+                      value={selectedPickupDay || ''}
+                      onChange={(e) => onSelectPickupDay(e.target.value)}
+                      className="w-full appearance-none border border-gray-300 rounded pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                    >
+                      <option value="">{isFr ? 'Choisir un jour…' : 'Choose a day…'}</option>
+                      {pickupDays.map((day) => (
+                        <option key={day} value={day}>
+                          {formatDate(day, locale)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {pickupSlots.length > 0 && (
+                    <select
+                      value={selectedSlotId || ''}
+                      onChange={(e) => onSelectSlot(e.target.value)}
+                      className="w-full appearance-none border border-gray-300 rounded pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                    >
+                      <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
+                      {pickupSlots.map((slot) => (
+                        <option key={slot.id} value={slot.id}>
+                          {slot.startTime} – {slot.endTime}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {(pickupDays.length > 1 && !selectedPickupDay) || (pickupSlots.length > 0 && !selectedSlotId) ? (
+                    <p className="text-xs text-amber-600">
+                      {isFr ? 'Veuillez sélectionner un créneau' : 'Please select a pickup slot'}
+                    </p>
+                  ) : null}
                 </div>
               </>
             )}
@@ -501,7 +601,7 @@ function InlineCart({
 
             <button
               onClick={onCheckout}
-              disabled={checkoutLoading || (pickupSlots.length > 0 && !selectedSlotId)}
+              disabled={checkoutLoading || (pickupSlots.length > 0 && !selectedSlotId) || (pickupDays.length > 1 && !selectedPickupDay)}
               className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-diatype-mono)' }}
             >
@@ -529,6 +629,7 @@ export default function OrderPageClient() {
   const [cartLaunchId, setCartLaunchId] = usePersistedState<string | null>('rhubarbe:order:launchId', null);
   const [pendingSwitchIdx, setPendingSwitchIdx] = useState<number | null>(null);
   const [selectedSlotId, setSelectedSlotId] = usePersistedState<string | null>('rhubarbe:order:slotId', null);
+  const [selectedPickupDay, setSelectedPickupDay] = usePersistedState<string | null>('rhubarbe:order:pickupDay', null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -554,6 +655,15 @@ export default function OrderPageClient() {
   }, []);
 
   const launch = launches[activeLaunchIdx] || null;
+
+  // Compute available pickup days for range menus, filtering out location closed days
+  const availablePickupDays = (() => {
+    if (!launch || !launch.pickupWindowStart || !launch.pickupWindowEnd) return [];
+    const allDays = generatePickupDays(launch.pickupWindowStart, launch.pickupWindowEnd, launch.pickupDate);
+    if (allDays.length <= 1) return [];
+    const disabledDays = launch.pickupLocation?.disabledPickupDays ?? [];
+    return allDays.filter((day) => !isPickupDayDisabled(new Date(day + 'T00:00:00'), disabledDays));
+  })();
 
   // Fetch live Shopify inventory for the active launch's products
   useEffect(() => {
@@ -751,6 +861,27 @@ export default function OrderPageClient() {
 
   const handleCheckout = async () => {
     if (!launch || cart.length === 0) return;
+
+    // Require a pickup slot when the launch defines slots
+    if (launch.pickupSlots.length > 0 && !selectedSlotId) {
+      setCheckoutError(
+        isFr
+          ? 'Veuillez sélectionner un créneau de cueillette.'
+          : 'Please select a pickup slot.',
+      );
+      return;
+    }
+
+    // Require a pickup day when the launch has a range
+    if (availablePickupDays.length > 1 && !selectedPickupDay) {
+      setCheckoutError(
+        isFr
+          ? 'Veuillez sélectionner un jour de cueillette.'
+          : 'Please select a pickup day.',
+      );
+      return;
+    }
+
     setCheckoutLoading(true);
     setCheckoutError(null);
 
@@ -771,7 +902,12 @@ export default function OrderPageClient() {
       };
     });
 
-    const pickupDateFormatted = formatDate(launch.pickupDate, locale);
+    // Use selected pickup day if available, otherwise format the range or single date
+    const pickupDateFormatted = selectedPickupDay
+      ? formatDate(selectedPickupDay, locale)
+      : launch.pickupWindowStart && launch.pickupWindowEnd
+        ? formatPickupRange(launch, locale)
+        : formatDate(launch.pickupDate, locale);
     const locationName = launch.pickupLocation
       ? (isFr ? launch.pickupLocation.publicLabel.fr : launch.pickupLocation.publicLabel.en)
       : '';
@@ -857,7 +993,9 @@ export default function OrderPageClient() {
               <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                 {isFr ? 'Date' : 'Date'}
               </p>
-              <p className="text-sm text-gray-900 mt-0.5">{formatDate(launch.pickupDate, locale)}</p>
+              <p className="text-sm text-gray-900 mt-0.5">
+                {selectedPickupDay ? formatDate(selectedPickupDay, locale) : formatPickupRange(launch, locale)}
+              </p>
             </div>
 
             {selectedSlot && (
@@ -938,7 +1076,7 @@ export default function OrderPageClient() {
               try {
                 sessionStorage.setItem('rhubarbe_order', JSON.stringify({
                   menu: isFr ? launch.title.fr : launch.title.en,
-                  pickupDate: formatDate(launch.pickupDate, locale),
+                  pickupDate: selectedPickupDay ? formatDate(selectedPickupDay, locale) : formatPickupRange(launch, locale),
                   pickupLocation: locationName + (locationAddress ? ` — ${locationAddress}` : ''),
                   pickupSlot: selectedSlot ? `${selectedSlot.startTime} – ${selectedSlot.endTime}` : '',
                   items: cart.map((item) => ({
@@ -954,6 +1092,7 @@ export default function OrderPageClient() {
                 localStorage.removeItem('rhubarbe:order:cart');
                 localStorage.removeItem('rhubarbe:order:launchId');
                 localStorage.removeItem('rhubarbe:order:slotId');
+                localStorage.removeItem('rhubarbe:order:pickupDay');
               } catch {}
             }}
             className="inline-block px-10 py-3.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
@@ -1058,7 +1197,7 @@ export default function OrderPageClient() {
                   </div>
                   <div>
                     <span className="uppercase tracking-widest text-gray-400">{isFr ? 'Cueillette' : 'Pickup'}</span>
-                    <p className="text-gray-700 mt-0.5">{formatDate(launch.pickupDate, locale)}</p>
+                    <p className="text-gray-700 mt-0.5">{formatPickupRange(launch, locale)}</p>
                   </div>
                   {launch.pickupLocation && (
                     <div>
@@ -1189,10 +1328,15 @@ export default function OrderPageClient() {
             pickupSlots={launch?.pickupSlots || []}
             selectedSlotId={selectedSlotId}
             onSelectSlot={setSelectedSlotId}
+            pickupDays={availablePickupDays}
+            selectedPickupDay={selectedPickupDay}
+            onSelectPickupDay={setSelectedPickupDay}
             onCheckout={handleCheckout}
             checkoutLoading={checkoutLoading}
             checkoutError={checkoutError}
             pickupDate={launch?.pickupDate || null}
+            pickupWindowStart={launch?.pickupWindowStart || null}
+            pickupWindowEnd={launch?.pickupWindowEnd || null}
             orderCloses={launch?.orderCloses || null}
           />
         </div>
@@ -1209,10 +1353,15 @@ export default function OrderPageClient() {
           pickupSlots={launch?.pickupSlots || []}
           selectedSlotId={selectedSlotId}
           onSelectSlot={setSelectedSlotId}
+          pickupDays={availablePickupDays}
+          selectedPickupDay={selectedPickupDay}
+          onSelectPickupDay={setSelectedPickupDay}
           onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
           checkoutLoading={checkoutLoading}
           checkoutError={checkoutError}
           pickupDate={launch?.pickupDate || null}
+          pickupWindowStart={launch?.pickupWindowStart || null}
+          pickupWindowEnd={launch?.pickupWindowEnd || null}
           orderCloses={launch?.orderCloses || null}
         />
       </MobileCartModal>

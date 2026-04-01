@@ -90,7 +90,7 @@ function toDateValue(dateStr: string): DateValue | null {
 function formatDateHuman(dateStr: string, locale: string): string {
   try {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-US', {
+    return d.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
       weekday: 'short', month: 'short', day: 'numeric',
     });
   } catch { return dateStr; }

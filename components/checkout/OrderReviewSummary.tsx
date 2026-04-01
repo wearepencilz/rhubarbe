@@ -48,8 +48,8 @@ function formatDate(dateStr: string, locale: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   return date.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
-    year: 'numeric',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
   });
 }

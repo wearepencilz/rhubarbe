@@ -10,6 +10,8 @@ interface ActiveLaunch {
   orderOpens: string;
   orderCloses: string;
   pickupDate: string;
+  pickupWindowStart: string | null;
+  pickupWindowEnd: string | null;
   pickupSlots: Array<{ id: string; startTime: string; endTime: string; capacity?: number }>;
   products: Array<{ productId: string; productName: string; sortOrder: number }>;
   pickupLocation: { publicLabel: { en: string; fr: string }; address: string } | null;
@@ -51,7 +53,21 @@ export function MenuWeekHomepage() {
       <div className="flex items-center gap-4 text-xs text-gray-500">
         <span>
           {T.order.pickupLabel}{' '}
-          {new Date(launch.pickupDate).toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}
+          {(() => {
+            const loc = lang === 'fr' ? 'fr-CA' : 'en-CA';
+            const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+            if (launch.pickupWindowStart && launch.pickupWindowEnd) {
+              const s = new Date(launch.pickupWindowStart);
+              const e = new Date(launch.pickupWindowEnd);
+              if (s.getTime() === e.getTime()) return s.toLocaleDateString(loc, opts);
+              const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
+              if (sameMonth) {
+                return `${s.toLocaleDateString(loc, opts)} – ${e.toLocaleDateString(loc, { weekday: 'short', day: 'numeric' })}`;
+              }
+              return `${s.toLocaleDateString(loc, opts)} – ${e.toLocaleDateString(loc, opts)}`;
+            }
+            return new Date(launch.pickupDate).toLocaleDateString(loc, opts);
+          })()}
         </span>
         {launch.pickupLocation && (
           <span>@ {launch.pickupLocation.publicLabel[lang]}</span>

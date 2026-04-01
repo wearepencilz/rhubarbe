@@ -30,6 +30,22 @@ export default function ReviewStep({
     setError(null);
     setSkippedWarning(null);
 
+    // Guard: pickup slot required for regular orders that have slots available
+    const pickupSlots: unknown[] = (fulfillment as any).pickupSlots ?? [];
+    if (
+      config.orderType === 'regular' &&
+      pickupSlots.length > 0 &&
+      !fulfillment.pickupSlotId
+    ) {
+      setError(
+        isFr
+          ? 'Veuillez sélectionner un créneau de cueillette avant de continuer.'
+          : 'Please select a pickup slot before proceeding.',
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = config.buildCheckoutPayload(cartItems, fulfillment, locale);
       const res = await fetch(config.checkoutEndpoint, {
