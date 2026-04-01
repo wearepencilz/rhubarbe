@@ -99,14 +99,11 @@ interface AdminDateTimeFieldProps {
 }
 
 export function AdminDateTimeField({ label, value, onChange, description, errorMessage, isRequired }: AdminDateTimeFieldProps) {
-  const dateValue = useMemo(() => parseLocalDatetime(value), [value]);
-
   return (
     <DateTimeField
       label={label}
-      value={dateValue}
-      onChange={(v) => onChange(toLocalDatetimeStr(v))}
-      granularity="minute"
+      value={value}
+      onChange={onChange}
       description={description}
       errorMessage={errorMessage}
       isRequired={isRequired}

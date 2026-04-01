@@ -1,8 +1,8 @@
 "use client";
 
-import type { HTMLAttributes, PropsWithChildren } from "react";
-import { Fragment, useContext, useState } from "react";
-import { type CalendarDate, getLocalTimeZone, today } from "@internationalized/date";
+import type { PropsWithChildren } from "react";
+import { Fragment, useState } from "react";
+import { getLocalTimeZone, today } from "@internationalized/date";
 import { ChevronLeft, ChevronRight } from "@untitledui/icons";
 import type { CalendarProps as AriaCalendarProps, DateValue } from "react-aria-components";
 import {
@@ -12,49 +12,18 @@ import {
     CalendarGridBody as AriaCalendarGridBody,
     CalendarGridHeader as AriaCalendarGridHeader,
     CalendarHeaderCell as AriaCalendarHeaderCell,
-    CalendarStateContext as AriaCalendarStateContext,
     Heading as AriaHeading,
     useSlottedContext,
 } from "react-aria-components";
 import { Button } from "../buttons/button";
 import { cx } from "../../utils/cx";
 import { CalendarCell } from "./cell";
-import { DateInput } from "./date-input";
 
 export const CalendarContextProvider = ({ children }: PropsWithChildren) => {
     const [value, onChange] = useState<DateValue | null>(null);
     const [focusedValue, onFocusChange] = useState<DateValue | undefined>();
 
     return <AriaCalendarContext.Provider value={{ value, onChange, focusedValue, onFocusChange }}>{children}</AriaCalendarContext.Provider>;
-};
-
-const PresetButton = ({ value, children, ...props }: HTMLAttributes<HTMLButtonElement> & { value: CalendarDate }) => {
-    const context = useContext(AriaCalendarStateContext);
-
-    if (!context) {
-        throw new Error("Preset must be used within a Calendar component");
-    }
-
-    const handleClick = () => {
-        context.setValue(value);
-        context.setFocusedDate(value);
-    };
-
-    return (
-        <Button
-            {...props}
-            // It's important to give `null` explicitly to the `slot` prop
-            // otherwise the button will throw an error due to not using one of
-            // the required slots inside the Calendar component.
-            // Passing `null` will tell the button to not use a slot context.
-            slot={null}
-            size="md"
-            color="secondary"
-            onClick={handleClick}
-        >
-            {children}
-        </Button>
-    );
 };
 
 interface CalendarProps extends AriaCalendarProps<DateValue> {
@@ -75,11 +44,6 @@ export const Calendar = ({ highlightedDates, className, ...props }: CalendarProp
                     <AriaHeading className="text-sm font-semibold text-fg-secondary" />
                     <Button slot="next" iconLeading={ChevronRight} size="sm" color="tertiary" className="size-8" />
                 </header>
-
-                <div className="flex gap-3">
-                    <DateInput className="flex-1" />
-                    <PresetButton value={today(getLocalTimeZone())}>Today</PresetButton>
-                </div>
 
                 <AriaCalendarGrid weekdayStyle="short" className="w-max">
                     <AriaCalendarGridHeader className="border-b-4 border-transparent">

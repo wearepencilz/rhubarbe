@@ -1,7 +1,6 @@
 "use client";
 
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { useControlledState } from "@react-stately/utils";
 import { Calendar as CalendarIcon } from "@untitledui/icons";
 import { useDateFormatter } from "react-aria";
 import type { DatePickerProps as AriaDatePickerProps, DateValue } from "react-aria-components";
@@ -27,12 +26,12 @@ interface DatePickerFieldProps extends Omit<AriaDatePickerProps<DateValue>, "chi
 
 export function DatePickerField({ label, description, errorMessage, value: valueProp, defaultValue, onChange, ...props }: DatePickerFieldProps) {
   const formatter = useDateFormatter({ month: "short", day: "numeric", year: "numeric" });
-  const [value, setValue] = useControlledState(valueProp, defaultValue || null, onChange);
 
+  const value = valueProp ?? defaultValue ?? null;
   const formattedDate = value ? formatter.format(value.toDate(getLocalTimeZone())) : null;
 
   return (
-    <AriaDatePicker {...props} value={value} onChange={setValue}>
+    <AriaDatePicker {...props} value={value} onChange={(v) => onChange?.(v)}>
       <div className="flex flex-col gap-1.5">
         {label && <AriaLabel className="text-sm font-medium text-secondary">{label}</AriaLabel>}
         <AriaGroup>
