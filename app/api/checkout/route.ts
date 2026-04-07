@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
 import { findExemptVariant } from '@/lib/tax/find-exempt-variant';
+import { fetchTaxSettings } from '@/lib/tax/tax-settings';
+import { fetchProductCategories } from '@/lib/shopify/queries/product-categories';
+import { resolveCategoryVariants } from '@/lib/tax/resolve-category-variants';
+import type { CategoryCartItem } from '@/lib/tax/resolve-category-variants';
+import { getVariantTaxUnitCount } from '@/lib/tax/resolve-variant';
+
+/** Parse the JSON-encoded collection titles from the product categories map */
+function parseCollections(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 interface CheckoutItem {
   productId: string;
@@ -75,6 +91,46 @@ export async function POST(request: NextRequest) {
     const taxConfigs = await getTaxConfigByIds(productIds);
     console.log(`[Checkout Tax] Tax configs found: ${taxConfigs.size} of ${productIds.length}`);
 
+    // --- Category-based tax resolution ---
+    const categoryResolvedIds = new Set<string>();
+    try {
+      const taxSettings = await fetchTaxSettings();
+      if (taxSettings && taxSettings.thresholdCategories.length > 0) {
+        // Fetch Shopify product categories for all items
+        const shopifyIds = lineItems
+          .map((item) => item.shopifyProductId)
+          .filter((id): id is string => !!id);
+        const productCategories = await fetchProductCategories(shopifyIds);
+
+        // Build CategoryCartItem array
+        const categoryItems: CategoryCartItem[] = lineItems.map((item, i) => ({
+          productId: item.productId,
+          shopifyProductId: item.shopifyProductId || '',
+          defaultVariantId: lines[i].merchandiseId,
+          exemptVariantId: taxConfigs.get(item.productId)?.shopifyTaxExemptVariantId ?? null,
+          quantity: item.quantity,
+          taxUnitCount: taxConfigs.get(item.productId)?.taxUnitCount ?? 1,
+          shopifyCollections: item.shopifyProductId
+            ? parseCollections(productCategories.get(item.shopifyProductId))
+            : [],
+        }));
+
+        const categoryResolutions = resolveCategoryVariants(categoryItems, taxSettings);
+
+        // Apply category resolutions
+        for (const resolution of categoryResolutions) {
+          const lineIndex = lineItems.findIndex((item) => item.productId === resolution.productId);
+          if (lineIndex >= 0) {
+            lines[lineIndex].merchandiseId = resolution.variantId;
+            categoryResolvedIds.add(resolution.productId);
+            console.log(`[Checkout Tax] Category resolved: ${lineItems[lineIndex].productName} → ${resolution.isExempt ? 'exempt' : 'taxable'} (categoryTotal=${resolution.categoryTotal})`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Checkout Tax] Category resolution failed, falling back to per-product:', err);
+    }
+
     for (let i = 0; i < lines.length; i++) {
       const item = lineItems[i];
       const taxConfig = taxConfigs.get(item.productId);
@@ -83,6 +139,9 @@ export async function POST(request: NextRequest) {
         continue;
       }
       if (!item.shopifyProductId) continue;
+
+      // Skip items already resolved by category threshold
+      if (categoryResolvedIds.has(item.productId)) continue;
 
       if (taxConfig.taxBehavior === 'quantity_threshold') {
         const effectiveUnits = item.quantity * taxConfig.taxUnitCount;

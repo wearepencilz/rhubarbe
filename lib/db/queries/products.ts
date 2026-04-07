@@ -142,17 +142,26 @@ export async function getTaxConfigByIds(productIds: string[]): Promise<Map<strin
       taxThreshold: products.taxThreshold,
       taxUnitCount: products.taxUnitCount,
       shopifyTaxExemptVariantId: products.shopifyTaxExemptVariantId,
+      variants: products.variants,
     })
     .from(products)
     .where(inArray(products.id, validIds));
 
   const map = new Map<string, TaxConfig>();
   for (const row of rows) {
+    // Extract variant-level taxUnitCount from the JSONB variants array
+    const variantTaxInfo = Array.isArray(row.variants)
+      ? row.variants
+          .filter((v: any) => v?.id && v?.taxUnitCount != null)
+          .map((v: any) => ({ id: v.id as string, taxUnitCount: v.taxUnitCount as number }))
+      : undefined;
+
     map.set(row.id, {
       taxBehavior: row.taxBehavior as TaxConfig['taxBehavior'],
       taxThreshold: row.taxThreshold,
       taxUnitCount: row.taxUnitCount,
       shopifyTaxExemptVariantId: row.shopifyTaxExemptVariantId,
+      variants: variantTaxInfo?.length ? variantTaxInfo : undefined,
     });
   }
   return map;

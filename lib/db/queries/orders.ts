@@ -260,3 +260,57 @@ export async function getByOrderNumber(orderNumber: string) {
     .where(eq(orders.orderNumber, orderNumber));
   return row ?? null;
 }
+
+
+/**
+ * List orders for the prep/fulfillment view with date range and payment status filters.
+ * Unlike listUpcoming, this includes ALL statuses (paid, pending, refunded) and
+ * allows filtering by fulfillment/pickup date range.
+ */
+export async function listForPrep(filters: {
+  dateFrom?: string;
+  dateTo?: string;
+  paymentStatus?: string;
+  orderType?: string;
+}) {
+  const conditions = [];
+
+  if (filters.dateFrom) {
+    conditions.push(sql`COALESCE(${orders.fulfillmentDate}::date, ${orders.orderDate}::date) >= ${filters.dateFrom}::date`);
+  }
+  if (filters.dateTo) {
+    conditions.push(sql`COALESCE(${orders.fulfillmentDate}::date, ${orders.orderDate}::date) <= ${filters.dateTo}::date`);
+  }
+  if (filters.paymentStatus) {
+    conditions.push(eq(orders.paymentStatus, filters.paymentStatus as 'pending' | 'paid' | 'refunded'));
+  }
+  if (filters.orderType) {
+    conditions.push(eq(orders.orderType, filters.orderType));
+  }
+
+  // Exclude cancelled
+  conditions.push(sql`${orders.status} != 'cancelled'`);
+
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(and(...conditions))
+    .orderBy(sql`COALESCE(${orders.fulfillmentDate}, ${orders.orderDate})::date ASC`, desc(orders.orderDate));
+
+  const orderIds = rows.map((r) => r.id);
+  const allItems = orderIds.length
+    ? await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds))
+    : [];
+
+  const itemsByOrder = new Map<string, typeof allItems>();
+  for (const item of allItems) {
+    const arr = itemsByOrder.get(item.orderId) || [];
+    arr.push(item);
+    itemsByOrder.set(item.orderId, arr);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    items: itemsByOrder.get(row.id) || [],
+  }));
+}

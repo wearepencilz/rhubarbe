@@ -115,17 +115,18 @@ export default function VariantEditor({
           {variants.length > 0 && (
             <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
               {/* Header */}
-              <div className="px-4 py-2 bg-gray-50 grid grid-cols-[28px_1fr_1fr_80px_32px_28px] gap-3 text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+              <div className="px-4 py-2 bg-gray-50 grid grid-cols-[28px_1fr_1fr_80px_60px_32px_28px] gap-3 text-[11px] font-medium text-gray-500 uppercase tracking-wider">
                 <span />
                 <span>🇫🇷 Français</span>
                 <span>🇬🇧 English</span>
                 <span className="text-right">Prix ($)</span>
+                <span className="text-right">Units</span>
                 <span className="text-center">Actif</span>
                 <span />
               </div>
 
               {variants.map((variant, index) => (
-                <div key={variant.id} className="px-4 py-3 grid grid-cols-[28px_1fr_1fr_80px_32px_28px] gap-3 items-center">
+                <div key={variant.id} className="px-4 py-3 grid grid-cols-[28px_1fr_1fr_80px_60px_32px_28px] gap-3 items-center">
                   {/* Reorder */}
                   <div className="flex flex-col gap-0.5">
                     <button
@@ -176,6 +177,23 @@ export default function VariantEditor({
                       onBlur={() => commitPrice(variant.id)}
                       placeholder={basePrice || '—'}
                       className="w-full text-sm text-right border border-gray-200 rounded px-2 py-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 tabular-nums"
+                    />
+                  </div>
+
+                  {/* Tax units per item */}
+                  <div>
+                    <input
+                      type="number"
+                      min="1"
+                      value={variant.taxUnitCount ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const num = parseInt(val, 10);
+                        updateVariant(variant.id, { taxUnitCount: val && !isNaN(num) ? num : undefined });
+                      }}
+                      placeholder="1"
+                      className="w-full text-sm text-right border border-gray-200 rounded px-2 py-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 tabular-nums"
+                      aria-label={`Tax units for ${variant.labelFr || variant.label}`}
                     />
                   </div>
 

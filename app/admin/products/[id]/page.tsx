@@ -21,6 +21,7 @@ import ProductAvailabilityTab from '@/app/admin/components/ProductAvailabilityTa
 import TaxShippingSection from '../../components/TaxShippingSection';
 import ShopifyVariantsDisplay from '../../components/ShopifyVariantsDisplay';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
+import VariantEditor from '@/app/admin/components/VariantEditor';
 import type { FlavourIngredient, ContentTranslations, ProductVariant } from '@/types';
 
 /** Convert a UTC ISO string to a local date value (YYYY-MM-DD) */
@@ -477,6 +478,23 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
               <FlavourIngredientSelector
                 selectedIngredients={formData.ingredients}
                 onChange={(ing: FlavourIngredient[]) => setFormData({ ...formData, ingredients: ing })}
+              />
+            </div>
+          </div>
+
+          {/* Variants */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Variants</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Size or flavour options. Set units per item for tax threshold calculations.</p>
+            </div>
+            <div className="px-6 py-6">
+              <VariantEditor
+                variantType={formData.variantType}
+                variants={formData.variants}
+                basePrice={offering?.price != null ? (offering.price / 100).toString() : ''}
+                onVariantTypeChange={(type) => setFormData({ ...formData, variantType: type })}
+                onVariantsChange={(variants) => setFormData({ ...formData, variants })}
               />
             </div>
           </div>

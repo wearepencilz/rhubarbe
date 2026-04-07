@@ -135,6 +135,9 @@ export default function OrdersPage() {
             <Button color="secondary" size="sm" onClick={() => router.push('/admin/orders/prep-sheet')}>
               Prep Sheet
             </Button>
+            <Button color="secondary" size="sm" onClick={() => router.push('/admin/orders/prep')}>
+              Prep & Fulfillment
+            </Button>
             <Button color="secondary" size="sm" onClick={() => router.push('/admin/orders/pickup-list')}>
               Pickup List
             </Button>

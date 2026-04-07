@@ -10,6 +10,25 @@ export interface TaxConfig {
   taxThreshold: number;
   taxUnitCount: number;
   shopifyTaxExemptVariantId: string | null;
+  /** CMS variants with optional per-variant taxUnitCount */
+  variants?: { id: string; taxUnitCount?: number }[];
+}
+
+/**
+ * Get the effective taxUnitCount for a specific variant.
+ * Falls back to the product-level taxUnitCount if the variant doesn't have one.
+ */
+export function getVariantTaxUnitCount(
+  taxConfig: TaxConfig,
+  variantId?: string | null,
+): number {
+  if (variantId && taxConfig.variants) {
+    const variant = taxConfig.variants.find((v) => v.id === variantId);
+    if (variant?.taxUnitCount && variant.taxUnitCount >= 1) {
+      return variant.taxUnitCount;
+    }
+  }
+  return taxConfig.taxUnitCount;
 }
 
 export interface VariantResolution {

@@ -3,6 +3,21 @@ import { createCart } from '@/lib/shopify/cart';
 import { getProductVariantId } from '@/lib/shopify/admin';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
 import { findExemptVariant } from '@/lib/tax/find-exempt-variant';
+import { fetchTaxSettings } from '@/lib/tax/tax-settings';
+import { fetchProductCategories } from '@/lib/shopify/queries/product-categories';
+import { resolveCategoryVariants } from '@/lib/tax/resolve-category-variants';
+import type { CategoryCartItem } from '@/lib/tax/resolve-category-variants';
+import { getVariantTaxUnitCount } from '@/lib/tax/resolve-variant';
+
+function parseCollections(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 interface VolumeCheckoutItem {
   productId: string;
@@ -77,13 +92,51 @@ export async function POST(request: NextRequest) {
     const productIds = items.map((item) => item.productId);
     const taxConfigs = await getTaxConfigByIds(productIds);
 
+    // --- Category-based tax resolution ---
+    const categoryResolvedIds = new Set<string>();
+    try {
+      const taxSettings = await fetchTaxSettings();
+      if (taxSettings && taxSettings.thresholdCategories.length > 0) {
+        const shopifyIds = items
+          .map((item) => item.shopifyProductId)
+          .filter((id): id is string => !!id);
+        const productCategories = await fetchProductCategories(shopifyIds);
+
+        const categoryItems: CategoryCartItem[] = items.map((item, i) => ({
+          productId: item.productId,
+          shopifyProductId: item.shopifyProductId || '',
+          defaultVariantId: lines[i].merchandiseId,
+          exemptVariantId: taxConfigs.get(item.productId)?.shopifyTaxExemptVariantId ?? null,
+          quantity: item.quantity,
+          taxUnitCount: getVariantTaxUnitCount(taxConfigs.get(item.productId)!, item.variantId),
+          shopifyCollections: item.shopifyProductId
+            ? parseCollections(productCategories.get(item.shopifyProductId))
+            : [],
+        }));
+
+        const categoryResolutions = resolveCategoryVariants(categoryItems, taxSettings);
+        for (const resolution of categoryResolutions) {
+          const lineIndex = items.findIndex((item) => item.productId === resolution.productId);
+          if (lineIndex >= 0) {
+            lines[lineIndex].merchandiseId = resolution.variantId;
+            categoryResolvedIds.add(resolution.productId);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Volume Checkout] Category resolution failed, falling back to per-product:', err);
+    }
+
     for (let i = 0; i < lines.length; i++) {
       const item = items[i];
       const taxConfig = taxConfigs.get(item.productId);
       if (!taxConfig || !item.shopifyProductId) continue;
 
+      // Skip items already resolved by category threshold
+      if (categoryResolvedIds.has(item.productId)) continue;
+
       if (taxConfig.taxBehavior === 'quantity_threshold') {
-        const effectiveUnits = item.quantity * taxConfig.taxUnitCount;
+        const effectiveUnits = item.quantity * getVariantTaxUnitCount(taxConfig, item.variantId);
         if (effectiveUnits >= taxConfig.taxThreshold) {
           const exemptId = await findExemptVariant(item.shopifyProductId, lines[i].merchandiseId);
           if (exemptId) {

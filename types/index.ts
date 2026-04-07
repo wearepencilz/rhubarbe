@@ -315,6 +315,7 @@ export interface ProductVariant {
   shopifyVariantId?: string;     // Shopify variant GID after sync
   available: boolean;            // Is this variant currently available?
   sortOrder: number;             // Display order
+  taxUnitCount?: number;         // Units per item for tax threshold calc (e.g. box of 4 = 4). Falls back to product-level taxUnitCount if unset.
 }
 
 export interface Offering {
