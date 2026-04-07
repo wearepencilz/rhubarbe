@@ -144,7 +144,7 @@ Extend the existing cake ordering system to support four new product types (XXL,
 - [x] 10. Checkpoint — Ensure storefront renders all product types correctly
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Extend checkout API `POST /api/checkout/cake`
+- [x] 11. Extend checkout API `POST /api/checkout/cake`
   - Resolve Shopify variant IDs from pricing grid for grid-based products using `resolvePricingGridPrice`
   - Handle both legacy (direct shopifyVariantId) and grid-based (sizeValue + flavourHandle lookup) items in the same cart
   - Store selected flavour(s) in Shopify cart attributes
@@ -153,7 +153,7 @@ Extend the existing cake ordering system to support four new product types (XXL,
   - Return 422 if any line item's Shopify variant ID cannot be resolved
   - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7, 9.3_
 
-- [ ] 12. Checkpoint — Ensure checkout works for all product types
+- [x] 12. Checkpoint — Ensure checkout works for all product types
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 13. Property-based tests and unit tests

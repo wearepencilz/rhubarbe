@@ -8,6 +8,8 @@ import { fetchProductCategories } from '@/lib/shopify/queries/product-categories
 import { resolveCategoryVariants } from '@/lib/tax/resolve-category-variants';
 import type { CategoryCartItem } from '@/lib/tax/resolve-category-variants';
 import { getVariantTaxUnitCount } from '@/lib/tax/resolve-variant';
+import { getCakePricingGrid } from '@/lib/db/queries/cake-products';
+import { resolvePricingGridPrice } from '@/lib/utils/order-helpers';
 
 function parseCollections(raw: string | null | undefined): string[] {
   if (!raw) return [];
@@ -22,12 +24,16 @@ function parseCollections(raw: string | null | undefined): string[] {
 interface CakeCheckoutItem {
   productId: string;
   productName: string;
-  variantId: string;
-  variantLabel: string;
-  shopifyVariantId: string;
+  variantId?: string;
+  variantLabel?: string;
+  shopifyVariantId?: string;
   shopifyProductId?: string;
+  // Grid-based resolution fields
+  sizeValue?: string;
+  flavourHandle?: string;
   quantity: number;
   price: number;
+  isAddon?: boolean;
 }
 
 interface CakeCheckoutRequest {
@@ -39,6 +45,7 @@ interface CakeCheckoutRequest {
   fulfillmentType?: 'pickup' | 'delivery';
   locale: string;
   calculatedPrice?: number;
+  selectedFlavours?: string[];
   deliveryAddress?: {
     street: string;
     city: string;
@@ -66,6 +73,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve Shopify variant IDs
+    // 1. Grid-based resolution: items with sizeValue + flavourHandle but no shopifyVariantId
+    const gridCacheByProduct = new Map<string, Awaited<ReturnType<typeof getCakePricingGrid>>>();
+    for (const item of items) {
+      if (!item.shopifyVariantId && item.sizeValue && item.flavourHandle) {
+        let grid = gridCacheByProduct.get(item.productId);
+        if (!grid) {
+          grid = await getCakePricingGrid(item.productId);
+          gridCacheByProduct.set(item.productId, grid);
+        }
+        const match = resolvePricingGridPrice(grid, item.sizeValue, item.flavourHandle);
+        if (match?.shopifyVariantId) {
+          item.shopifyVariantId = match.shopifyVariantId;
+        }
+      }
+    }
+
+    // 2. Legacy resolution: items with shopifyProductId but no shopifyVariantId
     for (const item of items) {
       if (!item.shopifyVariantId && item.shopifyProductId) {
         const variantId = await getProductVariantId(item.shopifyProductId);
@@ -75,7 +99,12 @@ export async function POST(request: NextRequest) {
 
     const unresolvableItems = items.filter((item) => !item.shopifyVariantId);
     if (unresolvableItems.length > 0) {
-      const labels = unresolvableItems.map((i) => `${i.productName} — ${i.variantLabel}`);
+      const labels = unresolvableItems.map((i) => {
+        if (i.sizeValue && i.flavourHandle) {
+          return `${i.productName} (${i.sizeValue} / ${i.flavourHandle})`;
+        }
+        return `${i.productName}${i.variantLabel ? ` \u2014 ${i.variantLabel}` : ''}`;
+      });
       return NextResponse.json(
         { error: `The following variant(s) cannot be resolved: ${labels.join(', ')}. Please contact us.`, unresolvableVariants: labels },
         { status: 422 },
@@ -83,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     const lines: Array<{ merchandiseId: string; quantity: number }> = items.map((item) => ({
-      merchandiseId: item.shopifyVariantId,
+      merchandiseId: item.shopifyVariantId!,
       quantity: item.quantity,
     }));
 
@@ -107,7 +136,7 @@ export async function POST(request: NextRequest) {
           defaultVariantId: lines[i].merchandiseId,
           exemptVariantId: taxConfigs.get(item.productId)?.shopifyTaxExemptVariantId ?? null,
           quantity: item.quantity,
-          taxUnitCount: getVariantTaxUnitCount(taxConfigs.get(item.productId)!, item.variantId),
+          taxUnitCount: item.variantId ? getVariantTaxUnitCount(taxConfigs.get(item.productId)!, item.variantId) : 1,
           shopifyCollections: item.shopifyProductId
             ? parseCollections(productCategories.get(item.shopifyProductId))
             : [],
@@ -135,7 +164,7 @@ export async function POST(request: NextRequest) {
       if (categoryResolvedIds.has(item.productId)) continue;
 
       if (taxConfig.taxBehavior === 'quantity_threshold') {
-        const effectiveUnits = item.quantity * getVariantTaxUnitCount(taxConfig, item.variantId);
+        const effectiveUnits = item.quantity * (item.variantId ? getVariantTaxUnitCount(taxConfig, item.variantId) : 1);
         if (effectiveUnits >= taxConfig.taxThreshold) {
           const exemptId = await findExemptVariant(item.shopifyProductId, lines[i].merchandiseId);
           if (exemptId) {
@@ -164,6 +193,9 @@ export async function POST(request: NextRequest) {
     ];
     if (calculatedPrice != null) attributes.push({ key: 'Calculated Price', value: String(calculatedPrice) });
     if (specialInstructions) attributes.push({ key: 'Special Instructions', value: specialInstructions });
+    if (body.selectedFlavours?.length) {
+      attributes.push({ key: 'Selected Flavours', value: body.selectedFlavours.join(', ') });
+    }
     if (isDelivery && body.deliveryAddress) {
       const addr = body.deliveryAddress;
       attributes.push(
@@ -176,19 +208,44 @@ export async function POST(request: NextRequest) {
 
     const isFr = locale === 'fr';
     const noteLines: string[] = [
-      `Type: ${isFr ? 'Commande de gâteau' : 'Cake Order'}`,
+      `Type: ${isFr ? 'Commande de g\u00e2teau' : 'Cake Order'}`,
       `${isFr ? 'Mode' : 'Method'}: ${isDelivery ? (isFr ? 'Livraison' : 'Delivery') : (isFr ? 'Cueillette' : 'Pickup')}`,
       `${isFr ? 'Date' : 'Date'}: ${formatPickupDate(pickupDate)}`,
       `${isFr ? 'Personnes' : 'People'}: ${numberOfPeople}`,
-      `${isFr ? 'Événement' : 'Event'}: ${eventType}`,
+      `${isFr ? '\u00c9v\u00e9nement' : 'Event'}: ${eventType}`,
     ];
     if (calculatedPrice != null) {
-      noteLines.push(`${isFr ? 'Prix calculé' : 'Calculated Price'}: $${(calculatedPrice / 100).toFixed(2)}`);
+      noteLines.push(`${isFr ? 'Prix calcul\u00e9' : 'Calculated Price'}: ${(calculatedPrice / 100).toFixed(2)}`);
     }
-    for (const item of items) {
-      noteLines.push(`${item.quantity}× ${item.productName} — ${item.variantLabel}`);
+    if (body.selectedFlavours?.length) {
+      const flavourLabel = isFr ? 'Saveur(s)' : 'Flavour(s)';
+      noteLines.push(`${flavourLabel}: ${body.selectedFlavours.join(', ')}`);
     }
-    if (specialInstructions) noteLines.push(`${isFr ? 'Instructions spéciales' : 'Special instructions'}: ${specialInstructions}`);
+
+    // Group items: main products with addons nested underneath
+    const mainItems = items.filter((item) => !item.isAddon);
+    const addonItems = items.filter((item) => item.isAddon);
+
+    for (const item of mainItems) {
+      const itemParts: string[] = [item.productName];
+      if (item.sizeValue) itemParts.push(`${isFr ? 'Taille' : 'Size'}: ${item.sizeValue}`);
+      if (item.variantLabel) itemParts.push(item.variantLabel);
+      noteLines.push(`${item.quantity}\u00d7 ${itemParts.join(' \u2014 ')}`);
+
+      // Group addons under this main product
+      for (const addon of addonItems) {
+        noteLines.push(`  + ${addon.quantity}\u00d7 ${addon.productName}`);
+      }
+    }
+
+    // If there are only addon items (edge case), list them standalone
+    if (mainItems.length === 0) {
+      for (const addon of addonItems) {
+        noteLines.push(`${addon.quantity}\u00d7 ${addon.productName}`);
+      }
+    }
+
+    if (specialInstructions) noteLines.push(`${isFr ? 'Instructions sp\u00e9ciales' : 'Special instructions'}: ${specialInstructions}`);
     if (isDelivery && body.deliveryAddress) {
       const addr = body.deliveryAddress;
       noteLines.push(`${isFr ? 'Adresse de livraison' : 'Delivery address'}: ${addr.street}, ${addr.city}, ${addr.province} ${addr.postalCode}`);

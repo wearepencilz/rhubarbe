@@ -17,6 +17,10 @@ vi.mock('@/lib/tax/find-exempt-variant', () => ({
   findExemptVariant: vi.fn(),
 }));
 
+vi.mock('@/lib/db/queries/cake-products', () => ({
+  getCakePricingGrid: vi.fn().mockResolvedValue([]),
+}));
+
 import { POST } from './route';
 import { createCart } from '@/lib/shopify/cart';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
