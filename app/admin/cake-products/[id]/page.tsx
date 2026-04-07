@@ -36,13 +36,6 @@ interface CakeTierDetailEntry {
   label: { en: string; fr: string } | null;
 }
 
-interface PricingGridRow {
-  sizeValue: string;
-  flavourHandle: string;
-  priceInCents: number;
-  shopifyVariantId: string | null;
-}
-
 interface AddonLink {
   addonProductId: string;
   sortOrder: number;
@@ -66,7 +59,7 @@ interface CakeProduct {
   cakeFlavourConfig: CakeFlavourEntry[] | null;
   cakeTierDetailConfig: CakeTierDetailEntry[] | null;
   cakeMaxFlavours: number | null;
-  pricingGrid: PricingGridRow[];
+  pricingGrid: any[];
   addonLinks: AddonLink[];
 }
 
@@ -407,207 +400,6 @@ function TierDetailEditor({
   );
 }
 
-// ─── Pricing Grid Editor ─────────────────────────────────────────────
-
-function PricingGridEditor({
-  grid,
-  flavours,
-  tierDetails,
-  onChange,
-}: {
-  grid: PricingGridRow[];
-  flavours: CakeFlavourEntry[];
-  tierDetails: CakeTierDetailEntry[];
-  onChange: (grid: PricingGridRow[]) => void;
-}) {
-  const activeFlavours = flavours.filter((f) => f.active);
-
-  // Derive sizes from tier details first, then from existing grid
-  const sizes = useMemo(() => {
-    const fromTiers = tierDetails.map((t) => t.sizeValue).filter(Boolean);
-    const fromGrid = grid.map((r) => r.sizeValue);
-    const all = [...new Set([...fromTiers, ...fromGrid])];
-    // Sort numerically if possible
-    return all.sort((a, b) => {
-      const na = parseFloat(a);
-      const nb = parseFloat(b);
-      if (!isNaN(na) && !isNaN(nb)) return na - nb;
-      return a.localeCompare(b);
-    });
-  }, [tierDetails, grid]);
-
-  const [newSize, setNewSize] = useState('');
-
-  // Build a lookup map for quick access
-  const gridMap = useMemo(() => {
-    const map = new Map<string, PricingGridRow>();
-    for (const row of grid) {
-      map.set(`${row.sizeValue}|${row.flavourHandle}`, row);
-    }
-    return map;
-  }, [grid]);
-
-  function getCell(sizeValue: string, flavourHandle: string): PricingGridRow {
-    return gridMap.get(`${sizeValue}|${flavourHandle}`) ?? {
-      sizeValue,
-      flavourHandle,
-      priceInCents: 0,
-      shopifyVariantId: null,
-    };
-  }
-
-  function updateCell(sizeValue: string, flavourHandle: string, patch: Partial<PricingGridRow>) {
-    const key = `${sizeValue}|${flavourHandle}`;
-    const existing = gridMap.get(key);
-    const updated = existing
-      ? { ...existing, ...patch }
-      : { sizeValue, flavourHandle, priceInCents: 0, shopifyVariantId: null, ...patch };
-
-    const newGrid = grid.filter((r) => !(r.sizeValue === sizeValue && r.flavourHandle === flavourHandle));
-    newGrid.push(updated);
-    onChange(newGrid);
-  }
-
-  function addSize() {
-    const trimmed = newSize.trim();
-    if (!trimmed || sizes.includes(trimmed)) return;
-    // Add empty rows for all active flavours at this size
-    const newRows = activeFlavours.map((f) => ({
-      sizeValue: trimmed,
-      flavourHandle: f.handle,
-      priceInCents: 0,
-      shopifyVariantId: null,
-    }));
-    onChange([...grid, ...newRows]);
-    setNewSize('');
-  }
-
-  function removeSize(sizeValue: string) {
-    onChange(grid.filter((r) => r.sizeValue !== sizeValue));
-  }
-
-  // Validation: find missing cells
-  const missingCells = useMemo(() => {
-    if (activeFlavours.length === 0 || sizes.length === 0) return [];
-    return findMissingGridCells(
-      grid,
-      sizes,
-      activeFlavours.map((f) => f.handle),
-    );
-  }, [grid, sizes, activeFlavours]);
-
-  if (activeFlavours.length === 0) {
-    return <p className="text-sm text-gray-500">Add active flavours first to configure the pricing grid.</p>;
-  }
-
-  return (
-    <div className="space-y-3">
-      {missingCells.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-warning-secondary border border-warning-200">
-          <span className="text-xs text-warning-700">
-            ⚠ {missingCells.length} cell(s) missing prices. All active (size, flavour) combinations need a price.
-          </span>
-        </div>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left px-2 py-1.5 bg-gray-100 border border-gray-200 font-medium text-gray-600 sticky left-0">
-                Flavour / Size →
-              </th>
-              {sizes.map((size) => (
-                <th key={size} className="px-2 py-1.5 bg-gray-100 border border-gray-200 font-medium text-gray-600 min-w-[140px]">
-                  <div className="flex items-center justify-between gap-1">
-                    <span>{size}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeSize(size)}
-                      className="text-gray-400 hover:text-red-500"
-                      aria-label={`Remove size ${size}`}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {activeFlavours.map((flavour) => (
-              <tr key={flavour.handle}>
-                <td className="px-2 py-1.5 border border-gray-200 bg-gray-50 font-medium text-gray-700 sticky left-0 whitespace-nowrap">
-                  {flavour.label.en || flavour.handle}
-                </td>
-                {sizes.map((size) => {
-                  const cell = getCell(size, flavour.handle);
-                  const isMissing = cell.priceInCents === 0 && !gridMap.has(`${size}|${flavour.handle}`);
-                  return (
-                    <td
-                      key={size}
-                      className={`px-1 py-1 border border-gray-200 ${isMissing ? 'bg-yellow-50' : 'bg-white'}`}
-                    >
-                      <div className="space-y-1">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={cell.priceInCents ? (cell.priceInCents / 100).toFixed(2) : ''}
-                          onChange={(e) => {
-                            const dollars = parseFloat(e.target.value);
-                            updateCell(size, flavour.handle, {
-                              priceInCents: isNaN(dollars) ? 0 : Math.round(dollars * 100),
-                            });
-                          }}
-                          placeholder="$0.00"
-                          className="w-full px-1.5 py-0.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
-                          aria-label={`Price for ${flavour.label.en || flavour.handle} at size ${size}`}
-                        />
-                        <input
-                          type="text"
-                          value={cell.shopifyVariantId ?? ''}
-                          onChange={(e) =>
-                            updateCell(size, flavour.handle, {
-                              shopifyVariantId: e.target.value || null,
-                            })
-                          }
-                          placeholder="Variant ID"
-                          className="w-full px-1.5 py-0.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 text-gray-500"
-                          aria-label={`Shopify variant ID for ${flavour.label.en || flavour.handle} at size ${size}`}
-                        />
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={newSize}
-          onChange={(e) => setNewSize(e.target.value)}
-          placeholder="New size value"
-          className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 w-40"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addSize();
-            }
-          }}
-        />
-        <Button variant="secondary" size="sm" onClick={addSize} iconLeading={Plus}>
-          Add Size
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Add-On Links Editor ─────────────────────────────────────────────
 
 function AddonLinksEditor({
@@ -769,7 +561,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const [cakeMaxFlavours, setCakeMaxFlavours] = useState<number>(2);
   const [flavourConfig, setFlavourConfig] = useState<CakeFlavourEntry[]>([]);
   const [tierDetailConfig, setTierDetailConfig] = useState<CakeTierDetailEntry[]>([]);
-  const [pricingGrid, setPricingGrid] = useState<PricingGridRow[]>([]);
   const [addonLinks, setAddonLinks] = useState<AddonLink[]>([]);
 
   useEffect(() => {
@@ -800,7 +591,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setCakeMaxFlavours(data.cakeMaxFlavours ?? 2);
       setFlavourConfig(data.cakeFlavourConfig ?? []);
       setTierDetailConfig(data.cakeTierDetailConfig ?? []);
-      setPricingGrid(data.pricingGrid ?? []);
       setAddonLinks(data.addonLinks ?? []);
     } catch {
       setError('Failed to load cake product');
@@ -924,7 +714,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         setCakeMaxFlavours(updated.cakeMaxFlavours ?? 2);
         setFlavourConfig(updated.cakeFlavourConfig ?? []);
         setTierDetailConfig(updated.cakeTierDetailConfig ?? []);
-        setPricingGrid(updated.pricingGrid ?? []);
         setAddonLinks(updated.addonLinks ?? []);
         setIsDirty(false);
         toast.success('Saved', 'Cake product configuration updated');
