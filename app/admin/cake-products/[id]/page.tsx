@@ -748,6 +748,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [product, setProduct] = useState<CakeProduct | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [isDirty, setIsDirty] = useState(false);
@@ -1271,6 +1272,36 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
               <h2 className="text-sm font-semibold text-gray-900">Links</h2>
             </div>
             <div className="px-6 py-4 flex flex-col gap-3">
+              {product.shopifyProductId && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    setSyncing(true);
+                    try {
+                      const res = await fetch(`/api/cake-products/${params.id}/sync-from-shopify`, { method: 'POST' });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        toast.error('Sync failed', data.error || 'Failed to sync from Shopify');
+                        return;
+                      }
+                      toast.success('Synced from Shopify', `Detected ${data.summary.flavoursDetected} flavours, ${data.summary.sizesDetected} sizes, ${data.summary.gridCells} price cells`);
+                      // Refresh the page data
+                      await fetchProduct();
+                      setIsDirty(false);
+                    } catch {
+                      toast.error('Sync failed', 'An unexpected error occurred');
+                    } finally {
+                      setSyncing(false);
+                    }
+                  }}
+                  isLoading={syncing}
+                  isDisabled={syncing}
+                >
+                  {syncing ? 'Syncing…' : 'Sync from Shopify'}
+                </Button>
+              )}
               <a href={`/admin/products/${params.id}`} className="block">
                 <Button variant="secondary" size="sm" className="w-full">View product page</Button>
               </a>

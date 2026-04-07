@@ -228,11 +228,12 @@ export default function ProductsPage() {
           }
         />
 
-        {/* Hidden Shopify picker for import */}
-        <div className="hidden">
+        {/* Shopify picker for import (rendered but no visible trigger — opened via ref) */}
+        <div style={{ display: 'contents' }}>
           <ShopifyProductPicker
             onSelect={handleImportFromShopify}
             onOpenRef={shopifyPickerRef}
+            trigger={<span />}
           />
         </div>
 
