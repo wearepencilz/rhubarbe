@@ -190,6 +190,21 @@ function getAvailableSizes(grid: PricingGridRow[]): string[] {
   return sizes;
 }
 
+/**
+ * Find the best matching size tier: largest numeric sizeValue that is ≤ the input number.
+ * Returns the matching sizeValue string, or null if none applies.
+ */
+function resolveNearestSize(availableSizes: string[], inputValue: number): string | null {
+  const numericSizes = availableSizes
+    .map((s) => ({ str: s, num: parseInt(s) }))
+    .filter((s) => !isNaN(s.num))
+    .sort((a, b) => b.num - a.num); // descending
+  for (const size of numericSizes) {
+    if (size.num <= inputValue) return size.str;
+  }
+  return null;
+}
+
 
 // ── Flavour Expansion Component ──
 
@@ -441,6 +456,7 @@ function CakeInlineCart({
   locale, belowMin, isDeliveryOnly, C,
   // New props for grid-based products
   selectedFlavourHandles, selectedSize, onSizeChange,
+  resolvedSize,
   gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon,
 }: {
   selectedProduct: CakeProduct | null;
@@ -472,6 +488,7 @@ function CakeInlineCart({
   selectedFlavourHandles: string[];
   selectedSize: string;
   onSizeChange: (size: string) => void;
+  resolvedSize: string;
   gridPrice: { priceInCents: number; shopifyVariantId: string | null } | null;
   tierDetail: CakeTierDetailEntry | null;
   addons: AddonProduct[];
@@ -507,16 +524,16 @@ function CakeInlineCart({
 
   // Compute addon total
   const addonTotal = useMemo(() => {
-    if (!selectedProduct || enabledAddonIds.length === 0 || !selectedSize) return 0;
+    if (!selectedProduct || enabledAddonIds.length === 0 || !resolvedSize) return 0;
     let total = 0;
     for (const addonId of enabledAddonIds) {
       const addon = addons.find((a) => a.id === addonId);
       if (!addon) continue;
-      const resolved = resolvePricingGridPrice(addon.pricingGrid, selectedSize, 'default');
+      const resolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
       if (resolved) total += resolved.priceInCents;
     }
     return total;
-  }, [selectedProduct, enabledAddonIds, selectedSize, addons]);
+  }, [selectedProduct, enabledAddonIds, resolvedSize, addons]);
 
   // Selected flavour names for display
   const selectedFlavourNames = useMemo(() => {
@@ -615,24 +632,26 @@ function CakeInlineCart({
             </>
           )}
 
-          {/* 2b. Grid-based: Size dropdown → resolved price */}
+          {/* 2b. Grid-based: Number input → resolved price */}
           {isGridProduct && (
             <>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-500 uppercase tracking-wide">
                   {sizeLabel}
                 </label>
-                <select
-                  value={selectedSize}
-                  onChange={(e) => onSizeChange(e.target.value)}
+                <input
+                  type="number"
+                  min={1}
+                  value={selectedSize || ''}
+                  placeholder=""
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === '') { onSizeChange(''); return; }
+                    onSizeChange(String(Math.max(0, Math.floor(Number(raw) || 0))));
+                  }}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors bg-transparent"
                   aria-label={sizeLabel}
-                >
-                  <option value="">{isFr ? '— choisir —' : '— select —'}</option>
-                  {availableSizes.map((size) => (
-                    <option key={size} value={size}>{size}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               {/* Resolved price */}
@@ -678,11 +697,11 @@ function CakeInlineCart({
                   {isFr ? 'Options' : 'Add-ons'}
                 </p>
                 {addons.map((addon) => {
-                  const addonPrice = selectedSize
-                    ? resolvePricingGridPrice(addon.pricingGrid, selectedSize, 'default')
+                  const addonPrice = resolvedSize
+                    ? resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default')
                     : null;
                   const isEnabled = enabledAddonIds.includes(addon.id);
-                  const noSize = !selectedSize;
+                  const noSize = !resolvedSize;
 
                   return (
                     <div key={addon.id} className="flex items-center justify-between gap-2">
@@ -930,29 +949,37 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const calculatedPrice = matchedTier?.priceInCents ?? null;
 
   // ── Grid-based price resolution ──
+  const resolvedSize = useMemo(() => {
+    if (!selectedProduct || !isGridBased(selectedProduct)) return null;
+    if (!selectedSize) return null;
+    const inputNum = parseInt(selectedSize);
+    if (isNaN(inputNum) || inputNum < 1) return null;
+    return resolveNearestSize(getAvailableSizes(selectedProduct.pricingGrid), inputNum);
+  }, [selectedProduct, selectedSize]);
+
   const gridPrice = useMemo(() => {
     if (!selectedProduct || !isGridBased(selectedProduct)) return null;
-    if (!selectedSize || selectedFlavourHandles.length === 0) return null;
+    if (!resolvedSize || selectedFlavourHandles.length === 0) return null;
 
     // For croquembouche (all flavours same price), use first selected handle or 'default'
     const lookupHandle = isCroquembouche(selectedProduct)
       ? (selectedFlavourHandles[0] || 'default')
       : selectedFlavourHandles[0];
 
-    return resolvePricingGridPrice(selectedProduct.pricingGrid, selectedSize, lookupHandle);
-  }, [selectedProduct, selectedSize, selectedFlavourHandles]);
+    return resolvePricingGridPrice(selectedProduct.pricingGrid, resolvedSize, lookupHandle);
+  }, [selectedProduct, resolvedSize, selectedFlavourHandles]);
 
-  // ── Tier detail for selected size ──
+  // ── Tier detail for resolved size ──
   const tierDetail = useMemo(() => {
-    if (!selectedProduct || !selectedSize) return null;
-    return getTierDetailForSize(selectedProduct.cakeTierDetailConfig, selectedSize);
-  }, [selectedProduct, selectedSize]);
+    if (!selectedProduct || !resolvedSize) return null;
+    return getTierDetailForSize(selectedProduct.cakeTierDetailConfig, resolvedSize);
+  }, [selectedProduct, resolvedSize]);
 
   // Lead time based on selected product and number of people
   const { maxLeadTimeDays, earliestDateStr, isDeliveryOnly } = useMemo(() => {
     if (!selectedProduct) return { maxLeadTimeDays: 0, earliestDateStr: toDateString(new Date()), isDeliveryOnly: false };
     // For grid-based products, use the selected size as the "people" count for lead time
-    const effectivePeople = isGridBased(selectedProduct) ? (parseInt(selectedSize) || 1) : numberOfPeople;
+    const effectivePeople = isGridBased(selectedProduct) ? (parseInt(resolvedSize || '0') || 1) : numberOfPeople;
     const activeTierLT = getActiveLeadTimeTier(selectedProduct.leadTimeTiers, effectivePeople);
     const days = activeTierLT?.leadTimeDays ?? 0;
     return { maxLeadTimeDays: days, earliestDateStr: toDateString(getEarliestDate(days)), isDeliveryOnly: activeTierLT?.deliveryOnly ?? false };
@@ -1116,10 +1143,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       shopifyVariantId = selectedProduct.pricingGrid[0].shopifyVariantId;
     } else if (isGridBased(selectedProduct)) {
       // Grid-based: resolve from grid
-      if (!gridPrice || !selectedSize || selectedFlavourHandles.length === 0) return;
+      if (!gridPrice || !resolvedSize || selectedFlavourHandles.length === 0) return;
       price = gridPrice.priceInCents;
       shopifyVariantId = gridPrice.shopifyVariantId;
-      sizeValue = selectedSize;
+      sizeValue = resolvedSize;
       flavourHandle = isCroquembouche(selectedProduct)
         ? (selectedFlavourHandles[0] || 'default')
         : selectedFlavourHandles[0];
@@ -1153,7 +1180,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         for (const addonId of enabledAddonIds) {
           const addon = (selectedProduct.addons || []).find((a) => a.id === addonId);
           if (!addon) continue;
-          const addonResolved = resolvePricingGridPrice(addon.pricingGrid, selectedSize, 'default');
+          const addonResolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize!, 'default');
           if (!addonResolved) continue;
           items.push({
             productId: addon.id,
@@ -1162,7 +1189,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
             variantId: addon.id,
             variantLabel: addon.name,
             shopifyVariantId: addonResolved.shopifyVariantId ?? '',
-            sizeValue: selectedSize,
+            sizeValue: resolvedSize,
             flavourHandle: 'default',
             quantity: 1,
             price: addonResolved.priceInCents,
@@ -1200,7 +1227,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     } finally {
       setCheckoutLoading(false);
     }
-  }, [selectedProduct, gridPrice, calculatedPrice, matchedTier, selectedSize, selectedFlavourHandles, enabledAddonIds, pickupDate, numberOfPeople, eventType, specialInstructions, fulfillmentType, deliveryAddress, locale, isFr]);
+  }, [selectedProduct, gridPrice, calculatedPrice, matchedTier, selectedSize, resolvedSize, selectedFlavourHandles, enabledAddonIds, pickupDate, numberOfPeople, eventType, specialInstructions, fulfillmentType, deliveryAddress, locale, isFr]);
 
   useEffect(() => {
     fetch('/api/storefront/cake-products')
@@ -1239,6 +1266,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     selectedFlavourHandles,
     selectedSize,
     onSizeChange: handleSizeChange,
+    resolvedSize: resolvedSize ?? '',
     gridPrice,
     tierDetail,
     addons: selectedProduct?.addons ?? [],
