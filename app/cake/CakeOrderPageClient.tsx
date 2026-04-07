@@ -1112,8 +1112,6 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
 
   const handleSizeChange = useCallback((size: string) => {
     setSelectedSize(size);
-    // Clear addons when size changes (prices change)
-    setEnabledAddonIds([]);
   }, []);
 
   const handleToggleAddon = useCallback((addonId: string) => {
