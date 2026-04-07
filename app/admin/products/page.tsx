@@ -11,6 +11,8 @@ import { Button } from '@/app/admin/components/ui/buttons/button';
 import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import { Edit01, Trash01 } from '@untitledui/icons';
+import ShopifyProductPicker from '@/app/admin/components/ShopifyProductPicker';
+import { useRef } from 'react';
 
 interface Product {
   id: string;
@@ -45,6 +47,8 @@ export default function ProductsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', name: '' });
   const [brokenLinks, setBrokenLinks] = useState<Set<string>>(new Set());
   const [shopifyPrices, setShopifyPrices] = useState<Record<string, { price: number | null; range: [number, number] | null }>>({});
+  const [importing, setImporting] = useState(false);
+  const shopifyPickerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -137,6 +141,34 @@ export default function ProductsPage() {
   // Extract unique categories from products
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[];
 
+  async function handleImportFromShopify(shopifyProduct: { id: string; handle: string; title: string; featuredImage?: { url: string } } | null) {
+    if (!shopifyProduct) return;
+    setImporting(true);
+    try {
+      const res = await fetch('/api/products/import-from-shopify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopifyProductId: shopifyProduct.id }),
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        toast.error('Already imported', 'A product linked to this Shopify product already exists');
+        router.push(`/admin/products/${data.existingProductId}`);
+        return;
+      }
+      if (!res.ok) {
+        toast.error('Import failed', data.error || 'Failed to import product');
+        return;
+      }
+      toast.success('Product imported', `"${shopifyProduct.title}" has been imported from Shopify`);
+      router.push(`/admin/products/${data.id}`);
+    } catch {
+      toast.error('Import failed', 'An unexpected error occurred');
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <>
       <TableCard.Root>
@@ -186,12 +218,23 @@ export default function ProductsPage() {
               >
                 {(item) => <Select.Item id={item.id} label={item.label} />}
               </Select>
+              <Button color="secondary" size="sm" onClick={() => shopifyPickerRef.current?.()} isDisabled={importing}>
+                {importing ? 'Importing…' : 'Import from Shopify'}
+              </Button>
               <Link href="/admin/products/create">
                 <Button color="primary" size="sm">Create product</Button>
               </Link>
             </div>
           }
         />
+
+        {/* Hidden Shopify picker for import */}
+        <div className="hidden">
+          <ShopifyProductPicker
+            onSelect={handleImportFromShopify}
+            onOpenRef={shopifyPickerRef}
+          />
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16">

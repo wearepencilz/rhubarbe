@@ -68,6 +68,17 @@ export async function getById(id: string) {
 
 
 /**
+ * Find a product by its Shopify product ID. Returns the product or null.
+ */
+export async function findByShopifyId(shopifyProductId: string) {
+  const [product] = await db
+    .select({ id: products.id, name: products.name })
+    .from(products)
+    .where(eq(products.shopifyProductId, shopifyProductId));
+  return product ?? null;
+}
+
+/**
  * Create a new product. Returns the inserted row.
  */
 export async function create(data: typeof products.$inferInsert) {
