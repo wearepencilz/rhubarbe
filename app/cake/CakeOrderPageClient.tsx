@@ -303,14 +303,14 @@ function TierDiagram({ tierDetail }: { tierDetail: CakeTierDetailEntry }) {
   const diameters = tierDetail.diameters.split('/').map(Number).filter(Boolean);
   if (diameters.length === 0) return null;
 
-  // Bottom-to-top: reverse so largest is at bottom
-  const sorted = [...diameters].sort((a, b) => b - a);
-  const maxDiameter = sorted[0];
+  // Diameters are given top-to-bottom (e.g., "10/8/6" = top tier 10", middle 8", bottom 6")
+  // But visually we want largest at bottom, so reverse for display
+  const maxDiameter = Math.max(...diameters);
 
   return (
     <div className="flex flex-col items-center gap-0.5 py-2">
-      {/* Render top-to-bottom (smallest first) */}
-      {[...sorted].reverse().map((d, i) => {
+      {/* Render in given order (top to bottom = smallest to largest) */}
+      {diameters.map((d, i) => {
         const widthPercent = (d / maxDiameter) * 100;
         return (
           <div
@@ -322,7 +322,7 @@ function TierDiagram({ tierDetail }: { tierDetail: CakeTierDetailEntry }) {
               minWidth: '24px',
               height: '14px',
               backgroundColor: '#333112',
-              opacity: 0.8 + (i * 0.05),
+              opacity: 0.7 + (i * 0.1),
             }}
           />
         );
@@ -458,6 +458,7 @@ function CakeInlineCart({
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
   gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon,
+  gridMinSize,
 }: {
   selectedProduct: CakeProduct | null;
   numberOfPeople: number;
@@ -494,6 +495,7 @@ function CakeInlineCart({
   addons: AddonProduct[];
   enabledAddonIds: string[];
   onToggleAddon: (addonId: string) => void;
+  gridMinSize: number;
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
@@ -546,12 +548,16 @@ function CakeInlineCart({
 
   // Can checkout?
   const canCheckout = useMemo(() => {
-    if (!selectedProduct || !pickupDate || !!dateWarning) return false;
+    if (!selectedProduct || !pickupDate || !!dateWarning || belowMin) return false;
     if (isTastingProduct) return true;
-    if (isGridProduct) return !!gridPrice && selectedFlavourHandles.length > 0 && !!selectedSize;
+    if (isGridProduct) {
+      // Croquembouche can checkout with just size (flavours are optional metadata)
+      if (isCroq) return !!gridPrice && !!selectedSize;
+      return !!gridPrice && selectedFlavourHandles.length > 0 && !!selectedSize;
+    }
     // Legacy
-    return calculatedPrice != null && !belowMin;
-  }, [selectedProduct, pickupDate, dateWarning, isTastingProduct, isGridProduct, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice, belowMin]);
+    return calculatedPrice != null;
+  }, [selectedProduct, pickupDate, dateWarning, belowMin, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
@@ -649,13 +655,20 @@ function CakeInlineCart({
                     if (raw === '') { onSizeChange(''); return; }
                     onSizeChange(String(Math.max(0, Math.floor(Number(raw) || 0))));
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors bg-transparent"
+                  className={`w-full px-3 py-2 text-sm border rounded focus:outline-none transition-colors bg-transparent ${
+                    belowMin ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'
+                  }`}
                   aria-label={sizeLabel}
                 />
+                {belowMin && (
+                  <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    {isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}
+                  </p>
+                )}
               </div>
 
-              {/* Resolved price */}
-              {gridPrice && selectedSize && selectedFlavourHandles.length > 0 && (
+              {/* Resolved price — show for croquembouche even without flavour, and for others with flavour */}
+              {gridPrice && selectedSize && (isCroq || selectedFlavourHandles.length > 0) && (
                 <div className="flex justify-between text-sm font-semibold">
                   <span>{selectedSize} {sizeLabel.toLowerCase()}</span>
                   <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
@@ -959,14 +972,23 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
 
   const gridPrice = useMemo(() => {
     if (!selectedProduct || !isGridBased(selectedProduct)) return null;
-    if (!resolvedSize || selectedFlavourHandles.length === 0) return null;
+    if (!resolvedSize) return null;
 
-    // For croquembouche (all flavours same price), use first selected handle or 'default'
-    const lookupHandle = isCroquembouche(selectedProduct)
-      ? (selectedFlavourHandles[0] || 'default')
-      : selectedFlavourHandles[0];
+    // For croquembouche: all flavours share the same price per size, so resolve by size alone
+    // Try the first selected handle, then fall back to any handle at that size, then 'default'
+    if (isCroquembouche(selectedProduct)) {
+      const handle = selectedFlavourHandles[0] || 'default';
+      const result = resolvePricingGridPrice(selectedProduct.pricingGrid, resolvedSize, handle);
+      if (result) return result;
+      // Fallback: find any row at this size
+      const anyRow = selectedProduct.pricingGrid.find((r) => r.sizeValue === resolvedSize);
+      if (anyRow) return { priceInCents: anyRow.priceInCents, shopifyVariantId: anyRow.shopifyVariantId };
+      return null;
+    }
 
-    return resolvePricingGridPrice(selectedProduct.pricingGrid, resolvedSize, lookupHandle);
+    // For XXL / wedding: need both size and flavour
+    if (selectedFlavourHandles.length === 0) return null;
+    return resolvePricingGridPrice(selectedProduct.pricingGrid, resolvedSize, selectedFlavourHandles[0]);
   }, [selectedProduct, resolvedSize, selectedFlavourHandles]);
 
   // ── Tier detail for resolved size ──
@@ -1014,10 +1036,28 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   }, [isDeliveryOnly]);
 
   const belowMin = useMemo(() => {
-    if (!selectedProduct || !isLegacy(selectedProduct) || selectedProduct.pricingTiers.length === 0) return false;
+    if (!selectedProduct) return false;
+    if (isGridBased(selectedProduct)) {
+      // For grid products, minimum is the smallest sizeValue in the grid
+      if (selectedProduct.pricingGrid.length === 0) return false;
+      const sizes = getAvailableSizes(selectedProduct.pricingGrid).map(Number).filter(Boolean);
+      if (sizes.length === 0) return false;
+      const minSize = Math.min(...sizes);
+      const inputNum = parseInt(selectedSize);
+      return !isNaN(inputNum) && inputNum > 0 && inputNum < minSize;
+    }
+    // Legacy
+    if (selectedProduct.pricingTiers.length === 0) return false;
     const minFromTiers = selectedProduct.pricingTiers[0].minPeople;
     return numberOfPeople < minFromTiers;
-  }, [selectedProduct, numberOfPeople]);
+  }, [selectedProduct, numberOfPeople, selectedSize]);
+
+  // Grid minimum for display
+  const gridMinSize = useMemo(() => {
+    if (!selectedProduct || !isGridBased(selectedProduct)) return 0;
+    const sizes = getAvailableSizes(selectedProduct.pricingGrid).map(Number).filter(Boolean);
+    return sizes.length > 0 ? Math.min(...sizes) : 0;
+  }, [selectedProduct]);
 
   // ── Flavour toggle handler ──
   const handleToggleFlavour = useCallback((handle: string) => {
@@ -1143,7 +1183,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       shopifyVariantId = selectedProduct.pricingGrid[0].shopifyVariantId;
     } else if (isGridBased(selectedProduct)) {
       // Grid-based: resolve from grid
-      if (!gridPrice || !resolvedSize || selectedFlavourHandles.length === 0) return;
+      if (!gridPrice || !resolvedSize) return;
+      // Croquembouche can proceed without flavour selection (all same price)
+      if (!isCroquembouche(selectedProduct) && selectedFlavourHandles.length === 0) return;
       price = gridPrice.priceInCents;
       shopifyVariantId = gridPrice.shopifyVariantId;
       sizeValue = resolvedSize;
@@ -1272,6 +1314,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     addons: selectedProduct?.addons ?? [],
     enabledAddonIds,
     onToggleAddon: handleToggleAddon,
+    gridMinSize,
   };
 
   // Mobile bottom bar price
