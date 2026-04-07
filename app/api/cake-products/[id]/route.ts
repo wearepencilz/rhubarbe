@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as cakeProductQueries from '@/lib/db/queries/cake-products';
+import { findMissingGridCells } from '@/lib/utils/order-helpers';
 
 // GET /api/cake-products/[id] - Get a single cake product with tiers and variants
 export async function GET(
@@ -61,14 +62,7 @@ export async function PUT(
     }
 
     // Update cake config fields
-    const configFields: {
-      cakeEnabled?: boolean;
-      cakeDescription?: { en: string; fr: string } | null;
-      cakeInstructions?: { en: string; fr: string } | null;
-      cakeMinPeople?: number | null;
-      cakeFlavourNotes?: { en: string; fr: string } | null;
-      cakeDeliveryAvailable?: boolean;
-    } = {};
+    const configFields: Parameters<typeof cakeProductQueries.updateCakeConfig>[1] = {};
 
     if (body.cakeEnabled !== undefined) configFields.cakeEnabled = body.cakeEnabled;
     if (body.cakeDescription !== undefined) configFields.cakeDescription = body.cakeDescription;
@@ -76,9 +70,36 @@ export async function PUT(
     if (body.cakeMinPeople !== undefined) configFields.cakeMinPeople = body.cakeMinPeople;
     if (body.cakeFlavourNotes !== undefined) configFields.cakeFlavourNotes = body.cakeFlavourNotes;
     if (body.cakeDeliveryAvailable !== undefined) configFields.cakeDeliveryAvailable = body.cakeDeliveryAvailable;
+    if (body.cakeProductType !== undefined) configFields.cakeProductType = body.cakeProductType;
+    if (body.cakeFlavourConfig !== undefined) configFields.cakeFlavourConfig = body.cakeFlavourConfig;
+    if (body.cakeTierDetailConfig !== undefined) configFields.cakeTierDetailConfig = body.cakeTierDetailConfig;
+    if (body.cakeMaxFlavours !== undefined) configFields.cakeMaxFlavours = body.cakeMaxFlavours;
 
     if (Object.keys(configFields).length > 0) {
       await cakeProductQueries.updateCakeConfig(params.id, configFields);
+    }
+
+    // Validate pricing grid completeness when both flavour config and grid are provided
+    if (body.cakeFlavourConfig && body.pricingGrid) {
+      const activeFlavours = (body.cakeFlavourConfig as Array<{ handle: string; active: boolean }>)
+        .filter((f) => f.active)
+        .map((f) => f.handle);
+      const sizeValues = [...new Set((body.pricingGrid as Array<{ sizeValue: string }>).map((r) => r.sizeValue))];
+
+      if (activeFlavours.length > 0 && sizeValues.length > 0) {
+        const missing = findMissingGridCells(body.pricingGrid, sizeValues, activeFlavours);
+        if (missing.length > 0) {
+          return NextResponse.json(
+            {
+              error: 'Incomplete pricing grid',
+              details: `Missing prices for ${missing.length} (size, flavour) combination(s)`,
+              missingCells: missing,
+              timestamp: new Date().toISOString(),
+            },
+            { status: 400 },
+          );
+        }
+      }
     }
 
     // Update lead time tiers if provided
@@ -116,6 +137,16 @@ export async function PUT(
           { status: 400 },
         );
       }
+    }
+
+    // Update pricing grid if provided
+    if (body.pricingGrid !== undefined) {
+      await cakeProductQueries.setCakePricingGrid(params.id, body.pricingGrid);
+    }
+
+    // Update addon links if provided
+    if (body.addonLinks !== undefined) {
+      await cakeProductQueries.setCakeAddonLinks(params.id, body.addonLinks);
     }
 
     // Return the updated product with tiers and variants

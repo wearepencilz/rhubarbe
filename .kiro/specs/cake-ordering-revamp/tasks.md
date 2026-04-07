@@ -58,44 +58,44 @@ Extend the existing cake ordering system to support four new product types (XXL,
 - [x] 4. Checkpoint — Ensure schema, queries, and helpers compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Extend admin API routes
-  - [ ] 5.1 Extend `GET /api/cake-products/[id]` to return new fields
+- [x] 5. Extend admin API routes
+  - [x] 5.1 Extend `GET /api/cake-products/[id]` to return new fields
     - Return pricing grid, addon links, cakeProductType, cakeFlavourConfig, cakeTierDetailConfig, cakeMaxFlavours
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [ ] 5.2 Extend `PUT /api/cake-products/[id]` to accept and persist new fields
+  - [x] 5.2 Extend `PUT /api/cake-products/[id]` to accept and persist new fields
     - Accept and save cakeProductType, cakeFlavourConfig, cakeTierDetailConfig, cakeMaxFlavours
     - Accept and save pricing grid rows via `setCakePricingGrid`
     - Accept and save addon links via `setCakeAddonLinks`
     - Validate that all active (size, flavour) combinations have a price before saving
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
-- [ ] 6. Extend admin edit page `app/admin/cake-products/[id]/page.tsx`
-  - [ ] 6.1 Add Product Type selector section
+- [x] 6. Extend admin edit page `app/admin/cake-products/[id]/page.tsx`
+  - [x] 6.1 Add Product Type selector section
     - Dropdown for `cakeProductType` with options: null (Legacy), cake-xxl, croquembouche, wedding-cake-tiered, wedding-cake-tasting
     - Show `cakeMaxFlavours` input when product type is `croquembouche`
     - _Requirements: 4.1, 4.6_
 
-  - [ ] 6.2 Add Flavour Config list editor section
+  - [x] 6.2 Add Flavour Config list editor section
     - List editor for `cakeFlavourConfig` entries with: handle, bilingual label, bilingual description, pricingTierGroup, sortOrder, active toggle
     - Use TranslationFields pattern for bilingual fields
     - _Requirements: 4.2_
 
-  - [ ] 6.3 Add Tier Detail editor section
+  - [x] 6.3 Add Tier Detail editor section
     - List editor for `cakeTierDetailConfig` entries with: sizeValue, layers, diameters, bilingual label
     - _Requirements: 4.3_
 
-  - [ ] 6.4 Add Pricing Grid editor section
+  - [x] 6.4 Add Pricing Grid editor section
     - Editable table with sizes as columns and flavours as rows
     - Price entry in dollars (stored in cents) and Shopify variant ID per cell
     - Client-side validation that all active (size, flavour) cells have a price before save
     - _Requirements: 4.4, 4.5_
 
-  - [ ] 6.5 Add Add-On Links editor section
+  - [x] 6.5 Add Add-On Links editor section
     - Product picker to link/unlink add-on products with sort order
     - _Requirements: 3.4_
 
-- [ ] 7. Checkpoint — Ensure admin pages render and save correctly
+- [x] 7. Checkpoint — Ensure admin pages render and save correctly
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Extend storefront API `GET /api/storefront/cake-products`
