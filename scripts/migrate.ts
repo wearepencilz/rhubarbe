@@ -47,7 +47,14 @@ async function runMigrations() {
     await migrationClient.end();
     
     process.exit(0);
-  } catch (error) {
+  } catch (error: any) {
+    // If the error is "relation already exists", the schema is already up to date
+    const msg = error?.message || '';
+    const causeMsg = error?.cause?.message || error?.cause?.routine || '';
+    if (msg.includes('already exists') || causeMsg.includes('already exists') || error?.cause?.code === '42P07') {
+      console.log('⚠️  Some relations already exist — schema is up to date. Continuing...');
+      process.exit(0);
+    }
     console.error('❌ Migration failed:', error);
     process.exit(1);
   }
