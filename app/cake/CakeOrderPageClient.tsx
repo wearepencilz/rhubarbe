@@ -292,30 +292,41 @@ function TierDiagram({ tierDetail }: { tierDetail: CakeTierDetailEntry }) {
   const diameters = tierDetail.diameters.split('/').map(Number).filter(Boolean);
   if (diameters.length === 0) return null;
 
-  // Diameters are given top-to-bottom (e.g., "10/8/6" = top tier 10", middle 8", bottom 6")
-  // But visually we want largest at bottom, so reverse for display
-  const maxDiameter = Math.max(...diameters);
+  // Diameters are listed largest-to-smallest (e.g., "12/9/6" = bottom 12", middle 9", top 6")
+  // Render bottom-to-top visually: reverse so smallest is at top
+  const layers = [...diameters]; // already largest first
+  const maxDiameter = layers[0];
+  const containerWidth = 140; // px
 
   return (
-    <div className="flex flex-col items-center gap-0.5 py-2">
-      {/* Render in given order (top to bottom = smallest to largest) */}
-      {diameters.map((d, i) => {
-        const widthPercent = (d / maxDiameter) * 100;
+    <div className="flex flex-col items-center py-2">
+      {/* Render smallest (top) first, largest (bottom) last */}
+      {[...layers].reverse().map((d, i) => {
+        const widthPx = Math.max((d / maxDiameter) * containerWidth, 20);
         return (
           <div
             key={i}
-            className="rounded-sm"
+            className="rounded-sm mx-auto"
             style={{
-              width: `${Math.max(widthPercent, 20)}%`,
-              maxWidth: '120px',
-              minWidth: '24px',
-              height: '14px',
+              width: `${widthPx}px`,
+              height: '18px',
               backgroundColor: '#333112',
-              opacity: 0.7 + (i * 0.1),
+              marginBottom: i < layers.length - 1 ? '2px' : '0',
+              borderRadius: '2px',
             }}
           />
         );
       })}
+      {/* Base plate */}
+      <div
+        className="mx-auto mt-1 rounded-sm"
+        style={{
+          width: `${containerWidth + 10}px`,
+          height: '4px',
+          backgroundColor: '#333112',
+          opacity: 0.4,
+        }}
+      />
     </div>
   );
 }
