@@ -11,7 +11,6 @@ import { Button } from '@/app/admin/components/ui/button';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import { Plus, Trash01, ChevronDown, ChevronUp } from '@untitledui/icons';
 import type { ContentTranslations } from '@/types';
-import { findMissingGridCells } from '@/lib/utils/order-helpers';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -816,7 +815,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const hasProductType = cakeProductType !== '';
   const showFlavourConfig = hasProductType && cakeProductType !== 'wedding-cake-tasting';
   const showTierDetails = cakeProductType === 'cake-xxl' || cakeProductType === 'wedding-cake-tiered';
-  const showPricingGrid = hasProductType && cakeProductType !== 'wedding-cake-tasting';
   const showAddonLinks = cakeProductType === 'cake-xxl' || cakeProductType === 'wedding-cake-tiered';
 
   // --- Cake toggle ---
@@ -889,22 +887,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       return;
     }
 
-    // Client-side pricing grid validation
-    if (showPricingGrid && flavourConfig.length > 0) {
-      const activeFlavours = flavourConfig.filter((f) => f.active).map((f) => f.handle);
-      const sizes = [...new Set([
-        ...tierDetailConfig.map((t) => t.sizeValue).filter(Boolean),
-        ...pricingGrid.map((r) => r.sizeValue),
-      ])];
-      if (activeFlavours.length > 0 && sizes.length > 0) {
-        const missing = findMissingGridCells(pricingGrid, sizes, activeFlavours);
-        if (missing.length > 0) {
-          toast.error('Incomplete pricing grid', `${missing.length} cell(s) are missing prices.`);
-          return;
-        }
-      }
-    }
-
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
@@ -925,7 +907,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         cakeFlavourConfig: showFlavourConfig ? flavourConfig : null,
         cakeTierDetailConfig: showTierDetails ? tierDetailConfig : null,
         cakeMaxFlavours: cakeProductType === 'croquembouche' ? cakeMaxFlavours : null,
-        pricingGrid: showPricingGrid ? pricingGrid : undefined,
         addonLinks: showAddonLinks ? addonLinks : undefined,
       };
 
@@ -1160,21 +1141,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
             <TierDetailEditor
               tiers={tierDetailConfig}
               onChange={(t) => { setTierDetailConfig(t); markDirty(); }}
-            />
-          </SectionCard>
-        )}
-
-        {/* 6.4 — Pricing Grid Editor */}
-        {showPricingGrid && (
-          <SectionCard
-            title="Pricing Grid"
-            description="Set prices (in dollars) and Shopify variant IDs for each size × flavour combination."
-          >
-            <PricingGridEditor
-              grid={pricingGrid}
-              flavours={flavourConfig}
-              tierDetails={tierDetailConfig}
-              onChange={(g) => { setPricingGrid(g); markDirty(); }}
             />
           </SectionCard>
         )}

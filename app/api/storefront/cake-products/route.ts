@@ -1,23 +1,70 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { products, cakeLeadTimeTiers, cakePricingGrid, cakeAddonLinks } from '@/lib/db/schema';
+import { products, cakeLeadTimeTiers, cakeAddonLinks } from '@/lib/db/schema';
 import { asc, sql, and, eq } from 'drizzle-orm';
 import { shopifyFetch } from '@/lib/shopify/client';
+
+/**
+ * Slugify a string for matching against CMS flavour handles.
+ */
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Extract the first numeric value from a string (e.g., "30 guests" → "30").
+ */
+function extractNumeric(str: string): string {
+  const match = str.match(/\d+/);
+  return match ? match[0] : '';
+}
+
+/**
+ * Build a pricing grid from Shopify variants.
+ * For two-option products: maps (Option1Value, slugified Option2Value) → price + variantId
+ * For single-option products: maps (Option1Value, "default") → price + variantId
+ */
+function buildPricingGridFromShopifyVariants(
+  variants: Array<{
+    id: string;
+    selectedOptions: Array<{ name: string; value: string }>;
+    price: { amount: string };
+  }>,
+): Array<{ sizeValue: string; flavourHandle: string; priceInCents: number; shopifyVariantId: string }> {
+  const grid: Array<{ sizeValue: string; flavourHandle: string; priceInCents: number; shopifyVariantId: string }> = [];
+
+  for (const v of variants) {
+    const opt1 = v.selectedOptions?.[0]?.value ?? '';
+    const opt2 = v.selectedOptions?.[1]?.value ?? '';
+    const sizeValue = extractNumeric(opt1) || opt1;
+    const flavourHandle = opt2 ? slugify(opt2) : 'default';
+    const priceInCents = Math.round(parseFloat(v.price?.amount ?? '0') * 100);
+
+    grid.push({ sizeValue, flavourHandle, priceInCents, shopifyVariantId: v.id });
+  }
+
+  return grid;
+}
 
 /**
  * GET /api/storefront/cake-products
  *
  * Public endpoint — no auth required.
- * Returns cake-enabled products with lead time tiers, pricing data, flavour config,
- * tier details, pricing grid, and linked add-on products.
+ * Returns cake-enabled products with lead time tiers, Shopify-sourced pricing,
+ * flavour config, tier details, and linked add-on products.
  *
- * Legacy products (cakeProductType = null) continue using Shopify variant pricing.
- * Grid-based products use the cake_pricing_grid table for pricing.
- * Products with no pricing data (no legacy tiers AND no grid rows) are excluded.
+ * ALL pricing comes from Shopify variants at runtime — no CMS pricing grid needed.
+ * The CMS provides: product type, flavour config (descriptions), tier details,
+ * lead time tiers, add-on links, and other metadata.
  */
 export async function GET() {
   try {
-    // Fetch products where cakeEnabled = true AND at least one lead time tier exists
+    // Fetch cake-enabled products with at least one lead time tier
     const cakeProducts = await db
       .select({
         id: products.id,
@@ -50,7 +97,7 @@ export async function GET() {
 
     const productIds = cakeProducts.map((p) => p.id);
 
-    // Fetch lead time tiers from CMS
+    // ── Lead time tiers (from CMS) ──
     const allTiers = productIds.length > 0
       ? await db
           .select({
@@ -64,7 +111,6 @@ export async function GET() {
           .orderBy(asc(cakeLeadTimeTiers.minPeople))
       : [];
 
-    // Group tiers by productId
     const tiersByProduct = new Map<string, Array<{ minPeople: number; leadTimeDays: number; deliveryOnly: boolean }>>();
     for (const tier of allTiers) {
       const list = tiersByProduct.get(tier.productId) ?? [];
@@ -72,40 +118,7 @@ export async function GET() {
       tiersByProduct.set(tier.productId, list);
     }
 
-    // Fetch pricing grid rows for all products in one batch
-    const allGridRows = productIds.length > 0
-      ? await db
-          .select({
-            productId: cakePricingGrid.productId,
-            sizeValue: cakePricingGrid.sizeValue,
-            flavourHandle: cakePricingGrid.flavourHandle,
-            priceInCents: cakePricingGrid.priceInCents,
-            shopifyVariantId: cakePricingGrid.shopifyVariantId,
-          })
-          .from(cakePricingGrid)
-          .where(sql`${cakePricingGrid.productId} IN ${productIds}`)
-          .orderBy(asc(cakePricingGrid.sizeValue), asc(cakePricingGrid.flavourHandle))
-      : [];
-
-    // Group grid rows by productId
-    const gridByProduct = new Map<string, Array<{
-      sizeValue: string;
-      flavourHandle: string;
-      priceInCents: number;
-      shopifyVariantId: string | null;
-    }>>();
-    for (const row of allGridRows) {
-      const list = gridByProduct.get(row.productId) ?? [];
-      list.push({
-        sizeValue: row.sizeValue,
-        flavourHandle: row.flavourHandle,
-        priceInCents: row.priceInCents,
-        shopifyVariantId: row.shopifyVariantId,
-      });
-      gridByProduct.set(row.productId, list);
-    }
-
-    // Fetch addon links for all products in one batch
+    // ── Add-on links (from CMS) ──
     const allAddonLinks = productIds.length > 0
       ? await db
           .select({
@@ -118,7 +131,6 @@ export async function GET() {
           .orderBy(asc(cakeAddonLinks.sortOrder))
       : [];
 
-    // Group addon links by parentProductId
     const addonLinksByProduct = new Map<string, Array<{ addonProductId: string; sortOrder: number }>>();
     for (const link of allAddonLinks) {
       const list = addonLinksByProduct.get(link.parentProductId) ?? [];
@@ -126,91 +138,56 @@ export async function GET() {
       addonLinksByProduct.set(link.parentProductId, list);
     }
 
-    // Collect all unique addon product IDs to fetch their data
+    // Collect addon product IDs
     const addonIdSet = new Set<string>();
     for (const link of allAddonLinks) addonIdSet.add(link.addonProductId);
     const allAddonProductIds = Array.from(addonIdSet);
 
-    // Fetch addon product data
+    // Fetch addon product CMS data
     const addonProducts = allAddonProductIds.length > 0
       ? await db
           .select({
             id: products.id,
             name: products.name,
             image: products.image,
+            shopifyProductId: products.shopifyProductId,
             cakeDescription: products.cakeDescription,
           })
           .from(products)
           .where(sql`${products.id} IN ${allAddonProductIds}`)
       : [];
 
-    const addonProductMap = new Map<string, { id: string; name: string; image: string | null; cakeDescription: { en: string; fr: string } | null }>(
-      addonProducts.map((p) => [p.id, p]),
-    );
+    const addonProductMap = new Map(addonProducts.map((p) => [p.id, p]));
 
-    // Fetch pricing grid rows for addon products
-    const addonGridRows = allAddonProductIds.length > 0
-      ? await db
-          .select({
-            productId: cakePricingGrid.productId,
-            sizeValue: cakePricingGrid.sizeValue,
-            flavourHandle: cakePricingGrid.flavourHandle,
-            priceInCents: cakePricingGrid.priceInCents,
-            shopifyVariantId: cakePricingGrid.shopifyVariantId,
-          })
-          .from(cakePricingGrid)
-          .where(sql`${cakePricingGrid.productId} IN ${allAddonProductIds}`)
-          .orderBy(asc(cakePricingGrid.sizeValue), asc(cakePricingGrid.flavourHandle))
-      : [];
+    // ── Fetch ALL pricing from Shopify variants ──
+    // Collect all Shopify product IDs (main products + addons)
+    const allShopifyIds = [
+      ...cakeProducts.filter((p) => p.shopifyProductId).map((p) => p.shopifyProductId!),
+      ...addonProducts.filter((p) => p.shopifyProductId).map((p) => p.shopifyProductId!),
+    ];
+    const uniqueShopifyIds = [...new Set(allShopifyIds)];
 
-    // Group addon grid rows by productId
-    const addonGridByProduct = new Map<string, Array<{
-      sizeValue: string;
-      flavourHandle: string;
-      priceInCents: number;
-      shopifyVariantId: string | null;
-    }>>();
-    for (const row of addonGridRows) {
-      const list = addonGridByProduct.get(row.productId) ?? [];
-      list.push({
-        sizeValue: row.sizeValue,
-        flavourHandle: row.flavourHandle,
-        priceInCents: row.priceInCents,
-        shopifyVariantId: row.shopifyVariantId,
-      });
-      addonGridByProduct.set(row.productId, list);
-    }
-
-    // Fetch Shopify variant pricing for legacy products (cakeProductType = null)
-    const legacyProducts = cakeProducts.filter((p) => !p.cakeProductType && p.shopifyProductId);
-    const shopifyIds = legacyProducts.map((p) => p.shopifyProductId!);
-
-    const shopifyVariantsByProductGid = new Map<string, Array<{
-      shopifyVariantId: string;
-      minPeople: number;
-      priceInCents: number;
+    // Map: shopifyProductId → parsed variant data
+    const shopifyVariantsByGid = new Map<string, Array<{
+      id: string;
+      selectedOptions: Array<{ name: string; value: string }>;
+      price: { amount: string };
     }>>();
 
-    if (shopifyIds.length > 0) {
+    if (uniqueShopifyIds.length > 0) {
       try {
         const query = `
           query getProductVariants($ids: [ID!]!) {
             nodes(ids: $ids) {
               ... on Product {
                 id
-                variants(first: 100) {
+                variants(first: 250) {
                   edges {
                     node {
                       id
                       title
-                      selectedOptions {
-                        name
-                        value
-                      }
-                      price {
-                        amount
-                        currencyCode
-                      }
+                      selectedOptions { name value }
+                      price { amount currencyCode }
                     }
                   }
                 }
@@ -220,75 +197,77 @@ export async function GET() {
         `;
         const response = await shopifyFetch<any>({
           query,
-          variables: { ids: shopifyIds },
+          variables: { ids: uniqueShopifyIds },
           cache: 'no-store',
         });
 
-        const nodes = response.data?.nodes ?? [];
-        for (const node of nodes) {
+        for (const node of (response.data?.nodes ?? [])) {
           if (!node?.id || !node?.variants) continue;
-          const variants: Array<{ shopifyVariantId: string; minPeople: number; priceInCents: number }> = [];
-          for (const edge of node.variants.edges) {
-            const v = edge.node;
-            // Try to find a numeric people count from:
-            // 1. A "Serves" or "Portions" option
-            // 2. The variant title itself (e.g. "30")
-            let peopleCount = NaN;
-            const servesOption = v.selectedOptions?.find(
-              (o: any) => /^(serves|portions|personnes)$/i.test(o.name.trim()),
-            );
-            if (servesOption) {
-              peopleCount = parseInt(servesOption.value);
-            }
-            // Fallback: try parsing the variant title as a number
-            if (isNaN(peopleCount) && v.title) {
-              peopleCount = parseInt(v.title);
-            }
-            if (!isNaN(peopleCount) && v.price?.amount) {
-              variants.push({
-                shopifyVariantId: v.id,
-                minPeople: peopleCount,
-                priceInCents: Math.round(parseFloat(v.price.amount) * 100),
-              });
-            }
-          }
-          variants.sort((a, b) => a.minPeople - b.minPeople);
-          shopifyVariantsByProductGid.set(node.id, variants);
+          const variants = node.variants.edges.map((e: any) => e.node);
+          shopifyVariantsByGid.set(node.id, variants);
         }
       } catch (err) {
-        console.error('Error fetching Shopify variants for cake products:', err);
-        // Continue without pricing — products will still show but without prices
+        console.error('Error fetching Shopify variants:', err);
       }
     }
 
-    // Assemble the response
+    // Helper: build pricing data for a product from its Shopify variants
+    function getPricingForProduct(shopifyProductId: string | null, isLegacy: boolean) {
+      if (!shopifyProductId) return { pricingTiers: [], pricingGrid: [] };
+      const variants = shopifyVariantsByGid.get(shopifyProductId) ?? [];
+      if (variants.length === 0) return { pricingTiers: [], pricingGrid: [] };
+
+      if (isLegacy) {
+        // Legacy: single-axis (people → price)
+        const tiers: Array<{ shopifyVariantId: string; minPeople: number; priceInCents: number }> = [];
+        for (const v of variants) {
+          let peopleCount = NaN;
+          const servesOpt = v.selectedOptions?.find(
+            (o: any) => /^(serves|portions|personnes|guests|people)$/i.test(o.name.trim()),
+          );
+          if (servesOpt) peopleCount = parseInt(servesOpt.value);
+          if (isNaN(peopleCount) && v.selectedOptions?.[0]) {
+            peopleCount = parseInt(extractNumeric(v.selectedOptions[0].value));
+          }
+          if (!isNaN(peopleCount) && v.price?.amount) {
+            tiers.push({
+              shopifyVariantId: v.id,
+              minPeople: peopleCount,
+              priceInCents: Math.round(parseFloat(v.price.amount) * 100),
+            });
+          }
+        }
+        tiers.sort((a, b) => a.minPeople - b.minPeople);
+        return { pricingTiers: tiers, pricingGrid: [] };
+      }
+
+      // Grid-based: build from variant options
+      return { pricingTiers: [], pricingGrid: buildPricingGridFromShopifyVariants(variants) };
+    }
+
+    // ── Assemble response ──
     const result = cakeProducts
       .map((p) => {
         const isLegacy = !p.cakeProductType;
-        const pricingGrid = gridByProduct.get(p.id) ?? [];
+        const { pricingTiers, pricingGrid } = getPricingForProduct(p.shopifyProductId, isLegacy);
 
-        // Legacy products get Shopify variant pricing; grid-based products use the grid
-        const pricingTiers = isLegacy && p.shopifyProductId
-          ? (shopifyVariantsByProductGid.get(p.shopifyProductId) ?? [])
-          : [];
-
-        // Filter active flavour config entries and sort by sortOrder
         const cakeFlavourConfig = (p.cakeFlavourConfig ?? [])
           .filter((f) => f.active)
           .sort((a, b) => a.sortOrder - b.sortOrder);
 
-        // Resolve addon products with their pricing data
+        // Resolve addon products with Shopify-sourced pricing
         const addonLinks = addonLinksByProduct.get(p.id) ?? [];
         const addons = addonLinks
           .map((link) => {
             const addonProduct = addonProductMap.get(link.addonProductId);
             if (!addonProduct) return null;
+            const addonPricing = getPricingForProduct(addonProduct.shopifyProductId, false);
             return {
               id: addonProduct.id,
               name: addonProduct.name,
               image: addonProduct.image ?? null,
               cakeDescription: addonProduct.cakeDescription ?? { en: '', fr: '' },
-              pricingGrid: addonGridByProduct.get(addonProduct.id) ?? [],
+              pricingGrid: addonPricing.pricingGrid,
             };
           })
           .filter((a): a is NonNullable<typeof a> => a !== null);
@@ -318,7 +297,6 @@ export async function GET() {
           addons,
         };
       })
-      // Exclude products with no pricing data (no legacy tiers AND no grid rows)
       .filter((p) => p.pricingTiers.length > 0 || p.pricingGrid.length > 0);
 
     return NextResponse.json(result);
