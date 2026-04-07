@@ -124,6 +124,11 @@ function isCroquembouche(product: CakeProduct): boolean {
   return product.cakeProductType === 'croquembouche';
 }
 
+/** Check if a product is only used as an addon (linked by another product) */
+function isAddonProduct(product: CakeProduct, allProducts: CakeProduct[]): boolean {
+  return allProducts.some((p) => p.addons?.some((a) => a.id === product.id));
+}
+
 function tr(field: TranslationObject | null | undefined, locale: string): string {
   if (!field) return '';
   if (locale === 'fr') return field.fr || field.en || '';
@@ -206,9 +211,9 @@ function resolveNearestSize(availableSizes: string[], inputValue: number): strin
 }
 
 
-// ── Flavour Expansion Component ──
+// ── Flavour Dropdown Component (inside card) ──
 
-function FlavourExpansion({
+function FlavourDropdown({
   product, locale, selectedFlavourHandles, onToggleFlavour,
 }: {
   product: CakeProduct;
@@ -219,80 +224,64 @@ function FlavourExpansion({
   const isFr = locale === 'fr';
   const isMulti = isCroquembouche(product);
   const maxFlavours = product.cakeMaxFlavours ?? 2;
-  const atLimit = isMulti && selectedFlavourHandles.length >= maxFlavours;
 
-  return (
-    <div className="col-span-2 md:col-span-3 -mt-2 mb-2">
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        {product.cakeFlavourConfig.map((flavour, idx) => {
-          const isSelected = selectedFlavourHandles.includes(flavour.handle);
-          const isCustom = flavour.handle === 'custom';
-          const disabled = !isSelected && atLimit && isMulti;
-
-          return (
-            <button
-              key={flavour.handle}
-              type="button"
-              onClick={() => {
-                if (isCustom) return;
-                if (disabled) return;
-                onToggleFlavour(flavour.handle);
-              }}
-              disabled={isCustom || disabled}
-              className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors ${
-                idx > 0 ? 'border-t border-gray-100' : ''
-              } ${isSelected ? 'bg-gray-50' : 'hover:bg-gray-50/50'} ${
-                (isCustom || disabled) ? 'opacity-60 cursor-default' : ''
-              }`}
-            >
-              {/* Radio/checkbox indicator */}
-              <div className="mt-0.5 shrink-0">
-                {isMulti ? (
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                    isSelected ? 'border-[#333112] bg-[#333112]' : 'border-gray-300'
-                  }`}>
-                    {isSelected && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                ) : (
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    isSelected ? 'border-[#333112]' : 'border-gray-300'
-                  }`}>
-                    {isSelected && <div className="w-2 h-2 rounded-full bg-[#333112]" />}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                {isCustom ? (
-                  <p className="text-xs text-gray-500 italic">
-                    {isFr ? 'Contactez-nous pour vos envies!' : 'Contact us for custom requests'}
-                  </p>
-                ) : (
-                  <>
-                    <p className="text-xs font-medium text-gray-800" style={{ fontFamily: 'var(--font-neue-montreal)' }}>
-                      {tr(flavour.label, locale)}
-                    </p>
-                    {flavour.description && tr(flavour.description, locale) && (
-                      <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
-                        {tr(flavour.description, locale)}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      {isMulti && atLimit && (
-        <p className="text-[11px] text-gray-500 mt-1.5 px-1" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-          {isFr ? `Maximum ${maxFlavours} saveurs atteint` : `Maximum ${maxFlavours} flavours reached`}
+  if (isMulti) {
+    // Multi-select for croquembouche: show checkboxes in a compact list
+    const atLimit = selectedFlavourHandles.length >= maxFlavours;
+    return (
+      <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+          {isFr ? `Saveurs (max ${maxFlavours})` : `Flavours (max ${maxFlavours})`}
         </p>
-      )}
+        <div className="flex flex-wrap gap-1.5">
+          {product.cakeFlavourConfig.filter((f) => f.handle !== 'custom').map((flavour) => {
+            const isSelected = selectedFlavourHandles.includes(flavour.handle);
+            const disabled = !isSelected && atLimit;
+            return (
+              <button
+                key={flavour.handle}
+                type="button"
+                onClick={() => { if (!disabled) onToggleFlavour(flavour.handle); }}
+                disabled={disabled}
+                className={`px-2 py-1 text-[10px] rounded-full border transition-colors ${
+                  isSelected
+                    ? 'bg-[#333112] text-white border-[#333112]'
+                    : disabled
+                    ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                }`}
+                style={{ fontFamily: 'var(--font-diatype-mono)' }}
+              >
+                {tr(flavour.label, locale)}
+              </button>
+            );
+          })}
+        </div>
+        {atLimit && (
+          <p className="text-[10px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+            {isFr ? `Maximum ${maxFlavours} atteint` : `Max ${maxFlavours} reached`}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Single-select dropdown for XXL / wedding cakes
+  return (
+    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+      <select
+        value={selectedFlavourHandles[0] || ''}
+        onChange={(e) => onToggleFlavour(e.target.value)}
+        className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#333112] bg-white text-gray-700"
+        style={{ fontFamily: 'var(--font-diatype-mono)' }}
+      >
+        {product.cakeFlavourConfig.map((flavour) => (
+          <option key={flavour.handle} value={flavour.handle}>
+            {tr(flavour.label, locale)}
+            {flavour.handle === 'custom' ? (isFr ? ' — contactez-nous' : ' — contact us') : ''}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -336,6 +325,7 @@ function TierDiagram({ tierDetail }: { tierDetail: CakeTierDetailEntry }) {
 
 function CakeProductCard({
   product, locale, isSelected, onSelect, brandColor, numberOfPeople, C,
+  selectedFlavourHandles, onToggleFlavour,
 }: {
   product: CakeProduct;
   locale: string;
@@ -344,6 +334,8 @@ function CakeProductCard({
   brandColor: string;
   numberOfPeople: number;
   C: Record<string, any>;
+  selectedFlavourHandles: string[];
+  onToggleFlavour: (handle: string) => void;
 }) {
   const description = tr(product.cakeDescription, locale);
   const flavourNotes = tr(product.cakeFlavourNotes, locale);
@@ -436,6 +428,16 @@ function CakeProductCard({
               </span>
             ))}
           </div>
+        )}
+
+        {/* Flavour dropdown (inside card, only when selected) */}
+        {isSelected && isGridBased(product) && product.cakeFlavourConfig.length > 0 && (
+          <FlavourDropdown
+            product={product}
+            locale={locale}
+            selectedFlavourHandles={selectedFlavourHandles}
+            onToggleFlavour={onToggleFlavour}
+          />
         )}
       </div>
     </button>
@@ -1087,15 +1089,29 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       const product = products.find((p) => p.id === productId);
       if (product) {
         // Reset grid state
-        setSelectedFlavourHandles([]);
-        setSelectedSize('');
         setEnabledAddonIds([]);
 
-        if (isLegacy(product) && product.pricingTiers.length > 0) {
-          const minPeople = product.pricingTiers
-            .slice()
-            .sort((a, b) => a.minPeople - b.minPeople)[0].minPeople;
-          setNumberOfPeople(minPeople);
+        // Auto-select first flavour for grid-based products (not croquembouche)
+        if (isGridBased(product) && product.cakeFlavourConfig.length > 0) {
+          const firstActive = product.cakeFlavourConfig.find((f) => f.active && f.handle !== 'custom');
+          setSelectedFlavourHandles(firstActive ? [firstActive.handle] : []);
+        } else {
+          setSelectedFlavourHandles([]);
+        }
+
+        // Auto-set size to minimum from pricing grid or legacy tiers
+        if (isGridBased(product) && product.pricingGrid.length > 0) {
+          const sizes = getAvailableSizes(product.pricingGrid).map(Number).filter(Boolean);
+          const minSize = sizes.length > 0 ? Math.min(...sizes) : 0;
+          setSelectedSize(minSize > 0 ? String(minSize) : '');
+        } else {
+          setSelectedSize('');
+          if (isLegacy(product) && product.pricingTiers.length > 0) {
+            const minPeople = product.pricingTiers
+              .slice()
+              .sort((a, b) => a.minPeople - b.minPeople)[0].minPeople;
+            setNumberOfPeople(minPeople);
+          }
         }
       }
       return productId;
@@ -1347,24 +1363,15 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           )}
           {!loading && !error && products.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
-              {products.map((product) => {
+              {products.filter((p) => !isAddonProduct(p, products)).map((product) => {
                 const isSelected = selectedProductId === product.id;
                 return (
-                  <React.Fragment key={product.id}>
-                    <CakeProductCard product={product} locale={locale}
-                      isSelected={isSelected}
-                      onSelect={handleSelectProduct} brandColor={brandColor}
-                      numberOfPeople={numberOfPeople} C={C} />
-                    {/* Flavour expansion beneath selected card */}
-                    {isSelected && isGridBased(product) && product.cakeFlavourConfig.length > 0 && (
-                      <FlavourExpansion
-                        product={product}
-                        locale={locale}
-                        selectedFlavourHandles={selectedFlavourHandles}
-                        onToggleFlavour={handleToggleFlavour}
-                      />
-                    )}
-                  </React.Fragment>
+                  <CakeProductCard key={product.id} product={product} locale={locale}
+                    isSelected={isSelected}
+                    onSelect={handleSelectProduct} brandColor={brandColor}
+                    numberOfPeople={numberOfPeople} C={C}
+                    selectedFlavourHandles={isSelected ? selectedFlavourHandles : []}
+                    onToggleFlavour={handleToggleFlavour} />
                 );
               })}
             </div>
