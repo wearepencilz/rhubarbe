@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/client';
-import { products, cakeLeadTimeTiers, cakePricingTiers, cakeVariants } from '@/lib/db/schema';
+import { products, cakeLeadTimeTiers, cakePricingTiers, cakeVariants, cakePricingGrid, cakeAddonLinks } from '@/lib/db/schema';
 import { eq, asc, sql } from 'drizzle-orm';
 
 /**
@@ -43,7 +43,7 @@ export async function listCakeProducts() {
 }
 
 /**
- * Get a single cake product by ID with its tiers and variants.
+ * Get a single cake product by ID with its tiers, variants, pricing grid, and addon links.
  */
 export async function getCakeProductById(id: string) {
   const [product] = await db
@@ -56,8 +56,10 @@ export async function getCakeProductById(id: string) {
   const tiers = await getCakeLeadTimeTiers(id);
   const pricingTiers = await getCakePricingTiers(id);
   const variants = await getCakeVariants(id);
+  const pricingGrid = await getCakePricingGrid(id);
+  const addonLinks = await getCakeAddonLinks(id);
 
-  return { ...product, leadTimeTiers: tiers, pricingTiers, cakeVariants: variants };
+  return { ...product, leadTimeTiers: tiers, pricingTiers, cakeVariants: variants, pricingGrid, addonLinks };
 }
 
 /**
@@ -72,6 +74,10 @@ export async function updateCakeConfig(
     cakeMinPeople?: number | null;
     cakeFlavourNotes?: { en: string; fr: string } | null;
     cakeDeliveryAvailable?: boolean;
+    cakeProductType?: string | null;
+    cakeFlavourConfig?: { handle: string; label: { en: string; fr: string }; description: { en: string; fr: string } | null; pricingTierGroup: string | null; sortOrder: number; active: boolean }[] | null;
+    cakeTierDetailConfig?: { sizeValue: string; layers: number; diameters: string; label: { en: string; fr: string } | null }[] | null;
+    cakeMaxFlavours?: number | null;
   },
 ) {
   const [updated] = await db
@@ -221,5 +227,89 @@ export async function setCakePricingTiers(
     }));
 
     return tx.insert(cakePricingTiers).values(rows).returning();
+  });
+}
+
+
+/**
+ * Get pricing grid rows for a product, ordered by sizeValue ASC, flavourHandle ASC.
+ */
+export async function getCakePricingGrid(productId: string) {
+  return db
+    .select({
+      sizeValue: cakePricingGrid.sizeValue,
+      flavourHandle: cakePricingGrid.flavourHandle,
+      priceInCents: cakePricingGrid.priceInCents,
+      shopifyVariantId: cakePricingGrid.shopifyVariantId,
+    })
+    .from(cakePricingGrid)
+    .where(eq(cakePricingGrid.productId, productId))
+    .orderBy(asc(cakePricingGrid.sizeValue), asc(cakePricingGrid.flavourHandle));
+}
+
+/**
+ * Replace pricing grid rows for a product.
+ * Uses a transaction to delete existing rows and insert new ones.
+ */
+export async function setCakePricingGrid(
+  productId: string,
+  rows: { sizeValue: string; flavourHandle: string; priceInCents: number; shopifyVariantId?: string | null }[],
+) {
+  return db.transaction(async (tx) => {
+    await tx
+      .delete(cakePricingGrid)
+      .where(eq(cakePricingGrid.productId, productId));
+
+    if (rows.length === 0) return [];
+
+    const insertRows = rows.map((row) => ({
+      productId,
+      sizeValue: row.sizeValue,
+      flavourHandle: row.flavourHandle,
+      priceInCents: row.priceInCents,
+      shopifyVariantId: row.shopifyVariantId ?? null,
+    }));
+
+    return tx.insert(cakePricingGrid).values(insertRows).returning();
+  });
+}
+
+/**
+ * Get addon links for a product, ordered by sortOrder ASC.
+ * Returns the addonProductId and sortOrder.
+ */
+export async function getCakeAddonLinks(productId: string) {
+  return db
+    .select({
+      addonProductId: cakeAddonLinks.addonProductId,
+      sortOrder: cakeAddonLinks.sortOrder,
+    })
+    .from(cakeAddonLinks)
+    .where(eq(cakeAddonLinks.parentProductId, productId))
+    .orderBy(asc(cakeAddonLinks.sortOrder));
+}
+
+/**
+ * Replace addon links for a product.
+ * Uses a transaction to delete existing links and insert new ones.
+ */
+export async function setCakeAddonLinks(
+  productId: string,
+  links: { addonProductId: string; sortOrder?: number }[],
+) {
+  return db.transaction(async (tx) => {
+    await tx
+      .delete(cakeAddonLinks)
+      .where(eq(cakeAddonLinks.parentProductId, productId));
+
+    if (links.length === 0) return [];
+
+    const insertRows = links.map((link, idx) => ({
+      parentProductId: productId,
+      addonProductId: link.addonProductId,
+      sortOrder: link.sortOrder ?? idx,
+    }));
+
+    return tx.insert(cakeAddonLinks).values(insertRows).returning();
   });
 }

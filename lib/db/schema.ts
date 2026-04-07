@@ -13,6 +13,23 @@
 import { pgTable, uuid, text, timestamp, integer, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { customJsonb } from './custom-types';
 
+// Cake configuration types (used as JSONB generic parameters)
+interface CakeFlavourEntry {
+  handle: string;
+  label: { en: string; fr: string };
+  description: { en: string; fr: string } | null;
+  pricingTierGroup: string | null;
+  sortOrder: number;
+  active: boolean;
+}
+
+interface CakeTierDetailEntry {
+  sizeValue: string;
+  layers: number;
+  diameters: string;
+  label: { en: string; fr: string } | null;
+}
+
 // Products table
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -84,6 +101,12 @@ export const products = pgTable('products', {
   cakeFlavourNotes: customJsonb<{ en: string; fr: string }>('cake_flavour_notes'),
   cakeDeliveryAvailable: boolean('cake_delivery_available').default(true),
 
+  // Cake product type and configuration fields
+  cakeProductType: text('cake_product_type'),  // 'cake-xxl' | 'croquembouche' | 'wedding-cake-tiered' | 'wedding-cake-tasting' | null
+  cakeFlavourConfig: customJsonb<CakeFlavourEntry[]>('cake_flavour_config'),
+  cakeTierDetailConfig: customJsonb<CakeTierDetailEntry[]>('cake_tier_detail_config'),
+  cakeMaxFlavours: integer('cake_max_flavours'),
+
   // Tax fields
   taxBehavior: text('tax_behavior').notNull().default('always_taxable'),
   taxThreshold: integer('tax_threshold').notNull().default(6),
@@ -131,6 +154,32 @@ export const cakePricingTiers = pgTable('cake_pricing_tiers', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('cake_pricing_tiers_product_id_idx').on(table.productId),
+}));
+
+// Cake Pricing Grid — two-axis pricing: (size × flavour) → price + Shopify variant
+export const cakePricingGrid = pgTable('cake_pricing_grid', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  sizeValue: text('size_value').notNull(),
+  flavourHandle: text('flavour_handle').notNull(),
+  priceInCents: integer('price_in_cents').notNull(),
+  shopifyVariantId: text('shopify_variant_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  productIdIdx: index('cake_pricing_grid_product_id_idx').on(table.productId),
+  uniqueCell: uniqueIndex('cake_pricing_grid_unique_cell').on(table.productId, table.sizeValue, table.flavourHandle),
+}));
+
+// Cake Add-On Links — links parent cake products to optional add-on products
+export const cakeAddonLinks = pgTable('cake_addon_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  parentProductId: uuid('parent_product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  addonProductId: uuid('addon_product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  parentIdx: index('cake_addon_links_parent_idx').on(table.parentProductId),
+  uniqueLink: uniqueIndex('cake_addon_links_unique').on(table.parentProductId, table.addonProductId),
 }));
 
 // Cake Variants — cake-specific variants with bilingual labels and Shopify mapping

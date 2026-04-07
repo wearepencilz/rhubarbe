@@ -88,3 +88,68 @@ export function getActivePricingTier<T extends { minPeople: number }>(
 
   return best;
 }
+
+// ─── Pricing Grid Helpers ────────────────────────────────────────────
+
+export interface PricingGridRow {
+  sizeValue: string;
+  flavourHandle: string;
+  priceInCents: number;
+  shopifyVariantId: string | null;
+}
+
+export interface CakeTierDetailEntry {
+  sizeValue: string;
+  layers: number;
+  diameters: string;
+  label: { en: string; fr: string } | null;
+}
+
+/**
+ * Look up a price from a two-axis pricing grid.
+ * Returns the matching entry or null if no match found.
+ * Used by both the storefront client (price display) and checkout API (variant resolution).
+ */
+export function resolvePricingGridPrice(
+  grid: PricingGridRow[],
+  sizeValue: string,
+  flavourHandle: string,
+): { priceInCents: number; shopifyVariantId: string | null } | null {
+  const match = grid.find(
+    (row) => row.sizeValue === sizeValue && row.flavourHandle === flavourHandle,
+  );
+  if (!match) return null;
+  return { priceInCents: match.priceInCents, shopifyVariantId: match.shopifyVariantId };
+}
+
+/**
+ * Look up tier detail (layers, diameters) for a given size value.
+ * Returns the matching entry or null if no match found.
+ */
+export function getTierDetailForSize(
+  tierDetails: CakeTierDetailEntry[],
+  sizeValue: string,
+): CakeTierDetailEntry | null {
+  return tierDetails.find((td) => td.sizeValue === sizeValue) ?? null;
+}
+
+/**
+ * Returns the set of (sizeValue, flavourHandle) combinations that are missing from the grid.
+ * Used by admin validation before saving.
+ */
+export function findMissingGridCells(
+  grid: PricingGridRow[],
+  sizeValues: string[],
+  flavourHandles: string[],
+): Array<{ sizeValue: string; flavourHandle: string }> {
+  const existing = new Set(grid.map((r) => `${r.sizeValue}|${r.flavourHandle}`));
+  const missing: Array<{ sizeValue: string; flavourHandle: string }> = [];
+  for (const size of sizeValues) {
+    for (const flavour of flavourHandles) {
+      if (!existing.has(`${size}|${flavour}`)) {
+        missing.push({ sizeValue: size, flavourHandle: flavour });
+      }
+    }
+  }
+  return missing;
+}
