@@ -98,7 +98,7 @@ Extend the existing cake ordering system to support four new product types (XXL,
 - [x] 7. Checkpoint — Ensure admin pages render and save correctly
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Extend storefront API `GET /api/storefront/cake-products`
+- [x] 8. Extend storefront API `GET /api/storefront/cake-products`
   - Return new fields: cakeProductType, cakeFlavourConfig (active only, sorted by sortOrder), cakeTierDetailConfig, cakeMaxFlavours, pricingGrid rows
   - Return linked add-on products with their own pricing data
   - Derive available size options from distinct sizeValue entries in the pricing grid
@@ -106,42 +106,42 @@ Extend the existing cake ordering system to support four new product types (XXL,
   - Exclude products with no pricing data (no tiers and no grid)
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 9.2_
 
-- [ ] 9. Extend storefront page `app/cake/CakeOrderPageClient.tsx`
-  - [ ] 9.1 Add product type branching logic
+- [x] 9. Extend storefront page `app/cake/CakeOrderPageClient.tsx`
+  - [x] 9.1 Add product type branching logic
     - Legacy products (`cakeProductType = null`) use existing single-axis flow unchanged
     - Wedding cake tasting renders as simple fixed-price add-to-cart with no flavour/size selection
     - Grid-based products use new two-axis flow
     - _Requirements: 1.5, 6.5, 9.1_
 
-  - [ ] 9.2 Add flavour variant expansion beneath product cards
+  - [x] 9.2 Add flavour variant expansion beneath product cards
     - When a product card is selected, expand a flavour list beneath it showing bilingual label and description
     - Radio-style selection for XXL and wedding cakes (single flavour)
     - Multi-select up to `cakeMaxFlavours` for croquembouche, with limit message
     - Show contact note when flavour handle is `custom`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6_
 
-  - [ ] 9.3 Extend sidebar cart with size selection and grid-based price resolution
+  - [x] 9.3 Extend sidebar cart with size selection and grid-based price resolution
     - Size selector labeled "Guests"/"Invités" for XXL/wedding, "Choux" for croquembouche
     - Resolve price from pricing grid using `resolvePricingGridPrice(grid, sizeValue, flavourHandle)`
     - Display selected flavour name(s) and tax note
     - _Requirements: 7.1, 7.2, 7.3, 7.8_
 
-  - [ ] 9.4 Add tier detail display and visual tier diagram in sidebar
+  - [x] 9.4 Add tier detail display and visual tier diagram in sidebar
     - Display layers and diameters for the selected size from `cakeTierDetailConfig`
     - Render a visual tier diagram (SVG/CSS stacked layers) that updates with size selection
     - _Requirements: 7.4, 7.5_
 
-  - [ ] 9.5 Add add-on toggles in sidebar
+  - [x] 9.5 Add add-on toggles in sidebar
     - Display linked add-on products with price resolved from selected size (flavourHandle = 'default')
     - Disable add-on toggles when no size is selected
     - _Requirements: 7.6, 7.7_
 
-  - [ ] 9.6 Implement cart persistence with cascading removal
+  - [x] 9.6 Implement cart persistence with cascading removal
     - Persist selected product, flavour(s), size, add-ons, and computed price to localStorage under `rhubarbe:cake:cart`
     - When main product is removed, also remove associated add-on items
     - _Requirements: 8.1, 8.2_
 
-- [ ] 10. Checkpoint — Ensure storefront renders all product types correctly
+- [x] 10. Checkpoint — Ensure storefront renders all product types correctly
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 11. Extend checkout API `POST /api/checkout/cake`
