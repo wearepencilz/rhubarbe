@@ -29,15 +29,28 @@ const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning' | 'error'> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  'cake-xxl': 'Large Format (XXL)',
-  'sheet-cake': 'Sheet Cake',
-  'croquembouche': 'Croquembouche',
-  'wedding-cake-tiered': 'Tiered Wedding Cake',
-  'wedding-cake-tasting': 'Wedding Cake Tasting',
-  'cake-addon': 'Add-Ons',
+  cakes: 'Cakes',
+  tasting: 'Tasting',
+  addons: 'Add-Ons',
 };
 
-const TYPE_ORDER = ['cake-xxl', 'sheet-cake', 'croquembouche', 'wedding-cake-tiered', 'wedding-cake-tasting', 'cake-addon', '__unassigned__'];
+const TYPE_ORDER = ['cakes', 'tasting', 'addons', '__unassigned__'];
+
+function getGroup(cakeProductType: string | null): string {
+  switch (cakeProductType) {
+    case 'cake-xxl':
+    case 'sheet-cake':
+    case 'wedding-cake-tiered':
+    case 'croquembouche':
+      return 'cakes';
+    case 'wedding-cake-tasting':
+      return 'tasting';
+    case 'cake-addon':
+      return 'addons';
+    default:
+      return '__unassigned__';
+  }
+}
 
 export default function CakeProductsPage() {
   const router = useRouter();
@@ -90,7 +103,7 @@ export default function CakeProductsPage() {
     const groups: Record<string, CakeProduct[]> = {};
     for (const type of TYPE_ORDER) groups[type] = [];
     for (const p of products) {
-      const key = p.cakeProductType && TYPE_ORDER.includes(p.cakeProductType) ? p.cakeProductType : '__unassigned__';
+      const key = getGroup(p.cakeProductType);
       groups[key].push(p);
     }
     return groups;
