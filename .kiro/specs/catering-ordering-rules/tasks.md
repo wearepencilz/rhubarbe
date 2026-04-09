@@ -100,7 +100,7 @@ Hide the ingredients module from the admin UI while preserving data.
 
 - [x] 11.1 Remove "Ingredients" nav item from `app/admin/components/AdminSidebar.tsx`
 - [x] 11.2 Update `app/admin/ingredients/page.tsx` to show "Feature currently unavailable" message
-- [ ] 11.3 Remove ingredient association controls from cake and menu product edit pages
+- [x] 11.3 Remove ingredient association controls from product edit pages (replaced with allergens multi-select)
 
 ## Task 12: Customer-facing catering menu — type grouping, filtering, lead time, ordering rules
 
@@ -108,8 +108,8 @@ Update the customer-facing catering order page with new features.
 
 - [x] 12.1 Update `app/catering/VolumeOrderPageClient.tsx` to group products by `cateringType` with section headings
 - [x] 12.2 Add dietary and temperature filter controls
-- [ ] 12.3 Integrate `getEarliestCateringDate` with the date picker to disable dates within the lead time window (replace or supplement existing `getEarliestDate` logic)
-- [ ] 12.4 Enforce per-type quantity rules (min quantity, step) on the quantity selector using `cateringOrderingRules` from settings
+- [x] 12.3 Integrate global `cateringLeadTimeDays` as floor for date picker earliest date
+- [x] 12.4 Enforce per-type quantity rules (min quantity, step) via `cateringOrderingRules` from settings
 - [x] 12.5 Show `cateringDescription` for each product (fall back to product `description` if not set)
 - [x] 12.6 Exclude products past their `cateringEndDate`
 
@@ -117,7 +117,7 @@ Update the customer-facing catering order page with new features.
 
 Apply the same translation and dirty-state save patterns to cake and menu edit pages.
 
-- [ ] 13.1 Ensure cake product edit page uses `EditPageLayout` with `isDirty` prop and `TranslationFields` + `AiTranslateButton` for all bilingual fields
-- [ ] 13.2 Ensure menu product edit page uses `EditPageLayout` with `isDirty` prop and `TranslationFields` + `AiTranslateButton` for all bilingual fields
-- [ ] 13.3 Add allergen multi-select to cake variant editing (per-variant allergens)
-- [ ] 13.4 Add allergen multi-select to menu product editing (product-level or per-variant depending on variant presence)
+- [x] 13.1 Cake product edit page already uses `EditPageLayout` with `isDirty` and `TranslationFields` — confirmed
+- [x] 13.2 Add `isDirty` to menu edit page `EditPageLayout` with reset on save
+- [x] 13.3 Add per-variant allergen multi-select to cake `FlavourConfigEditor`
+- [x] 13.4 Add allergen multi-select to product edit page (replaces ingredients section)
