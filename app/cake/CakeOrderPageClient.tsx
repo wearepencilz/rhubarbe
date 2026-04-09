@@ -40,6 +40,7 @@ interface CakeFlavourEntry {
   sortOrder: number;
   active: boolean;
   endDate: string | null;
+  allergens?: string[];
 }
 
 interface AddonProduct {
@@ -570,7 +571,7 @@ function CakeInlineCart({
     return total;
   }, [selectedProduct, enabledAddonIds, resolvedSize, addons]);
 
-  // Selected flavour names for display
+  // Selected flavour names and allergens for display
   const selectedFlavourNames = useMemo(() => {
     if (!selectedProduct) return [];
     return selectedFlavourHandles
@@ -578,6 +579,18 @@ function CakeInlineCart({
       .filter(Boolean)
       .map((f) => tr(f!.label, locale));
   }, [selectedProduct, selectedFlavourHandles, locale]);
+
+  const selectedFlavourAllergens = useMemo(() => {
+    if (!selectedProduct) return [];
+    const all = new Set<string>();
+    for (const h of selectedFlavourHandles) {
+      const f = selectedProduct.cakeFlavourConfig.find((fl) => fl.handle === h);
+      f?.allergens?.forEach((a) => all.add(a));
+    }
+    // Also include product-level allergens
+    selectedProduct.allergens?.forEach((a) => all.add(a));
+    return Array.from(all);
+  }, [selectedProduct, selectedFlavourHandles]);
 
   // Can checkout?
   const canCheckout = useMemo(() => {
@@ -623,6 +636,14 @@ function CakeInlineCart({
               <p className="text-[11px] text-gray-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                 {selectedFlavourNames.join(', ')}
               </p>
+            )}
+            {selectedFlavourAllergens.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {selectedFlavourAllergens.map((a) => (
+                  <span key={a} className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{a}</span>
+                ))}
+              </div>
             )}
           </div>
 
