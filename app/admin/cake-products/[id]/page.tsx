@@ -90,15 +90,15 @@ interface CakeProduct {
   addonLinks: AddonLink[];
 }
 
-type ProductType = '' | 'cake-xxl' | 'sheet-cake' | 'croquembouche' | 'wedding-cake-tiered' | 'wedding-cake-tasting';
+type ProductType = '' | 'cake-xxl' | 'sheet-cake' | 'croquembouche' | 'wedding-cake-tiered' | 'wedding-cake-tasting' | 'cake-addon';
 
 const PRODUCT_TYPE_OPTIONS: { value: ProductType; label: string }[] = [
-  { value: '', label: 'Legacy (no type)' },
   { value: 'cake-xxl', label: 'Large Format (XXL)' },
   { value: 'sheet-cake', label: 'Sheet Cake' },
   { value: 'croquembouche', label: 'Croquembouche' },
   { value: 'wedding-cake-tiered', label: 'Tiered Wedding Cake' },
   { value: 'wedding-cake-tasting', label: 'Wedding Cake Tasting' },
+  { value: 'cake-addon', label: 'Add-On' },
 ];
 
 // ─── Section Card ────────────────────────────────────────────────────

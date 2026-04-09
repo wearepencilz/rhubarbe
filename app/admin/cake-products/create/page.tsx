@@ -13,6 +13,7 @@ const PRODUCT_TYPE_OPTIONS = [
   { id: 'croquembouche', label: 'Croquembouche' },
   { id: 'wedding-cake-tiered', label: 'Tiered Wedding Cake' },
   { id: 'wedding-cake-tasting', label: 'Wedding Cake Tasting' },
+  { id: 'cake-addon', label: 'Add-On' },
 ];
 
 function slugify(name: string): string {

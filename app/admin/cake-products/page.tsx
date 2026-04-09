@@ -34,9 +34,10 @@ const TYPE_LABELS: Record<string, string> = {
   'croquembouche': 'Croquembouche',
   'wedding-cake-tiered': 'Tiered Wedding Cake',
   'wedding-cake-tasting': 'Wedding Cake Tasting',
+  'cake-addon': 'Add-Ons',
 };
 
-const TYPE_ORDER = ['cake-xxl', 'sheet-cake', 'croquembouche', 'wedding-cake-tiered', 'wedding-cake-tasting', '__unassigned__'];
+const TYPE_ORDER = ['cake-xxl', 'sheet-cake', 'croquembouche', 'wedding-cake-tiered', 'wedding-cake-tasting', 'cake-addon', '__unassigned__'];
 
 export default function CakeProductsPage() {
   const router = useRouter();
@@ -97,14 +98,17 @@ export default function CakeProductsPage() {
 
   function renderGroup(typeKey: string, items: CakeProduct[]) {
     if (items.length === 0) return null;
-    const label = typeKey === '__unassigned__' ? 'No Type Assigned' : (TYPE_LABELS[typeKey] ?? typeKey);
+    const label = typeKey === '__unassigned__' ? 'Uncategorized' : (TYPE_LABELS[typeKey] ?? typeKey);
     return (
-      <div key={typeKey} className="mb-6">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-2">{label}</h3>
+      <div key={typeKey} className="mb-8 last:mb-0">
+        <div className="flex items-center gap-3 mb-3 px-6">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h3>
+          <span className="text-xs text-gray-400">{items.length}</span>
+          <div className="flex-1 border-t border-gray-100" />
+        </div>
         <Table aria-label={`${label} Cake Products`}>
           <Table.Header>
             <Table.Head isRowHeader label="Product" />
-            <Table.Head label="Type" />
             <Table.Head label="Min People" />
             <Table.Head label="Tiers" />
             <Table.Head label="Status" />
@@ -115,14 +119,13 @@ export default function CakeProductsPage() {
               <Table.Row key={product.id} id={product.id} onAction={() => router.push(`/admin/cake-products/${product.id}`)}>
                 <Table.Cell>
                   <div className="flex items-center gap-3">
-                    {product.image && <img src={product.image} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />}
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-lg bg-gray-100" />
+                    )}
                     <p className="text-sm font-medium text-primary">{product.name}</p>
                   </div>
-                </Table.Cell>
-                <Table.Cell>
-                  {product.cakeProductType
-                    ? <Badge color="gray">{TYPE_LABELS[product.cakeProductType] ?? product.cakeProductType}</Badge>
-                    : <Badge color="warning">No type</Badge>}
                 </Table.Cell>
                 <Table.Cell><span className="text-sm text-primary">{product.cakeMinPeople ?? '—'}</span></Table.Cell>
                 <Table.Cell>
@@ -131,7 +134,7 @@ export default function CakeProductsPage() {
                 </Table.Cell>
                 <Table.Cell><Badge color={STATUS_COLOR[product.status ?? ''] ?? 'gray'}>{product.status ?? 'unknown'}</Badge></Table.Cell>
                 <Table.Cell>
-                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/admin/cake-products/${product.id}`}>
                       <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Edit"><Edit01 className="w-4 h-4" /></button>
                     </Link>
@@ -147,7 +150,7 @@ export default function CakeProductsPage() {
 
   return (
     <>
-      <ShopifyProductPicker onSelect={handleImportFromShopify} onOpenRef={shopifyPickerRef} />
+      <ShopifyProductPicker onSelect={handleImportFromShopify} onOpenRef={shopifyPickerRef} trigger={<span />} />
       <TableCard.Root>
         <TableCard.Header
           title="Cake Products"
@@ -165,20 +168,20 @@ export default function CakeProductsPage() {
           }
         />
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
-        </div>
-      ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <p className="text-sm text-tertiary">No cake products found</p>
-          <p className="text-xs text-tertiary max-w-sm">Click &quot;Create Cake Product&quot; to get started.</p>
-        </div>
-      ) : (
-        <div className="p-4">
-          {TYPE_ORDER.map((type) => renderGroup(type, grouped[type] ?? []))}
-        </div>
-      )}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <p className="text-sm text-tertiary">No cake products found</p>
+            <p className="text-xs text-tertiary max-w-sm">Import from Shopify or create a new cake product to get started.</p>
+          </div>
+        ) : (
+          <div className="py-4">
+            {TYPE_ORDER.map((type) => renderGroup(type, grouped[type] ?? []))}
+          </div>
+        )}
       </TableCard.Root>
     </>
   );
