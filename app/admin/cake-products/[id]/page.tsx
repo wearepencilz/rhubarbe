@@ -1197,15 +1197,17 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
 
         {/* 6.3 — Tier Detail Editor */}
         {showTierDetails && (
-          <SectionCard
+          <CollapsibleSectionCard
             title="Tier Details"
+            count={tierDetailConfig.length}
+            countLabel="tiers"
             description="Define layers and diameters for each size. Used for the visual tier diagram on the storefront."
           >
             <TierDetailEditor
               tiers={tierDetailConfig}
               onChange={(t) => { setTierDetailConfig(t); markDirty(); }}
             />
-          </SectionCard>
+          </CollapsibleSectionCard>
         )}
 
         </div>
