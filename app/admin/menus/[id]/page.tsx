@@ -219,8 +219,9 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
   const [locations, setLocations] = useState<PickupLocation[]>([]);
   const [allProducts, setAllProducts] = useState<ProductOption[]>([]);
   const [linkedProducts, setLinkedProducts] = useState<LinkedProduct[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
 
-  const set = (patch: Partial<FormData>) => setForm((p) => ({ ...p, ...patch }));
+  const set = (patch: Partial<FormData>) => { setForm((p) => ({ ...p, ...patch })); setIsDirty(true); };
 
   useEffect(() => {
     fetchLocations();
@@ -465,6 +466,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       if (res.ok) {
         const saved = await res.json();
         toast.success(isNew ? 'Menu created' : 'Menu saved', `"${form.titleEn}" has been ${isNew ? 'created' : 'updated'}`);
+        setIsDirty(false);
 
         const launchId = isNew ? saved.id : params.id;
 
@@ -536,6 +538,7 @@ export default function EditLaunchPage({ params }: { params: { id: string } }) {
       onSave={handleSave}
       onCancel={() => router.push('/admin/menus')}
       saving={saving}
+      isDirty={isDirty}
       maxWidth="7xl"
     >
       <div className="grid grid-cols-3 gap-6">

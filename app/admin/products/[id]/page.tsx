@@ -70,6 +70,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     keyNotes: [] as string[],
     tastingNotes: '',
     ingredients: [] as FlavourIngredient[],
+    allergens: [] as string[],
     titleFr: '',
     descriptionFr: '',
     shortCardCopyFr: '',
@@ -148,6 +149,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           keyNotes: offeringData.keyNotes || [],
           tastingNotes: offeringData.tastingNotes || '',
           ingredients: offeringData.ingredients || [],
+          allergens: offeringData.allergens || [],
           titleFr: offeringData.translations?.fr?.title || '',
           descriptionFr: offeringData.translations?.fr?.description || '',
           shortCardCopyFr: offeringData.translations?.fr?.shortCardCopy || '',
@@ -197,6 +199,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         keyNotes: formData.keyNotes,
         tastingNotes: formData.tastingNotes,
         ingredients: formData.ingredients,
+        allergens: formData.allergens,
         translations: (formData.titleFr || formData.descriptionFr || formData.shortCardCopyFr)
           ? { fr: { title: formData.titleFr || undefined, description: formData.descriptionFr || undefined, shortCardCopy: formData.shortCardCopyFr || undefined } }
           : undefined,
@@ -442,43 +445,28 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
-          {/* Tasting notes */}
+          {/* Allergens */}
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Tasting notes</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Flavour tags and optional prose notes.</p>
-            </div>
-            <div className="px-6 py-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-                <TagPicker
-                  selected={formData.keyNotes}
-                  onChange={(tags) => setFormData({ ...formData, keyNotes: tags })}
-                  taxonomyCategory="keyNotes"
-                  placeholder="Search tags…"
-                />
-              </div>
-              <Textarea
-                label="Notes"
-                rows={3}
-                value={formData.tastingNotes}
-                onChange={(v) => setFormData({ ...formData, tastingNotes: v })}
-                placeholder="e.g. Sweet and creamy with a long caramel finish..."
-              />
-            </div>
-          </div>
-
-          {/* Ingredients */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Ingredients</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Components and allergen sources for this product.</p>
+              <h2 className="text-sm font-semibold text-gray-900">Allergens</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Directly assigned allergens for this product.</p>
             </div>
             <div className="px-6 py-6">
-              <FlavourIngredientSelector
-                selectedIngredients={formData.ingredients}
-                onChange={(ing: FlavourIngredient[]) => setFormData({ ...formData, ingredients: ing })}
-              />
+              <div className="flex flex-wrap gap-2">
+                {['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'].map((a) => {
+                  const selected = (formData as any).allergens?.includes(a) ?? false;
+                  return (
+                    <button key={a} type="button"
+                      onClick={() => {
+                        const current: string[] = (formData as any).allergens ?? [];
+                        setFormData({ ...formData, allergens: selected ? current.filter((x: string) => x !== a) : [...current, a] } as any);
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${selected ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      {a}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

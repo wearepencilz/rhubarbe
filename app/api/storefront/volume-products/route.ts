@@ -33,6 +33,11 @@ export async function GET() {
         servesPerUnit: products.servesPerUnit,
         volumeUnitLabel: products.volumeUnitLabel,
         maxAdvanceDays: products.maxAdvanceDays,
+        cateringType: products.cateringType,
+        cateringDescription: products.cateringDescription,
+        cateringEndDate: products.cateringEndDate,
+        dietaryTags: products.dietaryTags,
+        temperatureTags: products.temperatureTags,
       })
       .from(products)
       .where(
@@ -203,6 +208,11 @@ export async function GET() {
         servesPerUnit: p.servesPerUnit ?? null,
         volumeUnitLabel: p.volumeUnitLabel ?? 'quantity',
         maxAdvanceDays: p.maxAdvanceDays ?? null,
+        cateringType: p.cateringType ?? null,
+        cateringDescription: p.cateringDescription ?? null,
+        cateringEndDate: p.cateringEndDate ?? null,
+        dietaryTags: p.dietaryTags ?? [],
+        temperatureTags: p.temperatureTags ?? [],
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         variants: productVariants,
       };

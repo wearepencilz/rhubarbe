@@ -538,14 +538,20 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [cateringLeadTimeDays, setCateringLeadTimeDays] = useState(28);
+  const [cateringOrderingRules, setCateringOrderingRules] = useState<Record<string, { minQuantity: number; quantityStep: number }>>({});
 
   useEffect(() => {
     fetch('/api/settings').then((r) => r.json())
-      .then((data) => { if (data.brandColor) setBrandColor(data.brandColor); }).catch(() => {});
+      .then((data) => {
+        if (data.brandColor) setBrandColor(data.brandColor);
+        if (data.cateringLeadTimeDays != null) setCateringLeadTimeDays(data.cateringLeadTimeDays);
+        if (data.cateringOrderingRules) setCateringOrderingRules(data.cateringOrderingRules);
+      }).catch(() => {});
   }, []);
 
   const { maxLeadTimeDays, earliestDateStr } = useMemo(() => {
-    let maxDays = 0;
+    let maxDays = cateringLeadTimeDays; // Global lead time as floor
     for (const product of products) {
       const totalQty = getTotalQuantity(product, cart);
       if (totalQty > 0) {
@@ -554,7 +560,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       }
     }
     return { maxLeadTimeDays: maxDays, earliestDateStr: toDateString(getEarliestDate(maxDays)) };
-  }, [products, cart]);
+  }, [products, cart, cateringLeadTimeDays]);
 
   // Max advance date — use the smallest maxAdvanceDays across products in cart
   const latestDateStr = useMemo(() => {
@@ -637,10 +643,19 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const hasMinViolation = useMemo(() => {
     return products.some((p) => {
       const qty = getTotalQuantity(p, cart);
-      const minQty = p.leadTimeTiers.length > 0 ? p.leadTimeTiers[0].minQuantity : 1;
-      return qty > 0 && qty < minQty;
+      if (qty === 0) return false;
+      // Check per-product lead time tier min
+      const tierMin = p.leadTimeTiers.length > 0 ? p.leadTimeTiers[0].minQuantity : 1;
+      if (qty < tierMin) return true;
+      // Check per-type ordering rules
+      if (p.cateringType && cateringOrderingRules[p.cateringType]) {
+        const rule = cateringOrderingRules[p.cateringType];
+        if (qty < rule.minQuantity) return true;
+        if ((qty - rule.minQuantity) % rule.quantityStep !== 0) return true;
+      }
+      return false;
     });
-  }, [products, cart]);
+  }, [products, cart, cateringOrderingRules]);
 
   const deliveryDisabled = useMemo(() => {
     return products.some((p) => { const qty = getTotalQuantity(p, cart); return qty > 0 && p.pickupOnly; });

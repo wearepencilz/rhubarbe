@@ -28,7 +28,10 @@ interface CakeFlavourEntry {
   sortOrder: number;
   active: boolean;
   endDate: string | null;
+  allergens?: string[];
 }
+
+const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
 
 interface CakeTierDetailEntry {
   sizeValue: string;
@@ -275,6 +278,26 @@ function FlavourConfigEditor({
                   className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <p className="text-[11px] text-gray-400 mt-0.5">Last day this ingredient is available. Flavour is automatically hidden once lead time makes delivery by this date impossible.</p>
+              </div>
+            </div>
+
+            {/* Per-variant allergens */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Allergens</label>
+              <div className="flex flex-wrap gap-1.5">
+                {ALLERGEN_OPTIONS.map((a) => {
+                  const selected = flavour.allergens?.includes(a) ?? false;
+                  return (
+                    <button key={a} type="button"
+                      onClick={() => {
+                        const current = flavour.allergens ?? [];
+                        updateFlavour(index, { allergens: selected ? current.filter((x) => x !== a) : [...current, a] });
+                      }}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${selected ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                      {a}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
