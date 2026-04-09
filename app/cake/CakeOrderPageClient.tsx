@@ -899,10 +899,10 @@ function CakeInlineCart({
                   </div>
 
                   {sheetEnabled && (
-                    <div className="space-y-2 pl-1 border-l-2 border-gray-100 ml-1">
+                    <div className="space-y-2">
                       {/* Flavour selector */}
                       {sheetFlavours && sheetFlavours.length > 0 && (
-                        <div className="pl-2">
+                        <div className="">
                           <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</label>
                           <select value={sheetFlavourHandle}
                             onChange={(e) => onSheetCakeFlavourChange(e.target.value)}
@@ -916,7 +916,7 @@ function CakeInlineCart({
                       )}
 
                       {/* Guests input */}
-                      <div className="pl-2">
+                      <div className="">
                         <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</label>
                         <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
                           onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
@@ -940,7 +940,7 @@ function CakeInlineCart({
 
                       {/* Sheet cake price */}
                       {sheetPrice && sheetSize && (
-                        <div className="flex justify-between text-xs text-gray-600 pl-2">
+                        <div className="flex justify-between text-xs text-gray-600">
                           <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
                           <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(sheetPrice.priceInCents / 100).toFixed(2)}</span>
                         </div>
@@ -948,7 +948,7 @@ function CakeInlineCart({
 
                       {/* Add-ons for sheet cake */}
                       {regularAddons.length > 0 && sheetResolved && (
-                        <div className="space-y-1.5 pl-2">
+                        <div className="space-y-1.5">
                           <p className="text-[11px] text-gray-400 uppercase tracking-wide">{isFr ? 'Options' : 'Add-ons'}</p>
                           {regularAddons.map((addon) => {
                             const isOn = sheetCakeAddonIds.includes(addon.id);
@@ -972,7 +972,7 @@ function CakeInlineCart({
 
                       {/* Sheet subtotal */}
                       {sheetSubtotal > 0 && (
-                        <div className="flex justify-between text-xs font-medium text-gray-700 pl-2 pt-1 border-t border-gray-100">
+                        <div className="flex justify-between text-xs font-medium text-gray-700 pt-1 border-t border-gray-100">
                           <span>{tr(sheetAddon.title, locale)}</span>
                           <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(sheetSubtotal / 100).toFixed(2)}</span>
                         </div>
