@@ -314,3 +314,26 @@ export async function setCakeAddonLinks(
     return tx.insert(cakeAddonLinks).values(insertRows).returning();
   });
 }
+
+/**
+ * Create a cake product directly (sets cakeEnabled = true).
+ */
+export async function createCakeProduct(data: {
+  name: string;
+  slug: string;
+  cakeProductType?: string | null;
+  cakeDescription?: { en: string; fr: string } | null;
+}) {
+  const [product] = await db
+    .insert(products)
+    .values({
+      name: data.name,
+      slug: data.slug,
+      cakeEnabled: true,
+      cakeProductType: data.cakeProductType ?? null,
+      cakeDescription: data.cakeDescription ?? null,
+    })
+    .returning();
+
+  return product;
+}

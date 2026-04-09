@@ -693,118 +693,37 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
-          {/* Order types */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Order types</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Enable special ordering flows for this product.</p>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {/* Catering */}
-              <div className="px-6 py-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${volumeEnabled ? 'bg-green-50' : 'bg-gray-100'}`}>
+          {/* Order types — read-only, managed in their respective sections */}
+          {(volumeEnabled || cakeEnabled) && (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-sm font-semibold text-gray-900">Order types</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Managed in their respective sections.</p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {volumeEnabled && (
+                  <div className="px-6 py-4 flex items-center gap-3">
                     <span className="text-sm">🍽️</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Catering</p>
-                  </div>
-                  {volumeEnabled && <Badge color="success">Active</Badge>}
-                </div>
-                {volumeEnabled ? (
-                  <div className="flex gap-2">
-                    <a href={`/admin/volume-products/${params.id}`} className="flex-1">
-                      <Button variant="secondary" size="sm" className="w-full">Configure</Button>
+                    <span className="text-sm font-medium text-gray-900 flex-1">Catering</span>
+                    <Badge color="success">Active</Badge>
+                    <a href={`/admin/volume-products/${params.id}`}>
+                      <Button variant="secondary" size="sm">Configure</Button>
                     </a>
-                    <Button variant="danger" size="sm" onClick={() => setRemoveConfirmType('catering')}>Remove</Button>
                   </div>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full"
-                    isDisabled={enablingVolume}
-                    isLoading={enablingVolume}
-                    onClick={async () => {
-                      setEnablingVolume(true);
-                      try {
-                        const res = await fetch(`/api/volume-products/${params.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ volumeEnabled: true, leadTimeTiers: [], volumeVariants: [] }),
-                        });
-                        if (res.ok) {
-                          setVolumeEnabled(true);
-                          toast.success('Catering ordering enabled');
-                        } else {
-                          const err = await res.json();
-                          toast.error('Failed', err.error || 'Could not enable');
-                        }
-                      } catch {
-                        toast.error('Failed', 'An unexpected error occurred');
-                      } finally {
-                        setEnablingVolume(false);
-                      }
-                    }}
-                  >
-                    Enable
-                  </Button>
                 )}
-              </div>
-
-              {/* Cake */}
-              <div className="px-6 py-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cakeEnabled ? 'bg-green-50' : 'bg-gray-100'}`}>
+                {cakeEnabled && (
+                  <div className="px-6 py-4 flex items-center gap-3">
                     <span className="text-sm">🎂</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Cake</p>
-                  </div>
-                  {cakeEnabled && <Badge color="success">Active</Badge>}
-                </div>
-                {cakeEnabled ? (
-                  <div className="flex gap-2">
-                    <a href={`/admin/cake-products/${params.id}`} className="flex-1">
-                      <Button variant="secondary" size="sm" className="w-full">Configure</Button>
+                    <span className="text-sm font-medium text-gray-900 flex-1">Cake</span>
+                    <Badge color="success">Active</Badge>
+                    <a href={`/admin/cake-products/${params.id}`}>
+                      <Button variant="secondary" size="sm">Configure</Button>
                     </a>
-                    <Button variant="danger" size="sm" onClick={() => setRemoveConfirmType('cake')}>Remove</Button>
                   </div>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full"
-                    isDisabled={enablingCake}
-                    isLoading={enablingCake}
-                    onClick={async () => {
-                      setEnablingCake(true);
-                      try {
-                        const res = await fetch(`/api/cake-products/${params.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ cakeEnabled: true }),
-                        });
-                        if (res.ok) {
-                          setCakeEnabled(true);
-                          toast.success('Cake ordering enabled');
-                        } else {
-                          const err = await res.json();
-                          toast.error('Failed', err.error || 'Could not enable');
-                        }
-                      } catch {
-                        toast.error('Failed', 'An unexpected error occurred');
-                      } finally {
-                        setEnablingCake(false);
-                      }
-                    }}
-                  >
-                    Enable
-                  </Button>
                 )}
               </div>
             </div>
-          </div>
+          )}
 
         </div>
       </div>
@@ -848,60 +767,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           }
         }}
         onCancel={() => setUnlinkConfirmOpen(false)}
-      />
-      <ConfirmModal
-        isOpen={removeConfirmType !== null}
-        variant="warning"
-        title={`Remove ${removeConfirmType === 'catering' ? 'catering' : 'cake'} ordering`}
-        message={`This will disable ${removeConfirmType === 'catering' ? 'catering' : 'cake'} ordering for this product. Existing configuration will be preserved but the product will no longer appear in the ${removeConfirmType === 'catering' ? 'catering' : 'cake'} storefront.`}
-        confirmLabel="Remove"
-        cancelLabel="Cancel"
-        onConfirm={async () => {
-          const type = removeConfirmType;
-          setRemoveConfirmType(null);
-          if (type === 'catering') {
-            setDisablingVolume(true);
-            try {
-              const res = await fetch(`/api/volume-products/${params.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ volumeEnabled: false }),
-              });
-              if (res.ok) {
-                setVolumeEnabled(false);
-                toast.success('Catering ordering removed');
-              } else {
-                const err = await res.json();
-                toast.error('Failed', err.error || 'Could not disable');
-              }
-            } catch {
-              toast.error('Failed', 'An unexpected error occurred');
-            } finally {
-              setDisablingVolume(false);
-            }
-          } else if (type === 'cake') {
-            setDisablingCake(true);
-            try {
-              const res = await fetch(`/api/cake-products/${params.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cakeEnabled: false }),
-              });
-              if (res.ok) {
-                setCakeEnabled(false);
-                toast.success('Cake ordering removed');
-              } else {
-                const err = await res.json();
-                toast.error('Failed', err.error || 'Could not disable');
-              }
-            } catch {
-              toast.error('Failed', 'An unexpected error occurred');
-            } finally {
-              setDisablingCake(false);
-            }
-          }
-        }}
-        onCancel={() => setRemoveConfirmType(null)}
       />
     </EditPageLayout>
   );

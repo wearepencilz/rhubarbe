@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/cake-products - Enable cake ordering on a product
+// POST /api/cake-products - Create a cake product directly or enable cake on existing
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session) {
@@ -42,9 +42,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { productId } = await request.json();
+    const body = await request.json();
+
+    // Direct creation mode
+    if (body.name && body.slug) {
+      const product = await cakeProductQueries.createCakeProduct({
+        name: body.name,
+        slug: body.slug,
+        cakeProductType: body.cakeProductType ?? null,
+        cakeDescription: body.cakeDescription ?? null,
+      });
+      return NextResponse.json(product, { status: 201 });
+    }
+
+    // Legacy mode: enable cake on existing product
+    const { productId } = body;
     if (!productId) {
-      return NextResponse.json({ error: 'productId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'productId is required (or provide name + slug for direct creation)' }, { status: 400 });
     }
 
     const updated = await cakeProductQueries.updateCakeConfig(productId, {
@@ -57,9 +71,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(updated, { status: 201 });
   } catch (error) {
-    console.error('Error enabling cake product:', error);
+    console.error('Error creating/enabling cake product:', error);
     return NextResponse.json(
-      { error: 'Failed to enable cake ordering', timestamp: new Date().toISOString() },
+      { error: 'Failed to create/enable cake product', timestamp: new Date().toISOString() },
       { status: 500 },
     );
   }
