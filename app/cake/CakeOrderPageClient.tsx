@@ -605,8 +605,8 @@ function CakeInlineCart({
       if (sheetPrice) total += sheetPrice.priceInCents;
       // Add-ons at sheet cake tier
       for (const addonId of sheetCakeAddonIds) {
-        const addon = regularAddons.find((a) => a.id === addonId);
-        if (!addon) continue;
+        const addon = addons.find((a) => a.id === addonId);
+        if (!addon || addon.cakeProductType === 'sheet-cake') continue;
         const price = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
         if (price) total += price.priceInCents;
       }
