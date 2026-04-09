@@ -638,12 +638,9 @@ function CakeInlineCart({
               </p>
             )}
             {selectedFlavourAllergens.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {selectedFlavourAllergens.map((a) => (
-                  <span key={a} className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{a}</span>
-                ))}
-              </div>
+              <p className="text-[10px] text-gray-400 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                {isFr ? 'peut contenir' : 'may contain'}: {selectedFlavourAllergens.join(', ')}
+              </p>
             )}
           </div>
 
