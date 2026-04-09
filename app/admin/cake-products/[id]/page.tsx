@@ -1161,37 +1161,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         {/* Right column */}
         <div className="col-span-1 space-y-6">
 
-          {/* Cake toggle */}
-          <SectionCard title="Cake Sales" description="Enable or disable cake ordering for this product.">
-            <label className="inline-flex items-center gap-3 cursor-pointer">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={cakeEnabled}
-                onClick={() => handleToggleCake(!cakeEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  cakeEnabled ? 'bg-brand-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    cakeEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className="text-sm text-gray-700">
-                {cakeEnabled ? 'Cake ordering enabled' : 'Cake ordering disabled'}
-              </span>
-            </label>
-            {cakeEnabled && tiers.length === 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-warning-secondary border border-warning-200">
-                <span className="text-xs text-warning-700">
-                  ⚠ No lead time tiers configured. This product won't appear on the cake ordering page until at least one tier is added.
-                </span>
-              </div>
-            )}
-          </SectionCard>
-
           {/* 6.1 — Product Type Selector */}
           <SectionCard title="Product Type" description="Determines pricing model and storefront UI.">
             <div>
@@ -1336,17 +1305,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         </div>
       </div>
 
-      {/* Disable confirmation modal */}
-      <ConfirmModal
-        isOpen={disableConfirmOpen}
-        variant="warning"
-        title="Disable Cake Ordering?"
-        message="This product will no longer appear on the cake ordering page. Existing orders will not be affected."
-        confirmLabel="Disable"
-        cancelLabel="Cancel"
-        onConfirm={confirmDisable}
-        onCancel={() => setDisableConfirmOpen(false)}
-      />
       {/* Unlink Shopify confirmation */}
       <ConfirmModal
         isOpen={unlinkConfirmOpen}
