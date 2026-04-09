@@ -44,6 +44,11 @@ interface VolumeProduct {
   servesPerUnit: number | null;
   volumeUnitLabel: 'quantity' | 'people';
   maxAdvanceDays: number | null;
+  cateringType: string | null;
+  cateringDescription: TranslationObject | null;
+  cateringEndDate: string | null;
+  dietaryTags: string[];
+  temperatureTags: string[];
 }
 
 function tr(field: TranslationObject | null | undefined, locale: string): string {
@@ -110,7 +115,7 @@ function VolumeProductCard({
   V: Record<string, string>;
 }) {
   const isFr = locale === 'fr';
-  const description = tr(product.volumeDescription, locale);
+  const description = tr(product.cateringDescription, locale) || tr(product.volumeDescription, locale);
   const totalQty = getTotalQuantity(product, cart);
   const minQty = product.leadTimeTiers.length > 0
     ? product.leadTimeTiers[0].minQuantity
@@ -478,6 +483,46 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = usePersistedState<Map<string, number>>('rhubarbe:volume:cart', new Map(), mapSerializer);
 
+  // Filters
+  const [dietaryFilter, setDietaryFilter] = useState<string[]>([]);
+  const [temperatureFilter, setTemperatureFilter] = useState<string>('');
+
+  const DIETARY_FILTER_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
+  const TEMP_FILTER_OPTIONS = ['hot', 'cold'];
+
+  const TYPE_LABELS: Record<string, Record<string, string>> = {
+    brunch: { en: 'Brunch', fr: 'Brunch' },
+    lunch: { en: 'Lunch', fr: 'Lunch' },
+    dinatoire: { en: 'Dînatoire', fr: 'Dînatoire' },
+  };
+  const TYPE_ORDER = ['brunch', 'lunch', 'dinatoire'];
+
+  // Filter and exclude expired products
+  const filteredProducts = useMemo(() => {
+    let result = products.filter((p) => !p.cateringEndDate || new Date(p.cateringEndDate) > new Date());
+    if (dietaryFilter.length > 0) {
+      result = result.filter((p) => dietaryFilter.every((tag) => p.dietaryTags?.includes(tag)));
+    }
+    if (temperatureFilter) {
+      result = result.filter((p) => p.temperatureTags?.includes(temperatureFilter));
+    }
+    return result;
+  }, [products, dietaryFilter, temperatureFilter]);
+
+  // Group by catering type
+  const groupedProducts = useMemo(() => {
+    const groups: Record<string, VolumeProduct[]> = {};
+    for (const type of TYPE_ORDER) groups[type] = [];
+    groups['other'] = [];
+    for (const p of filteredProducts) {
+      const key = p.cateringType && TYPE_ORDER.includes(p.cateringType) ? p.cateringType : 'other';
+      groups[key].push(p);
+    }
+    return groups;
+  }, [filteredProducts]);
+
+  const hasGroups = useMemo(() => TYPE_ORDER.some((t) => groupedProducts[t].length > 0), [groupedProducts]);
+
   useEffect(() => {
     let total = 0;
     cart.forEach((qty) => { total += qty; });
@@ -652,12 +697,64 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
             <div className="text-center py-20"><p className="text-sm text-gray-400">{V.noProducts}</p></div>
           )}
           {!loading && !error && products.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {products.map((product) => (
-                <VolumeProductCard key={product.id} product={product} locale={locale}
-                  cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
-              ))}
-            </div>
+            <>
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                {DIETARY_FILTER_OPTIONS.map((tag) => (
+                  <button key={tag} type="button"
+                    onClick={() => setDietaryFilter((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}
+                    className={`px-3 py-1 rounded-full text-xs border transition-colors ${dietaryFilter.includes(tag) ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{tag}</button>
+                ))}
+                <span className="text-gray-300">|</span>
+                {TEMP_FILTER_OPTIONS.map((tag) => (
+                  <button key={tag} type="button"
+                    onClick={() => setTemperatureFilter((prev) => prev === tag ? '' : tag)}
+                    className={`px-3 py-1 rounded-full text-xs border transition-colors ${temperatureFilter === tag ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{tag}</button>
+                ))}
+                {(dietaryFilter.length > 0 || temperatureFilter) && (
+                  <button type="button" onClick={() => { setDietaryFilter([]); setTemperatureFilter(''); }}
+                    className="text-xs text-gray-400 underline hover:text-gray-600 ml-1">clear</button>
+                )}
+              </div>
+
+              {/* Grouped product list */}
+              {hasGroups ? (
+                TYPE_ORDER.map((type) => {
+                  const items = groupedProducts[type];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={type} className="mb-8">
+                      <h2 className="text-xs uppercase tracking-widest text-gray-400 mb-3"
+                        style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                        {TYPE_LABELS[type]?.[locale] ?? type}
+                      </h2>
+                      <div className="flex flex-col gap-3">
+                        {items.map((product) => (
+                          <VolumeProductCard key={product.id} product={product} locale={locale}
+                            cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : null}
+              {/* Ungrouped products */}
+              {groupedProducts['other'].length > 0 && (
+                <div className="flex flex-col gap-3">
+                  {groupedProducts['other'].map((product) => (
+                    <VolumeProductCard key={product.id} product={product} locale={locale}
+                      cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
+                  ))}
+                </div>
+              )}
+              {filteredProducts.length === 0 && products.length > 0 && (
+                <div className="text-center py-12">
+                  <p className="text-sm text-gray-400">{isFr ? 'Aucun produit ne correspond aux filtres.' : 'No products match the selected filters.'}</p>
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="hidden lg:block w-80 shrink-0">
