@@ -67,6 +67,7 @@ export async function PUT(
       volumeInstructions?: { en: string; fr: string } | null;
       volumeMinOrderQuantity?: number | null;
       volumeUnitLabel?: string;
+      maxAdvanceDays?: number | null;
     } = {};
 
     if (body.volumeEnabled !== undefined) configFields.volumeEnabled = body.volumeEnabled;

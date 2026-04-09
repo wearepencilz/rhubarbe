@@ -89,6 +89,7 @@ export async function POST(
           pricingTierGroup: null as string | null,
           sortOrder: idx,
           active: true,
+          endDate: null as string | null,
         }))
       : [];
 

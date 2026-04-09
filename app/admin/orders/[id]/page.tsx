@@ -39,6 +39,7 @@ interface OrderDetail {
   launchTitle: string | null;
   numberOfPeople: number | null;
   eventType: string | null;
+  leadTimeDays: number | null;
   items: OrderItem[];
 }
 
@@ -208,11 +209,15 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
             <h2 className="text-sm font-semibold text-pink-900 mb-3">Cake Order Details</h2>
             <dl className="space-y-2 text-sm">
               <div><dt className="text-pink-600">Pickup Date</dt><dd className="text-pink-900">{order.fulfillmentDate ? new Date(order.fulfillmentDate).toLocaleDateString() : (firstItem?.pickupDate ? new Date(firstItem.pickupDate).toLocaleDateString() : '—')}</dd></div>
+              <div><dt className="text-pink-600">Fulfillment Type</dt><dd className="text-pink-900 capitalize">{parseFulfillmentType(order.specialInstructions)}</dd></div>
               {order.numberOfPeople != null && (
                 <div><dt className="text-pink-600"># People</dt><dd className="text-pink-900">{order.numberOfPeople}</dd></div>
               )}
               {order.eventType && (
                 <div><dt className="text-pink-600">Event Type</dt><dd className="text-pink-900 capitalize">{order.eventType}</dd></div>
+              )}
+              {order.leadTimeDays != null && (
+                <div><dt className="text-pink-600">Lead Time</dt><dd className="text-pink-900">{order.leadTimeDays} days</dd></div>
               )}
             </dl>
           </div>
