@@ -148,6 +148,27 @@
       "when": 1775574826621,
       "tag": "0020_tough_silver_centurion",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1775574900000,
+      "tag": "0021_add_max_advance_days",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1775575000000,
+      "tag": "0022_add_order_lead_time_days",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1775575100000,
+      "tag": "0023_add_catering_fields",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/volume-products - Enable volume ordering on a product
+// POST /api/volume-products - Create a catering product directly or enable volume on existing
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session) {
@@ -42,9 +42,28 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { productId } = await request.json();
+    const body = await request.json();
+
+    // Direct creation mode: name + slug + cateringType provided
+    if (body.name && body.slug && body.cateringType) {
+      const product = await volumeProductQueries.createCateringProduct({
+        name: body.name,
+        slug: body.slug,
+        cateringType: body.cateringType,
+        cateringDescription: body.cateringDescription ?? null,
+        cateringFlavourName: body.cateringFlavourName ?? null,
+        cateringEndDate: body.cateringEndDate ? new Date(body.cateringEndDate) : null,
+        allergens: body.allergens ?? null,
+        dietaryTags: body.dietaryTags ?? null,
+        temperatureTags: body.temperatureTags ?? null,
+      });
+      return NextResponse.json(product, { status: 201 });
+    }
+
+    // Legacy mode: enable volume on existing product
+    const { productId } = body;
     if (!productId) {
-      return NextResponse.json({ error: 'productId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'productId is required (or provide name + slug + cateringType for direct creation)' }, { status: 400 });
     }
 
     const updated = await volumeProductQueries.updateVolumeConfig(productId, {
@@ -57,9 +76,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(updated, { status: 201 });
   } catch (error) {
-    console.error('Error enabling volume product:', error);
+    console.error('Error creating/enabling volume product:', error);
     return NextResponse.json(
-      { error: 'Failed to enable volume ordering', timestamp: new Date().toISOString() },
+      { error: 'Failed to create/enable volume product', timestamp: new Date().toISOString() },
       { status: 500 },
     );
   }

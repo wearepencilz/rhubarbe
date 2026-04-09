@@ -90,6 +90,14 @@ export const products = pgTable('products', {
   volumeMinOrderQuantity: integer('volume_min_order_quantity'),
   volumeUnitLabel: text('volume_unit_label').notNull().default('quantity'), // 'quantity' | 'people'
 
+  // Catering-specific fields
+  cateringType: text('catering_type'), // 'brunch' | 'lunch' | 'dinatoire'
+  cateringDescription: customJsonb<{ en: string; fr: string }>('catering_description'),
+  cateringFlavourName: customJsonb<{ en: string; fr: string }>('catering_flavour_name'),
+  cateringEndDate: timestamp('catering_end_date'),
+  dietaryTags: customJsonb<string[]>('dietary_tags'),
+  temperatureTags: customJsonb<string[]>('temperature_tags'),
+
   // Cake sales fields
   cakeEnabled: boolean('cake_enabled').notNull().default(false),
   cakeDescription: customJsonb<{ en: string; fr: string }>('cake_description'),
@@ -193,6 +201,7 @@ export const cakeVariants = pgTable('cake_variants', {
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
   description: customJsonb<{ en: string; fr: string }>('description'),
+  allergens: customJsonb<string[]>('allergens'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('cake_variants_product_id_idx').on(table.productId),
@@ -208,6 +217,7 @@ export const volumeVariants = pgTable('volume_variants', {
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
   description: customJsonb<{ en: string; fr: string }>('description'),
+  allergens: customJsonb<string[]>('allergens'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productIdIdx: index('volume_variants_product_id_idx').on(table.productId),

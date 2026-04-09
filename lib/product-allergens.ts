@@ -1,79 +1,29 @@
-import type { Allergen, DietaryClaim, Flavour, Ingredient } from '@/types';
+import type { Allergen, DietaryClaim } from '@/types';
 
 /**
- * Compute allergens and dietary claims for a complete product.
- * Aggregates data from all flavours and their ingredients.
+ * Derive dietary claims directly from an allergen set.
+ * No ingredient traversal — allergens are assigned directly to products/variants.
  */
-export interface ProductAllergenData {
-  allergens: Allergen[];
-  dietaryClaims: DietaryClaim[];
-  hasAnimalDerived: boolean;
-  isVegetarian: boolean;
-  isVegan: boolean;
-}
-
-/**
- * Compute allergens from flavours and ingredients
- */
-export function computeProductAllergens(
-  flavours: Flavour[],
-  ingredients: Ingredient[]
-): ProductAllergenData {
-  const allergenSet = new Set<Allergen>();
-  let hasAnimalDerived = false;
-  let allVegetarian = true;
-
-  // Collect allergens from flavours
-  flavours.forEach(flavour => {
-    flavour.allergens?.forEach(allergen => allergenSet.add(allergen));
-  });
-
-  // Collect allergens from ingredients
-  ingredients.forEach(ingredient => {
-    ingredient.allergens?.forEach(allergen => allergenSet.add(allergen));
-    
-    if (ingredient.animalDerived) {
-      hasAnimalDerived = true;
-    }
-    
-    if (ingredient.vegetarian === false) {
-      allVegetarian = false;
-    }
-  });
-
-  const allergens = Array.from(allergenSet);
-  const isVegan = !hasAnimalDerived;
-  const isVegetarian = allVegetarian;
-
-  // Compute dietary claims
+export function deriveDietaryClaims(allergens: string[]): DietaryClaim[] {
   const claims: DietaryClaim[] = [];
-  
-  // Contains claims
+
   if (allergens.includes('dairy')) claims.push('contains-dairy');
   if (allergens.includes('egg')) claims.push('contains-egg');
   if (allergens.includes('gluten')) claims.push('contains-gluten');
-  if (allergens.includes('tree-nuts') || allergens.includes('peanuts')) {
-    claims.push('contains-nuts');
-  }
-  
-  // Free-from claims
+  if (allergens.includes('tree-nuts') || allergens.includes('peanuts')) claims.push('contains-nuts');
+
   if (!allergens.includes('dairy')) claims.push('dairy-free');
   if (!allergens.includes('gluten')) claims.push('gluten-free');
-  if (!allergens.includes('tree-nuts') && !allergens.includes('peanuts')) {
-    claims.push('nut-free');
-  }
-  
-  // Dietary compatibility
+  if (!allergens.includes('tree-nuts') && !allergens.includes('peanuts')) claims.push('nut-free');
+
+  // Without ingredient data, vegan/vegetarian are derived from allergens only:
+  // no dairy + no egg = vegan (approximation)
+  const isVegan = !allergens.includes('dairy') && !allergens.includes('egg');
+  const isVegetarian = true; // allergens alone can't determine this; default true
   if (isVegan) claims.push('vegan');
   if (isVegetarian) claims.push('vegetarian');
 
-  return {
-    allergens,
-    dietaryClaims: claims,
-    hasAnimalDerived,
-    isVegetarian,
-    isVegan,
-  };
+  return claims;
 }
 
 /**

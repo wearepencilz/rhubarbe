@@ -1,6 +1,6 @@
 import { db } from '@/lib/db/client';
 import { products, volumeLeadTimeTiers, volumeVariants } from '@/lib/db/schema';
-import { eq, asc, sql } from 'drizzle-orm';
+import { eq, asc, sql, and, or, isNull, gt } from 'drizzle-orm';
 
 /**
  * List all products where volumeEnabled = false (candidates for enabling).
@@ -30,6 +30,10 @@ export async function listVolumeProducts() {
       volumeMinOrderQuantity: products.volumeMinOrderQuantity,
       volumeEnabled: products.volumeEnabled,
       status: products.status,
+      cateringType: products.cateringType,
+      cateringEndDate: products.cateringEndDate,
+      dietaryTags: products.dietaryTags,
+      temperatureTags: products.temperatureTags,
       tierCount: sql<number>`coalesce((
         SELECT count(*)::int FROM volume_lead_time_tiers t
         WHERE t.product_id = "products"."id"
@@ -40,6 +44,20 @@ export async function listVolumeProducts() {
     .orderBy(asc(products.name));
 
   return rows;
+}
+
+/**
+ * List active catering products for customer menu (excludes expired).
+ */
+export async function listActiveCateringProducts() {
+  return db
+    .select()
+    .from(products)
+    .where(and(
+      eq(products.volumeEnabled, true),
+      or(isNull(products.cateringEndDate), gt(products.cateringEndDate, new Date())),
+    ))
+    .orderBy(asc(products.name));
 }
 
 /**
@@ -71,6 +89,13 @@ export async function updateVolumeConfig(
     volumeMinOrderQuantity?: number | null;
     volumeUnitLabel?: string;
     maxAdvanceDays?: number | null;
+    cateringType?: string | null;
+    cateringDescription?: { en: string; fr: string } | null;
+    cateringFlavourName?: { en: string; fr: string } | null;
+    cateringEndDate?: Date | null;
+    allergens?: string[] | null;
+    dietaryTags?: string[] | null;
+    temperatureTags?: string[] | null;
   },
 ) {
   const [updated] = await db
@@ -173,4 +198,37 @@ export async function setVolumeVariants(
 
     return tx.insert(volumeVariants).values(rows).returning();
   });
+}
+
+/**
+ * Create a catering product directly (sets volumeEnabled = true).
+ */
+export async function createCateringProduct(data: {
+  name: string;
+  slug: string;
+  cateringType: 'brunch' | 'lunch' | 'dinatoire';
+  cateringDescription?: { en: string; fr: string } | null;
+  cateringFlavourName?: { en: string; fr: string } | null;
+  cateringEndDate?: Date | null;
+  allergens?: string[] | null;
+  dietaryTags?: string[] | null;
+  temperatureTags?: string[] | null;
+}) {
+  const [product] = await db
+    .insert(products)
+    .values({
+      name: data.name,
+      slug: data.slug,
+      volumeEnabled: true,
+      cateringType: data.cateringType,
+      cateringDescription: data.cateringDescription ?? null,
+      cateringFlavourName: data.cateringFlavourName ?? null,
+      cateringEndDate: data.cateringEndDate ?? null,
+      allergens: data.allergens ?? [],
+      dietaryTags: data.dietaryTags ?? [],
+      temperatureTags: data.temperatureTags ?? [],
+    })
+    .returning();
+
+  return product;
 }

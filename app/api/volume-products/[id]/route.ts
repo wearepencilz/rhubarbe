@@ -61,21 +61,21 @@ export async function PUT(
     }
 
     // Update volume config fields
-    const configFields: {
-      volumeEnabled?: boolean;
-      volumeDescription?: { en: string; fr: string } | null;
-      volumeInstructions?: { en: string; fr: string } | null;
-      volumeMinOrderQuantity?: number | null;
-      volumeUnitLabel?: string;
-      maxAdvanceDays?: number | null;
-    } = {};
+    const configFields: Record<string, unknown> = {};
 
-    if (body.volumeEnabled !== undefined) configFields.volumeEnabled = body.volumeEnabled;
-    if (body.volumeDescription !== undefined) configFields.volumeDescription = body.volumeDescription;
-    if (body.volumeInstructions !== undefined) configFields.volumeInstructions = body.volumeInstructions;
-    if (body.volumeMinOrderQuantity !== undefined) configFields.volumeMinOrderQuantity = body.volumeMinOrderQuantity;
-    if (body.volumeUnitLabel !== undefined) configFields.volumeUnitLabel = body.volumeUnitLabel;
-    if (body.maxAdvanceDays !== undefined) configFields.maxAdvanceDays = body.maxAdvanceDays;
+    const passthrough = [
+      'volumeEnabled', 'volumeDescription', 'volumeInstructions',
+      'volumeMinOrderQuantity', 'volumeUnitLabel', 'maxAdvanceDays',
+      'cateringType', 'cateringDescription', 'cateringFlavourName',
+      'allergens', 'dietaryTags', 'temperatureTags',
+    ] as const;
+
+    for (const key of passthrough) {
+      if (body[key] !== undefined) configFields[key] = body[key];
+    }
+    if (body.cateringEndDate !== undefined) {
+      configFields.cateringEndDate = body.cateringEndDate ? new Date(body.cateringEndDate) : null;
+    }
 
     if (Object.keys(configFields).length > 0) {
       await volumeProductQueries.updateVolumeConfig(params.id, configFields);
