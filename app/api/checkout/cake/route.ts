@@ -8,8 +8,12 @@ import { fetchProductCategories } from '@/lib/shopify/queries/product-categories
 import { resolveCategoryVariants } from '@/lib/tax/resolve-category-variants';
 import type { CategoryCartItem } from '@/lib/tax/resolve-category-variants';
 import { getVariantTaxUnitCount } from '@/lib/tax/resolve-variant';
-import { getCakePricingGrid } from '@/lib/db/queries/cake-products';
+import { getCakePricingGrid, getCakeLeadTimeTiers } from '@/lib/db/queries/cake-products';
 import { resolvePricingGridPrice } from '@/lib/utils/order-helpers';
+import { db } from '@/lib/db/client';
+import { orders } from '@/lib/db/schema';
+import { sql, and } from 'drizzle-orm';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 function parseCollections(raw: string | null | undefined): string[] {
   if (!raw) return [];
@@ -70,6 +74,38 @@ export async function POST(request: NextRequest) {
     }
     if (!pickupDate) {
       return NextResponse.json({ error: 'Pickup date is required' }, { status: 400 });
+    }
+
+    // Server-side capacity check
+    const capRaw = await settingsQueries.getByKey('cakeCapacity');
+    const capVal = (capRaw?.value ?? {}) as Record<string, unknown>;
+    const maxCakes = typeof capVal.maxCakes === 'number' ? capVal.maxCakes : 7;
+    const deliveryDateStr = pickupDate.slice(0, 10);
+
+    // Resolve lead time for this order from product tiers
+    const checkLeadTimeTiers = await getCakeLeadTimeTiers(items[0].productId);
+    const checkApplicable = checkLeadTimeTiers
+      .filter((t) => t.minPeople <= numberOfPeople)
+      .sort((a, b) => b.minPeople - a.minPeople);
+    const checkLeadDays = checkApplicable[0]?.leadTimeDays ?? 7;
+
+    const [capRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(orders)
+      .where(
+        and(
+          sql`${orders.orderType} = 'cake'`,
+          sql`${orders.status} IN ('pending', 'confirmed')`,
+          sql`${orders.fulfillmentDate} IS NOT NULL`,
+          sql`${orders.fulfillmentDate}::date >= (${deliveryDateStr}::date - ${checkLeadDays} * interval '1 day')::date`,
+          sql`(${orders.fulfillmentDate}::date - COALESCE(${orders.leadTimeDays}, ${checkLeadDays}) * interval '1 day')::date <= ${deliveryDateStr}::date`,
+        ),
+      );
+    if ((capRow?.count ?? 0) >= maxCakes) {
+      return NextResponse.json(
+        { error: 'This delivery date is fully booked. Please choose a different date.' },
+        { status: 409 },
+      );
     }
 
     // Resolve Shopify variant IDs
@@ -183,6 +219,13 @@ export async function POST(request: NextRequest) {
     const resolvedFulfillmentType = fulfillmentType || 'pickup';
     const isDelivery = resolvedFulfillmentType === 'delivery';
 
+    // Resolve lead time from product tiers
+    const leadTimeTiers = await getCakeLeadTimeTiers(cakeProductId);
+    const applicableTiers = leadTimeTiers
+      .filter((t) => t.minPeople <= numberOfPeople)
+      .sort((a, b) => b.minPeople - a.minPeople);
+    const resolvedLeadTimeDays = applicableTiers[0]?.leadTimeDays ?? 7;
+
     const attributes: Array<{ key: string; value: string }> = [
       { key: 'Order Type', value: 'cake' },
       { key: 'Cake Product', value: cakeProductId },
@@ -190,6 +233,7 @@ export async function POST(request: NextRequest) {
       { key: 'Fulfillment Type', value: resolvedFulfillmentType },
       { key: 'Number of People', value: String(numberOfPeople) },
       { key: 'Event Type', value: eventType },
+      { key: 'Lead Time Days', value: String(resolvedLeadTimeDays) },
     ];
     if (calculatedPrice != null) attributes.push({ key: 'Calculated Price', value: String(calculatedPrice) });
     if (specialInstructions) attributes.push({ key: 'Special Instructions', value: specialInstructions });

@@ -85,6 +85,7 @@ export async function GET() {
         cakeFlavourConfig: products.cakeFlavourConfig,
         cakeTierDetailConfig: products.cakeTierDetailConfig,
         cakeMaxFlavours: products.cakeMaxFlavours,
+        maxAdvanceDays: products.maxAdvanceDays,
       })
       .from(products)
       .where(
@@ -149,9 +150,11 @@ export async function GET() {
           .select({
             id: products.id,
             name: products.name,
+            title: products.title,
             image: products.image,
             shopifyProductId: products.shopifyProductId,
             cakeDescription: products.cakeDescription,
+            translations: products.translations,
           })
           .from(products)
           .where(sql`${products.id} IN ${allAddonProductIds}`)
@@ -262,9 +265,13 @@ export async function GET() {
             const addonProduct = addonProductMap.get(link.addonProductId);
             if (!addonProduct) return null;
             const addonPricing = getPricingForProduct(addonProduct.shopifyProductId, false);
+            const trans = (addonProduct.translations ?? {}) as Record<string, Record<string, string>>;
+            const titleEn = addonProduct.title || addonProduct.name;
+            const titleFr = trans?.fr?.title || titleEn;
             return {
               id: addonProduct.id,
               name: addonProduct.name,
+              title: { en: titleEn, fr: titleFr },
               image: addonProduct.image ?? null,
               cakeDescription: addonProduct.cakeDescription ?? { en: '', fr: '' },
               pricingGrid: addonPricing.pricingGrid,
@@ -293,6 +300,7 @@ export async function GET() {
           cakeFlavourConfig,
           cakeTierDetailConfig: p.cakeTierDetailConfig ?? [],
           cakeMaxFlavours: p.cakeMaxFlavours ?? null,
+          maxAdvanceDays: p.maxAdvanceDays ?? null,
           pricingGrid,
           addons,
         };

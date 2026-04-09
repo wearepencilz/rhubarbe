@@ -26,6 +26,7 @@ interface VolumeProduct {
   volumeInstructions: { en: string; fr: string } | null;
   volumeMinOrderQuantity: number | null;
   volumeUnitLabel: 'quantity' | 'people';
+  maxAdvanceDays: number | null;
   shopifyProductId: string | null;
   shopifyProductHandle: string | null;
   leadTimeTiers: LeadTimeTier[];
@@ -84,6 +85,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const [tiers, setTiers] = useState<LeadTimeTier[]>([]);
   const [tierErrors, setTierErrors] = useState<string | null>(null);
   const [volumeUnitLabel, setVolumeUnitLabel] = useState<'quantity' | 'people'>('quantity');
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
   const [volumeVariants, setVolumeVariantsState] = useState<Array<{
     label: { en: string; fr: string };
     shopifyVariantId?: string | null;
@@ -113,6 +115,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setInstructionsFr(data.volumeInstructions?.fr ?? '');
       setTiers(data.leadTimeTiers.map((t) => ({ minQuantity: t.minQuantity, leadTimeDays: t.leadTimeDays })));
       setVolumeUnitLabel(data.volumeUnitLabel ?? 'quantity');
+      setMaxAdvanceDays(data.maxAdvanceDays ?? null);
       setVolumeVariantsState(
         (data.volumeVariants || []).map((v) => ({
           label: v.label || { en: '', fr: '' },
@@ -237,6 +240,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           : null,
         volumeMinOrderQuantity: tiers.length > 0 ? tiers[0].minQuantity : null,
         volumeUnitLabel,
+        maxAdvanceDays: maxAdvanceDays && maxAdvanceDays > 0 ? maxAdvanceDays : null,
         leadTimeTiers: tiers,
         volumeVariants: volumeVariants.map((v, idx) => ({
           label: v.label,
@@ -375,6 +379,22 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
             {tierErrors && (
               <p className="text-sm text-red-600 mt-2">{tierErrors}</p>
             )}
+          </div>
+
+          {/* Max advance booking */}
+          <div>
+            <label htmlFor="maxAdvanceDays" className="block text-sm font-medium text-gray-700 mb-1">Max advance booking (days)</label>
+            <input
+              id="maxAdvanceDays"
+              type="number"
+              min={0}
+              max={365}
+              value={maxAdvanceDays ?? ''}
+              onChange={(e) => { setMaxAdvanceDays(e.target.value ? parseInt(e.target.value) || null : null); markDirty(); }}
+              placeholder="No limit"
+              className="w-40 px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">How far in advance customers can book. Leave empty for no limit.</p>
           </div>
         </SectionCard>
 

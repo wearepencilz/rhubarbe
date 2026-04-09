@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableCard } from '@/src/app/admin/components/ui/application/table/table';
 import { Badge } from '@/src/app/admin/components/ui/base/badges/badges';
 import { SearchLg } from '@untitledui/icons';
+import CakeProductionTimeline from '@/app/admin/components/CakeProductionTimeline';
 
 interface Order {
   id: string;
@@ -51,7 +52,9 @@ export default function CakeOrdersPage() {
   );
 
   return (
-    <TableCard.Root>
+    <div className="space-y-6">
+      <CakeProductionTimeline />
+      <TableCard.Root>
       <TableCard.Header
         title="Cake Orders"
         badge={filtered.length}
@@ -104,5 +107,6 @@ export default function CakeOrdersPage() {
         </Table>
       )}
     </TableCard.Root>
+    </div>
   );
 }

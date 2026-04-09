@@ -60,6 +60,7 @@ export async function list(filters?: { status?: string; orderType?: string }) {
       totalQuantity,
       numberOfPeople: cakeMetadata.numberOfPeople,
       eventType: cakeMetadata.eventType,
+      leadTimeDays: row.leadTimeDays ?? null,
     };
   });
 }

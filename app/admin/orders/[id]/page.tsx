@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Badge } from '@/src/app/admin/components/ui/base/badges/badges';
 import { Select } from '@/src/app/admin/components/ui/base/select/select';
 import { Button } from '@/app/admin/components/ui/buttons/button';
@@ -120,9 +119,9 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     return (
       <div className="py-24 text-center">
         <p className="text-sm text-tertiary">Order not found</p>
-        <Link href="/admin/orders" className="text-sm text-brand-600 hover:underline mt-2 inline-block">
-          Back to orders
-        </Link>
+        <button onClick={() => router.back()} className="text-sm text-brand-600 hover:underline mt-2 inline-block">
+          Go back
+        </button>
       </div>
     );
   }
@@ -132,12 +131,12 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   return (
     <div className="max-w-3xl">
       {/* Back link */}
-      <Link href="/admin/orders" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+      <button onClick={() => router.back()} className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        Orders
-      </Link>
+        Back
+      </button>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">

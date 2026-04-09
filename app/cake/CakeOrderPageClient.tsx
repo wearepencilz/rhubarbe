@@ -39,11 +39,13 @@ interface CakeFlavourEntry {
   pricingTierGroup: string | null;
   sortOrder: number;
   active: boolean;
+  endDate: string | null;
 }
 
 interface AddonProduct {
   id: string;
   name: string;
+  title: { en: string; fr: string };
   image: string | null;
   cakeDescription: { en: string; fr: string };
   pricingGrid: PricingGridRow[];
@@ -72,6 +74,7 @@ interface CakeProduct {
   cakeMaxFlavours: number | null;
   pricingGrid: PricingGridRow[];
   addons: AddonProduct[];
+  maxAdvanceDays: number | null;
 }
 
 // ── Cart persistence types ──
@@ -214,16 +217,23 @@ function resolveNearestSize(availableSizes: string[], inputValue: number): strin
 // ── Flavour Dropdown Component (inside card) ──
 
 function FlavourDropdown({
-  product, locale, selectedFlavourHandles, onToggleFlavour,
+  product, locale, selectedFlavourHandles, onToggleFlavour, earliestDateStr,
 }: {
   product: CakeProduct;
   locale: string;
   selectedFlavourHandles: string[];
   onToggleFlavour: (handle: string) => void;
+  earliestDateStr: string;
 }) {
   const isFr = locale === 'fr';
-  const isMulti = isCroquembouche(product);
-  const maxFlavours = product.cakeMaxFlavours ?? 2;
+  const isMulti = isCroquembouche(product) || isTasting(product);
+  const maxFlavours = product.cakeMaxFlavours ?? 3;
+
+  // Filter out flavours whose endDate (minus lead time) makes them unorderable
+  const availableFlavours = product.cakeFlavourConfig.filter((f) => {
+    if (!f.endDate) return true;
+    return f.endDate >= earliestDateStr;
+  });
 
   if (isMulti) {
     // Multi-select for croquembouche: show checkboxes in a compact list
@@ -234,7 +244,7 @@ function FlavourDropdown({
           {isFr ? `Saveurs (max ${maxFlavours})` : `Flavours (max ${maxFlavours})`}
         </p>
         <div className="flex flex-wrap gap-1.5">
-          {product.cakeFlavourConfig.filter((f) => f.handle !== 'custom').map((flavour) => {
+          {availableFlavours.filter((f) => f.handle !== 'custom').map((flavour) => {
             const isSelected = selectedFlavourHandles.includes(flavour.handle);
             const disabled = !isSelected && atLimit;
             return (
@@ -275,7 +285,7 @@ function FlavourDropdown({
         className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#333112] bg-white text-gray-700"
         style={{ fontFamily: 'var(--font-diatype-mono)' }}
       >
-        {product.cakeFlavourConfig.map((flavour) => (
+        {availableFlavours.map((flavour) => (
           <option key={flavour.handle} value={flavour.handle}>
             {tr(flavour.label, locale)}
             {flavour.handle === 'custom' ? (isFr ? ' — contactez-nous' : ' — contact us') : ''}
@@ -336,7 +346,7 @@ function TierDiagram({ tierDetail }: { tierDetail: CakeTierDetailEntry }) {
 
 function CakeProductCard({
   product, locale, isSelected, onSelect, brandColor, numberOfPeople, C,
-  selectedFlavourHandles, onToggleFlavour,
+  selectedFlavourHandles, onToggleFlavour, earliestDateStr,
 }: {
   product: CakeProduct;
   locale: string;
@@ -347,6 +357,7 @@ function CakeProductCard({
   C: Record<string, any>;
   selectedFlavourHandles: string[];
   onToggleFlavour: (handle: string) => void;
+  earliestDateStr: string;
 }) {
   const description = tr(product.cakeDescription, locale);
   const flavourNotes = tr(product.cakeFlavourNotes, locale);
@@ -442,12 +453,13 @@ function CakeProductCard({
         )}
 
         {/* Flavour dropdown (inside card, only when selected) */}
-        {isSelected && isGridBased(product) && product.cakeFlavourConfig.length > 0 && (
+        {isSelected && (isGridBased(product) || isTasting(product)) && product.cakeFlavourConfig.length > 0 && (
           <FlavourDropdown
             product={product}
             locale={locale}
             selectedFlavourHandles={selectedFlavourHandles}
             onToggleFlavour={onToggleFlavour}
+            earliestDateStr={earliestDateStr}
           />
         )}
       </div>
@@ -471,7 +483,7 @@ function CakeInlineCart({
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
   gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon,
-  gridMinSize,
+  gridMinSize, blockedDates, latestDateStr,
 }: {
   selectedProduct: CakeProduct | null;
   numberOfPeople: number;
@@ -509,10 +521,18 @@ function CakeInlineCart({
   enabledAddonIds: string[];
   onToggleAddon: (addonId: string) => void;
   gridMinSize: number;
+  blockedDates: Set<string>;
+  latestDateStr: string | null;
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
+  const maxDateValue = latestDateStr ? toDateValue(latestDateStr) : undefined;
   const [headcountTouched, setHeadcountTouched] = useState(false);
+
+  const isDateUnavailable = useCallback((date: DateValue) => {
+    const dateStr = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
+    return blockedDates.has(dateStr);
+  }, [blockedDates]);
 
   const isGridProduct = selectedProduct ? isGridBased(selectedProduct) : false;
   const isTastingProduct = selectedProduct ? isTasting(selectedProduct) : false;
@@ -732,7 +752,7 @@ function CakeInlineCart({
                   return (
                     <div key={addon.id} className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-700">{addon.name}</p>
+                        <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
                         {addonPrice && (
                           <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                             +${(addonPrice.priceInCents / 100).toFixed(2)}
@@ -747,7 +767,7 @@ function CakeInlineCart({
                           noSize ? 'bg-gray-200 cursor-not-allowed' :
                           isEnabled ? 'bg-[#333112]' : 'bg-gray-300'
                         }`}
-                        aria-label={`${isEnabled ? 'Remove' : 'Add'} ${addon.name}`}
+                        aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`}
                         aria-pressed={isEnabled}
                       >
                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
@@ -825,6 +845,8 @@ function CakeInlineCart({
               label={C.date}
               value={toDateValue(pickupDate)}
               minValue={minDateValue ?? today(getLocalTimeZone())}
+              maxValue={maxDateValue ?? undefined}
+              isDateUnavailable={isDateUnavailable}
               onChange={(val: DateValue | null) => {
                 if (val) {
                   const y = val.year;
@@ -947,6 +969,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const [brandColor, setBrandColor] = useState('#144437');
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [cartRestored, setCartRestored] = useState(false);
+  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
 
   // Report cart count to nav
   useEffect(() => {
@@ -1020,7 +1043,48 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     return { maxLeadTimeDays: days, earliestDateStr: toDateString(getEarliestDate(days)), isDeliveryOnly: activeTierLT?.deliveryOnly ?? false };
   }, [selectedProduct, numberOfPeople, selectedSize]);
 
-  // Validate date against lead time
+  // Fetch blocked dates for cake capacity — re-fetch when lead time changes
+  useEffect(() => {
+    const today = new Date();
+    const from = today.toISOString().slice(0, 10);
+    const to = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const lt = maxLeadTimeDays || 7;
+    fetch(`/api/cake-capacity?from=${from}&to=${to}&leadTime=${lt}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.blockedDates) setBlockedDates(new Set(data.blockedDates));
+      })
+      .catch(() => {});
+  }, [maxLeadTimeDays]);
+
+  // Max advance date based on product setting and selected flavour end dates
+  const latestDateStr = useMemo(() => {
+    let latest: string | null = null;
+
+    // Product-level max advance days
+    if (selectedProduct?.maxAdvanceDays) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + selectedProduct.maxAdvanceDays);
+      latest = toDateString(d);
+    }
+
+    // Flavour end dates — use the earliest endDate among selected flavours
+    if (selectedProduct && selectedFlavourHandles.length > 0) {
+      for (const handle of selectedFlavourHandles) {
+        const flavour = selectedProduct.cakeFlavourConfig.find((f) => f.handle === handle);
+        if (flavour?.endDate) {
+          if (!latest || flavour.endDate < latest) {
+            latest = flavour.endDate;
+          }
+        }
+      }
+    }
+
+    return latest;
+  }, [selectedProduct, selectedFlavourHandles]);
+
+  // Validate date against lead time and capacity
   useEffect(() => {
     if (!pickupDate) { setDateWarning(null); return; }
     if (pickupDate < earliestDateStr) {
@@ -1029,10 +1093,22 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           ? `Date trop tôt — choisissez le ${earliestDateStr} ou après`
           : `Date too early — choose ${earliestDateStr} or later`,
       );
+    } else if (blockedDates.has(pickupDate)) {
+      setDateWarning(
+        isFr
+          ? 'Cette date est complète — capacité de production atteinte'
+          : 'This date is fully booked — production capacity reached',
+      );
+    } else if (latestDateStr && pickupDate > latestDateStr) {
+      setDateWarning(
+        isFr
+          ? `Date trop tardive — choisissez le ${latestDateStr} ou avant`
+          : `Date too late — choose ${latestDateStr} or earlier`,
+      );
     } else {
       setDateWarning(null);
     }
-  }, [pickupDate, earliestDateStr, isFr]);
+  }, [pickupDate, earliestDateStr, isFr, blockedDates, latestDateStr]);
 
   // Clear date if it becomes invalid when people count changes
   useEffect(() => {
@@ -1040,6 +1116,19 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       setPickupDate('');
     }
   }, [earliestDateStr]);
+
+  // Clear selected flavours that have expired (endDate before earliest possible date)
+  useEffect(() => {
+    if (!selectedProduct || selectedFlavourHandles.length === 0) return;
+    const stillValid = selectedFlavourHandles.filter((handle) => {
+      const flavour = selectedProduct.cakeFlavourConfig.find((f) => f.handle === handle);
+      if (!flavour?.endDate) return true;
+      return flavour.endDate >= earliestDateStr;
+    });
+    if (stillValid.length !== selectedFlavourHandles.length) {
+      setSelectedFlavourHandles(stillValid);
+    }
+  }, [earliestDateStr, selectedProduct]);
 
   // Force delivery when active tier is delivery only
   useEffect(() => {
@@ -1075,8 +1164,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   // ── Flavour toggle handler ──
   const handleToggleFlavour = useCallback((handle: string) => {
     if (!selectedProduct) return;
-    const isMulti = isCroquembouche(selectedProduct);
-    const maxFlavours = selectedProduct.cakeMaxFlavours ?? 2;
+    const isMulti = isCroquembouche(selectedProduct) || isTasting(selectedProduct);
+    const maxFlavours = selectedProduct.cakeMaxFlavours ?? 3;
 
     setSelectedFlavourHandles((prev) => {
       if (isMulti) {
@@ -1103,8 +1192,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         setEnabledAddonIds([]);
 
         // Auto-select first flavour for grid-based products (not croquembouche)
-        if (isGridBased(product) && product.cakeFlavourConfig.length > 0) {
-          const firstActive = product.cakeFlavourConfig.find((f) => f.active && f.handle !== 'custom');
+        if ((isGridBased(product) || isTasting(product)) && product.cakeFlavourConfig.length > 0) {
+          const roughEarliest = toDateString(getEarliestDate(product.leadTimeTiers[0]?.leadTimeDays ?? 0));
+          const firstActive = product.cakeFlavourConfig.find((f) => f.active && f.handle !== 'custom' && (!f.endDate || f.endDate >= roughEarliest));
           setSelectedFlavourHandles(firstActive ? [firstActive.handle] : []);
         } else {
           setSelectedFlavourHandles([]);
@@ -1340,6 +1430,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     enabledAddonIds,
     onToggleAddon: handleToggleAddon,
     gridMinSize,
+    blockedDates,
+    latestDateStr,
   };
 
   // Mobile bottom bar price
@@ -1382,7 +1474,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
                     onSelect={handleSelectProduct} brandColor={brandColor}
                     numberOfPeople={numberOfPeople} C={C}
                     selectedFlavourHandles={isSelected ? selectedFlavourHandles : []}
-                    onToggleFlavour={handleToggleFlavour} />
+                    onToggleFlavour={handleToggleFlavour}
+                    earliestDateStr={earliestDateStr} />
                 );
               })}
             </div>

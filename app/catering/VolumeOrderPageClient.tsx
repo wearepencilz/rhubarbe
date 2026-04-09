@@ -43,6 +43,7 @@ interface VolumeProduct {
   pickupOnly: boolean;
   servesPerUnit: number | null;
   volumeUnitLabel: 'quantity' | 'people';
+  maxAdvanceDays: number | null;
 }
 
 function tr(field: TranslationObject | null | undefined, locale: string): string {
@@ -270,7 +271,7 @@ function VolumeInlineCart({
   fulfillmentType, allergenNote, dateWarning, earliestDateStr, maxLeadTimeDays,
   servesEstimate, onDateChange, onTimeChange, onFulfillmentTypeChange, onAllergenNoteChange,
   onCheckout, onRemoveProduct, checkoutLoading, checkoutError,
-  locale, hasMinViolation, deliveryDisabled, V,
+  locale, hasMinViolation, deliveryDisabled, V, latestDateStr,
 }: {
   groups: CartGroup[]; totalQuantity: number; subtotal: number;
   fulfillmentDate: string; fulfillmentTime: string;
@@ -284,9 +285,11 @@ function VolumeInlineCart({
   checkoutLoading: boolean; checkoutError: string | null;
   locale: string; hasMinViolation: boolean; deliveryDisabled: boolean;
   V: Record<string, string>;
+  latestDateStr: string | null;
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
+  const maxDateValue = latestDateStr ? toDateValue(latestDateStr) : undefined;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
@@ -425,6 +428,7 @@ function VolumeInlineCart({
               <DatePickerField label={V.date}
                 value={toDateValue(fulfillmentDate)}
                 minValue={minDateValue ?? today(getLocalTimeZone())}
+                maxValue={maxDateValue ?? undefined}
                 isDateUnavailable={(date: DateValue) => isSundayUnavailable(date.toDate(getLocalTimeZone()))}
                 onChange={(val: DateValue | null) => {
                   if (val) {
@@ -505,6 +509,24 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       }
     }
     return { maxLeadTimeDays: maxDays, earliestDateStr: toDateString(getEarliestDate(maxDays)) };
+  }, [products, cart]);
+
+  // Max advance date — use the smallest maxAdvanceDays across products in cart
+  const latestDateStr = useMemo(() => {
+    let minAdvance: number | null = null;
+    for (const product of products) {
+      const totalQty = getTotalQuantity(product, cart);
+      if (totalQty > 0 && product.maxAdvanceDays) {
+        if (minAdvance === null || product.maxAdvanceDays < minAdvance) {
+          minAdvance = product.maxAdvanceDays;
+        }
+      }
+    }
+    if (minAdvance === null) return null;
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + minAdvance);
+    return toDateString(d);
   }, [products, cart]);
 
   useEffect(() => {
@@ -648,7 +670,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
             onFulfillmentTypeChange={setFulfillmentType} onAllergenNoteChange={setAllergenNote}
             onCheckout={handleCheckout} onRemoveProduct={handleRemoveProduct}
             checkoutLoading={checkoutLoading} checkoutError={checkoutError}
-            locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} />
+            locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr} />
         </div>
       </div>
 
@@ -664,7 +686,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
           onRemoveProduct={handleRemoveProduct}
           checkoutLoading={checkoutLoading} checkoutError={checkoutError}
-          locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} />
+          locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr} />
       </MobileCartModal>
 
       {/* Mobile bottom bar */}

@@ -19,6 +19,7 @@ export default function CakeSettingsPage() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [maxCakes, setMaxCakes] = useState(7);
 
   useEffect(() => {
     Promise.all([
@@ -28,6 +29,8 @@ export default function CakeSettingsPage() {
       .then(([locs, settings]) => {
         setLocations(locs);
         setSelectedLocationId(settings.cakePickupLocationId || '');
+        const cap = settings.cakeCapacity;
+        if (cap && typeof cap.maxCakes === 'number') setMaxCakes(cap.maxCakes);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -43,7 +46,11 @@ export default function CakeSettingsPage() {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...current, cakePickupLocationId: selectedLocationId || null }),
+        body: JSON.stringify({
+          ...current,
+          cakePickupLocationId: selectedLocationId || null,
+          cakeCapacity: { maxCakes },
+        }),
       });
       if (res.ok) toast.success('Settings saved');
       else toast.error('Failed to save');
@@ -66,7 +73,7 @@ export default function CakeSettingsPage() {
     <div className="max-w-2xl">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Cake Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure pickup location and availability for cake orders.</p>
+        <p className="text-sm text-gray-500 mt-1">Configure pickup location and production capacity for cake orders.</p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
@@ -109,6 +116,28 @@ export default function CakeSettingsPage() {
             </p>
           </div>
         )}
+
+        {/* Production Capacity */}
+        <div className="border-t border-gray-200 pt-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Production Capacity</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Delivery dates are automatically blocked when accepting a new order would exceed the maximum on any day. Lead time is set per product in the product editor.
+          </p>
+
+          <div>
+            <label htmlFor="maxCakes" className="block text-xs font-medium text-gray-600 mb-1">Max simultaneous cakes</label>
+            <input
+              id="maxCakes"
+              type="number"
+              min={1}
+              max={100}
+              value={maxCakes}
+              onChange={(e) => setMaxCakes(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">How many cakes can be in production at the same time.</p>
+          </div>
+        </div>
 
         <div className="pt-2">
           <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>

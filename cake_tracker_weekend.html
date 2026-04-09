@@ -1,0 +1,177 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.wrap { padding: 0.75rem 0 0.5rem; font-family: var(--font-sans); }
+.nav { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+.nav button { background: none; border: 0.5px solid var(--color-border-secondary); border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; color: var(--color-text-primary); }
+.nav button:hover { background: var(--color-background-secondary); }
+.range-label { font-size: 12px; color: var(--color-text-secondary); }
+svg { width: 100%; display: block; }
+</style>
+
+<div class="wrap">
+  <div class="nav">
+    <button id="prev">&#8592;</button>
+    <span id="range-label" class="range-label"></span>
+    <button id="next">&#8594;</button>
+  </div>
+  <svg id="chart"></svg>
+</div>
+<div id="tt" style="position:fixed;display:none;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;z-index:999;max-width:190px;"></div>
+
+<script>
+const LEAD = 7;
+
+// Weekend-heavy delivery dates — most Sat/Sun, a few weekday exceptions
+const orders = [
+  { id:1,  name:"Moreau wedding",      client:"Sophie Moreau",    delivery:"2026-04-11", size:"60 people" },  // Sat
+  { id:2,  name:"Tremblay anniversary",client:"Jacques Tremblay", delivery:"2026-04-12", size:"35 people" },  // Sun
+  { id:3,  name:"Côté corporate",      client:"Maison Côté",      delivery:"2026-04-12", size:"80 people" },  // Sun
+  { id:4,  name:"Bergeron birthday",   client:"Lucie Bergeron",   delivery:"2026-04-18", size:"40 people" },  // Sat
+  { id:5,  name:"Fontaine wedding",    client:"Émile Fontaine",   delivery:"2026-04-18", size:"100 people"},  // Sat
+  { id:6,  name:"Leblanc event",       client:"Isabelle Leblanc", delivery:"2026-04-19", size:"50 people" },  // Sun
+  { id:7,  name:"Dupuis gala",         client:"Centre Dupuis",    delivery:"2026-04-22", size:"120 people"},  // Wed — exception
+  { id:8,  name:"Savard christening",  client:"Marie Savard",     delivery:"2026-04-25", size:"30 people" },  // Sat
+  { id:9,  name:"Ouellet retirement",  client:"Paul Ouellet",     delivery:"2026-04-25", size:"45 people" },  // Sat
+  { id:10, name:"Vincent anniversary", client:"Clara Vincent",    delivery:"2026-04-26", size:"55 people" },  // Sun
+  { id:11, name:"Nadeau wedding",      client:"Félix Nadeau",     delivery:"2026-04-26", size:"90 people" },  // Sun
+  { id:12, name:"Gauthier gala",       client:"Hôtel Gauthier",   delivery:"2026-05-02", size:"150 people"},  // Sat
+  { id:13, name:"Paquin birthday",     client:"René Paquin",      delivery:"2026-05-02", size:"35 people" },  // Sat
+  { id:14, name:"Lévesque wedding",    client:"Anne Lévesque",    delivery:"2026-05-03", size:"70 people" },  // Sun
+];
+
+function parse(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function fmt(d){ return d.toLocaleDateString('fr-CA',{month:'short',day:'numeric'}); }
+function key(d){ return d.toISOString().slice(0,10); }
+
+const today = new Date(2026,3,9);
+let winStart = new Date(2026,3,1);
+const DAYS = 35;
+const PAD_L = 6, PAD_R = 16, TOP = 22, ROW_H = 14, DOT_R = 3;
+
+function packRows(visible){
+  const rows = [];
+  const sorted = [...visible].sort((a,b)=>parse(a.delivery)-parse(b.delivery));
+  sorted.forEach(o=>{
+    const del = parse(o.delivery);
+    const start = addDays(del,-LEAD);
+    let placed = false;
+    for(let r=0;r<rows.length;r++){
+      const fits = rows[r].every(ex=>{
+        const eDel=parse(ex.delivery), eStart=addDays(eDel,-LEAD);
+        return del<eStart || start>eDel;
+      });
+      if(fits){ rows[r].push(o); placed=true; break; }
+    }
+    if(!placed) rows.push([o]);
+  });
+  const result=[];
+  rows.forEach((row,ri)=>row.forEach(o=>result.push({...o,row:ri})));
+  return { items:result, numRows:rows.length };
+}
+
+function render(){
+  const days = Array.from({length:DAYS},(_,i)=>addDays(winStart,i));
+  const winEnd = days[DAYS-1];
+  document.getElementById('range-label').textContent = fmt(days[0]) + ' – ' + fmt(winEnd);
+
+  const visible = orders.filter(o=>{
+    const del=parse(o.delivery), start=addDays(del,-LEAD);
+    return del>=days[0] && start<=winEnd;
+  });
+
+  const {items,numRows} = packRows(visible);
+
+  const svg = document.getElementById('chart');
+  const W = svg.getBoundingClientRect().width || 600;
+  const trackW = W - PAD_L - PAD_R;
+  const H = TOP + numRows * ROW_H + 10;
+
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('height',H);
+  svg.innerHTML='';
+
+  const ns='http://www.w3.org/2000/svg';
+  function el(tag,attrs,parent){
+    const e=document.createElementNS(ns,tag);
+    for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+    if(parent) parent.appendChild(e);
+    return e;
+  }
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const lineCol   = isDark ? '#1C3F63' : '#B5D4F4';
+  const dotCol    = isDark ? '#378ADD' : '#185FA5';
+  const todayBg   = isDark ? 'rgba(55,138,221,0.18)' : 'rgba(55,138,221,0.12)';
+  const weekendBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+  const weekCol   = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const textCol   = isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.27)';
+  const todayTxt  = isDark ? '#378ADD' : '#185FA5';
+
+  function xOf(d){ return PAD_L+((d-days[0])/86400000/DAYS)*trackW; }
+  const dayW = trackW/DAYS;
+
+  // weekend bands
+  days.forEach((d,i)=>{
+    const dow = d.getDay();
+    if(dow===6){
+      el('rect',{x:PAD_L+i*dayW,y:0,width:dayW*2,height:H,fill:weekendBg},svg);
+    }
+  });
+
+  // today band
+  const td=(today-days[0])/86400000;
+  if(td>=0&&td<DAYS){
+    el('rect',{x:PAD_L+(td/DAYS)*trackW,y:0,width:dayW,height:H,fill:todayBg},svg);
+  }
+
+  // week dividers + labels
+  days.forEach((d,i)=>{
+    if(i>0&&d.getDay()===1){
+      const x=PAD_L+i*dayW;
+      el('line',{x1:x,y1:0,x2:x,y2:H,stroke:weekCol,'stroke-width':0.5},svg);
+    }
+    if(d.getDay()===1||i===0){
+      const x=PAD_L+i*dayW+3;
+      const isToday=key(d)===key(today);
+      const t=el('text',{x,y:12,fill:isToday?todayTxt:textCol,'font-size':9},svg);
+      t.textContent=fmt(d);
+    }
+  });
+
+  // order lines
+  items.forEach(o=>{
+    const y=TOP+o.row*ROW_H+ROW_H/2;
+    const del=parse(o.delivery);
+    const prepStart=addDays(del,-LEAD);
+    const x1=Math.max(PAD_L,xOf(prepStart));
+    const x2=Math.min(PAD_L+trackW,xOf(del));
+
+    el('line',{x1,y1:y,x2,y2:y,stroke:lineCol,'stroke-width':1.5,'stroke-linecap':'round'},svg);
+    el('circle',{cx:x2,cy:y,r:DOT_R,fill:dotCol},svg);
+
+    const hit=el('rect',{x:x1-2,y:y-8,width:(x2-x1)+14,height:16,fill:'transparent',cursor:'pointer'},svg);
+    hit.addEventListener('mouseenter',e=>showTip(e,o,del,prepStart));
+    hit.addEventListener('mousemove',moveTip);
+    hit.addEventListener('mouseleave',hideTip);
+  });
+}
+
+const tt=document.getElementById('tt');
+function showTip(e,o,del,prepStart){
+  tt.innerHTML=`<div style="font-weight:500;color:var(--color-text-primary);margin-bottom:4px">${o.name}</div>`+
+    `<div style="color:var(--color-text-secondary);margin-bottom:2px">${o.client}</div>`+
+    `<div style="color:var(--color-text-secondary);margin-bottom:1px">Delivery <span style="color:var(--color-text-primary)">${fmt(del)}</span></div>`+
+    `<div style="color:var(--color-text-secondary)">Prep from <span style="color:var(--color-text-primary)">${fmt(prepStart)}</span></div>`;
+  tt.style.display='block'; moveTip(e);
+}
+function moveTip(e){ tt.style.left=Math.min(e.clientX+14,window.innerWidth-210)+'px'; tt.style.top=(e.clientY-10)+'px'; }
+function hideTip(){ tt.style.display='none'; }
+
+document.getElementById('prev').addEventListener('click',()=>{ winStart=addDays(winStart,-35); render(); });
+document.getElementById('next').addEventListener('click',()=>{ winStart=addDays(winStart,35); render(); });
+
+render();
+window.addEventListener('resize',render);
+</script>

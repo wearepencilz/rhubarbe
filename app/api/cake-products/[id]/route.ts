@@ -74,6 +74,7 @@ export async function PUT(
     if (body.cakeFlavourConfig !== undefined) configFields.cakeFlavourConfig = body.cakeFlavourConfig;
     if (body.cakeTierDetailConfig !== undefined) configFields.cakeTierDetailConfig = body.cakeTierDetailConfig;
     if (body.cakeMaxFlavours !== undefined) configFields.cakeMaxFlavours = body.cakeMaxFlavours;
+    if (body.maxAdvanceDays !== undefined) configFields.maxAdvanceDays = body.maxAdvanceDays;
 
     if (Object.keys(configFields).length > 0) {
       await cakeProductQueries.updateCakeConfig(params.id, configFields);

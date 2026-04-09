@@ -32,6 +32,7 @@ export async function GET() {
         pickupOnly: products.pickupOnly,
         servesPerUnit: products.servesPerUnit,
         volumeUnitLabel: products.volumeUnitLabel,
+        maxAdvanceDays: products.maxAdvanceDays,
       })
       .from(products)
       .where(
@@ -201,6 +202,7 @@ export async function GET() {
         pickupOnly: p.pickupOnly ?? false,
         servesPerUnit: p.servesPerUnit ?? null,
         volumeUnitLabel: p.volumeUnitLabel ?? 'quantity',
+        maxAdvanceDays: p.maxAdvanceDays ?? null,
         leadTimeTiers: tiersByProduct.get(p.id) ?? [],
         variants: productVariants,
       };

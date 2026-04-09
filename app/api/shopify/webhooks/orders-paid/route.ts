@@ -146,6 +146,7 @@ async function processShopifyOrder(shopifyOrder: any) {
   const cakeSpecialInstructions = attrs.get('Special Instructions') || null;
   const cakeNumberOfPeople = attrs.get('Number of People') || null;
   const cakeEventType = attrs.get('Event Type') || null;
+  const cakeLeadTimeDays = attrs.get('Lead Time Days') || null;
 
   // Resolve fulfillment date: for cake orders use Pickup Date, for volume use Fulfillment Date
   const fulfillmentDate = orderType === 'cake'
@@ -193,6 +194,7 @@ async function processShopifyOrder(shopifyOrder: any) {
     orderType,
     fulfillmentDate: fulfillmentDate ?? undefined,
     allergenNotes: resolvedAllergenNotes,
+    leadTimeDays: cakeLeadTimeDays ? parseInt(cakeLeadTimeDays) : undefined,
   };
 
   // Build order items from line items

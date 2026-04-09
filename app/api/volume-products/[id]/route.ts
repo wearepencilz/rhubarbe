@@ -74,6 +74,7 @@ export async function PUT(
     if (body.volumeInstructions !== undefined) configFields.volumeInstructions = body.volumeInstructions;
     if (body.volumeMinOrderQuantity !== undefined) configFields.volumeMinOrderQuantity = body.volumeMinOrderQuantity;
     if (body.volumeUnitLabel !== undefined) configFields.volumeUnitLabel = body.volumeUnitLabel;
+    if (body.maxAdvanceDays !== undefined) configFields.maxAdvanceDays = body.maxAdvanceDays;
 
     if (Object.keys(configFields).length > 0) {
       await volumeProductQueries.updateVolumeConfig(params.id, configFields);

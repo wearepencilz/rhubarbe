@@ -75,9 +75,10 @@ export async function updateCakeConfig(
     cakeFlavourNotes?: { en: string; fr: string } | null;
     cakeDeliveryAvailable?: boolean;
     cakeProductType?: string | null;
-    cakeFlavourConfig?: { handle: string; label: { en: string; fr: string }; description: { en: string; fr: string } | null; pricingTierGroup: string | null; sortOrder: number; active: boolean }[] | null;
+    cakeFlavourConfig?: { handle: string; label: { en: string; fr: string }; description: { en: string; fr: string } | null; pricingTierGroup: string | null; sortOrder: number; active: boolean; endDate?: string | null }[] | null;
     cakeTierDetailConfig?: { sizeValue: string; layers: number; diameters: string; label: { en: string; fr: string } | null }[] | null;
     cakeMaxFlavours?: number | null;
+    maxAdvanceDays?: number | null;
   },
 ) {
   const [updated] = await db

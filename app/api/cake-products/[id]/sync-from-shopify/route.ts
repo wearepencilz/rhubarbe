@@ -55,6 +55,7 @@ export async function POST(
 
     if (handle.includes('tasting')) {
       cakeProductType = 'wedding-cake-tasting';
+      cakeMaxFlavours = 3;
     } else if (option1Name.includes('choux')) {
       cakeProductType = 'croquembouche';
       cakeMaxFlavours = 2;
@@ -68,13 +69,20 @@ export async function POST(
     }
 
     // Extract Option1 values (size axis) and Option2 values (flavour axis)
+    // Special case: tasting products have flavour as Option1 with no size axis
+    const isTastingProduct = cakeProductType === 'wedding-cake-tasting';
     const option1Values: string[] = options[0]?.values ?? [];
     const option2Values: string[] = options[1]?.values ?? [];
     const hasOption2 = option2Values.length > 0;
 
-    // Build flavour config from Option2 values
-    const flavourConfig = hasOption2
-      ? option2Values.map((value: string, idx: number) => ({
+    // For tasting: Option1 is flavour, no size axis
+    // For everything else: Option1 is size, Option2 is flavour
+    const flavourValues = isTastingProduct ? option1Values : option2Values;
+    const hasFlavours = flavourValues.length > 0;
+
+    // Build flavour config
+    const flavourConfig = hasFlavours
+      ? flavourValues.map((value: string, idx: number) => ({
           handle: slugify(value),
           label: { en: value, fr: value },
           description: null as { en: string; fr: string } | null,
@@ -99,16 +107,25 @@ export async function POST(
       const priceAmount = variant.price ?? '0';
       const priceInCents = Math.round(parseFloat(priceAmount) * 100);
 
-      // Normalize size value: extract numeric part (e.g., "30 guests" → "30", "72" → "72")
-      const sizeValue = extractNumeric(opt1) || opt1;
-      const flavourHandle = hasOption2 ? slugify(opt2) : 'default';
-
-      pricingGrid.push({
-        sizeValue,
-        flavourHandle,
-        priceInCents,
-        shopifyVariantId: variant.id ?? null,
-      });
+      if (isTastingProduct) {
+        // Tasting: Option1 is flavour, use "1" as a fixed size
+        pricingGrid.push({
+          sizeValue: '1',
+          flavourHandle: slugify(opt1),
+          priceInCents,
+          shopifyVariantId: variant.id ?? null,
+        });
+      } else {
+        // Standard: Option1 is size, Option2 is flavour
+        const sizeValue = extractNumeric(opt1) || opt1;
+        const flavourHandle = hasOption2 ? slugify(opt2) : 'default';
+        pricingGrid.push({
+          sizeValue,
+          flavourHandle,
+          priceInCents,
+          shopifyVariantId: variant.id ?? null,
+        });
+      }
     }
 
     // Auto-detect pricing tier groups (flavours with same price at each size)

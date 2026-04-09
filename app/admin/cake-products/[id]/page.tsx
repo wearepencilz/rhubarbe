@@ -27,6 +27,7 @@ interface CakeFlavourEntry {
   pricingTierGroup: string | null;
   sortOrder: number;
   active: boolean;
+  endDate: string | null;
 }
 
 interface CakeTierDetailEntry {
@@ -59,15 +60,17 @@ interface CakeProduct {
   cakeFlavourConfig: CakeFlavourEntry[] | null;
   cakeTierDetailConfig: CakeTierDetailEntry[] | null;
   cakeMaxFlavours: number | null;
+  maxAdvanceDays: number | null;
   pricingGrid: any[];
   addonLinks: AddonLink[];
 }
 
-type ProductType = '' | 'cake-xxl' | 'croquembouche' | 'wedding-cake-tiered' | 'wedding-cake-tasting';
+type ProductType = '' | 'cake-xxl' | 'sheet-cake' | 'croquembouche' | 'wedding-cake-tiered' | 'wedding-cake-tasting';
 
 const PRODUCT_TYPE_OPTIONS: { value: ProductType; label: string }[] = [
   { value: '', label: 'Legacy (no type)' },
   { value: 'cake-xxl', label: 'Large Format (XXL)' },
+  { value: 'sheet-cake', label: 'Sheet Cake' },
   { value: 'croquembouche', label: 'Croquembouche' },
   { value: 'wedding-cake-tiered', label: 'Tiered Wedding Cake' },
   { value: 'wedding-cake-tasting', label: 'Wedding Cake Tasting' },
@@ -119,6 +122,7 @@ function FlavourConfigEditor({
         pricingTierGroup: null,
         sortOrder: flavours.length,
         active: true,
+        endDate: null,
       },
     ]);
   }
@@ -258,6 +262,19 @@ function FlavourConfigEditor({
                   rows={2}
                   className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Flavour End Date</label>
+                <input
+                  type="date"
+                  value={flavour.endDate ?? ''}
+                  onChange={(e) => updateFlavour(index, { endDate: e.target.value || null })}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <p className="text-[11px] text-gray-400 mt-0.5">Last day this ingredient is available. Flavour is automatically hidden once lead time makes delivery by this date impossible.</p>
               </div>
             </div>
 
@@ -562,6 +579,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const [flavourConfig, setFlavourConfig] = useState<CakeFlavourEntry[]>([]);
   const [tierDetailConfig, setTierDetailConfig] = useState<CakeTierDetailEntry[]>([]);
   const [addonLinks, setAddonLinks] = useState<AddonLink[]>([]);
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
 
   useEffect(() => {
     fetchProduct();
@@ -592,6 +610,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setFlavourConfig(data.cakeFlavourConfig ?? []);
       setTierDetailConfig(data.cakeTierDetailConfig ?? []);
       setAddonLinks(data.addonLinks ?? []);
+      setMaxAdvanceDays(data.maxAdvanceDays ?? null);
     } catch {
       setError('Failed to load cake product');
     } finally {
@@ -603,9 +622,9 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
 
   // Derived visibility flags
   const hasProductType = cakeProductType !== '';
-  const showFlavourConfig = hasProductType && cakeProductType !== 'wedding-cake-tasting';
-  const showTierDetails = cakeProductType === 'cake-xxl' || cakeProductType === 'wedding-cake-tiered';
-  const showAddonLinks = cakeProductType === 'cake-xxl' || cakeProductType === 'wedding-cake-tiered';
+  const showFlavourConfig = hasProductType;
+  const showTierDetails = cakeProductType === 'cake-xxl' || cakeProductType === 'sheet-cake' || cakeProductType === 'wedding-cake-tiered';
+  const showAddonLinks = cakeProductType === 'cake-xxl' || cakeProductType === 'sheet-cake' || cakeProductType === 'wedding-cake-tiered';
 
   // --- Cake toggle ---
   function handleToggleCake(checked: boolean) {
@@ -696,8 +715,9 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         cakeProductType: cakeProductType || null,
         cakeFlavourConfig: showFlavourConfig ? flavourConfig : null,
         cakeTierDetailConfig: showTierDetails ? tierDetailConfig : null,
-        cakeMaxFlavours: cakeProductType === 'croquembouche' ? cakeMaxFlavours : null,
+        cakeMaxFlavours: (cakeProductType === 'croquembouche' || cakeProductType === 'wedding-cake-tasting') ? cakeMaxFlavours : null,
         addonLinks: showAddonLinks ? addonLinks : undefined,
+        maxAdvanceDays: maxAdvanceDays && maxAdvanceDays > 0 ? maxAdvanceDays : null,
       };
 
       const res = await fetch(`/api/cake-products/${params.id}`, {
@@ -854,10 +874,26 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
               <p className="text-sm text-red-600 mt-2">{tierErrors}</p>
             )}
           </div>
+
+          {/* Max advance booking */}
+          <div>
+            <label htmlFor="maxAdvanceDays" className="block text-sm font-medium text-gray-700 mb-1">Max advance booking (days)</label>
+            <input
+              id="maxAdvanceDays"
+              type="number"
+              min={0}
+              max={365}
+              value={maxAdvanceDays ?? ''}
+              onChange={(e) => { setMaxAdvanceDays(e.target.value ? parseInt(e.target.value) || null : null); markDirty(); }}
+              placeholder="No limit"
+              className="w-40 px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">How far in advance customers can book. Leave empty for no limit.</p>
+          </div>
         </SectionCard>
 
-        {/* Description & instructions */}
-        <SectionCard title="Description & Instructions" description="Customer-facing content for cake orders.">
+        {/* Description */}
+        <SectionCard title="Description" description="Customer-facing description shown on cake product cards.">
           <TranslationFields
             base={{ description: descriptionEn }}
             translations={descriptionTranslations}
@@ -873,39 +909,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
               { key: 'description', label: 'Cake Description', type: 'textarea', rows: 3, placeholder: 'Describe this product for cake orders...' },
             ]}
           />
-          <TranslationFields
-            base={{ instructions: instructionsEn }}
-            translations={instructionsTranslations}
-            onBaseChange={(_field, value) => {
-              setInstructionsEn(value);
-              markDirty();
-            }}
-            onChange={(t) => {
-              setInstructionsFr(t?.fr?.instructions ?? '');
-              markDirty();
-            }}
-            fields={[
-              { key: 'instructions', label: 'Cake Instructions', type: 'textarea', rows: 3, placeholder: 'e.g., Minimum 48h notice for orders over 20 people...' },
-            ]}
-          />
-        </SectionCard>
-
-        {/* Flavour Notes */}
-        <SectionCard title="Flavour Notes" description="Bilingual flavour teaser shown on cake cards.">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Flavour Notes (EN)"
-              value={flavourNotesEn}
-              onChange={(v) => { setFlavourNotesEn(v); markDirty(); }}
-              placeholder="e.g. Rich chocolate with hazelnut praline"
-            />
-            <Input
-              label="Notes de saveur (FR)"
-              value={flavourNotesFr}
-              onChange={(v) => { setFlavourNotesFr(v); markDirty(); }}
-              placeholder="ex. Chocolat riche avec praliné noisette"
-            />
-          </div>
         </SectionCard>
 
         {/* 6.2 — Flavour Config Editor */}
@@ -989,7 +992,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                 ))}
               </select>
             </div>
-            {cakeProductType === 'croquembouche' && (
+            {(cakeProductType === 'croquembouche' || cakeProductType === 'wedding-cake-tasting') && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Max Flavours</label>
                 <input
@@ -998,13 +1001,13 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                   max={10}
                   value={cakeMaxFlavours}
                   onChange={(e) => {
-                    setCakeMaxFlavours(parseInt(e.target.value) || 2);
+                    setCakeMaxFlavours(parseInt(e.target.value) || 3);
                     markDirty();
                   }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Maximum number of flavours a customer can select for croquembouche.
+                  Maximum number of flavours a customer can select.
                 </p>
               </div>
             )}

@@ -21,6 +21,7 @@ interface CakeFlavourEntry {
   pricingTierGroup: string | null;
   sortOrder: number;
   active: boolean;
+  endDate: string | null;
 }
 
 interface CakeTierDetailEntry {
@@ -98,6 +99,7 @@ export const products = pgTable('products', {
   // Ordering system extension fields
   nextAvailableDate: timestamp('next_available_date'),
   servesPerUnit: integer('serves_per_unit'),
+  maxAdvanceDays: integer('max_advance_days'),
   cakeFlavourNotes: customJsonb<{ en: string; fr: string }>('cake_flavour_notes'),
   cakeDeliveryAvailable: boolean('cake_delivery_available').default(true),
 
@@ -326,6 +328,7 @@ export const orders = pgTable('orders', {
   orderType: text('order_type').notNull().default('launch'),  // "launch" | "volume" | "cake"
   fulfillmentDate: timestamp('fulfillment_date'),
   allergenNotes: text('allergen_notes'),
+  leadTimeDays: integer('lead_time_days'),
 
   orderDate: timestamp('order_date').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
