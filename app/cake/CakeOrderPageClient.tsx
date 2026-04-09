@@ -568,24 +568,41 @@ function CakeInlineCart({
   const addonTotal = useMemo(() => {
     if (!selectedProduct || enabledAddonIds.length === 0) return 0;
     let total = 0;
+
+    // Separate sheet cake add-ons from regular add-ons
+    const sheetCakeAddons: AddonProduct[] = [];
+    const regularAddons: AddonProduct[] = [];
     for (const addonId of enabledAddonIds) {
       const addon = addons.find((a) => a.id === addonId);
       if (!addon) continue;
-      // Sheet cake add-ons use their own size
-      if (addon.cakeProductType === 'sheet-cake') {
-        const addonSize = addonSizes[addonId];
-        if (!addonSize) continue;
-        const addonResolved = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize));
-        if (!addonResolved) continue;
-        const price = resolvePricingGridPrice(addon.pricingGrid, addonResolved, 'default');
-        if (price) total += price.priceInCents;
-      } else {
-        // Other add-ons use the main product's resolved size
-        if (!resolvedSize) continue;
+      if (addon.cakeProductType === 'sheet-cake') sheetCakeAddons.push(addon);
+      else regularAddons.push(addon);
+    }
+
+    // Regular add-ons priced at main cake size
+    if (resolvedSize) {
+      for (const addon of regularAddons) {
         const price = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
         if (price) total += price.priceInCents;
       }
     }
+
+    // Sheet cake add-ons priced at their own size
+    for (const sheetAddon of sheetCakeAddons) {
+      const sheetSize = addonSizes[sheetAddon.id];
+      if (!sheetSize) continue;
+      const sheetResolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize));
+      if (!sheetResolved) continue;
+      // Sheet cake itself
+      const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default');
+      if (sheetPrice) total += sheetPrice.priceInCents;
+      // Regular add-ons duplicated at sheet cake size
+      for (const addon of regularAddons) {
+        const price = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
+        if (price) total += price.priceInCents;
+      }
+    }
+
     return total;
   }, [selectedProduct, enabledAddonIds, resolvedSize, addons, addonSizes]);
 
@@ -788,23 +805,41 @@ function CakeInlineCart({
                 {addons.map((addon) => {
                   const isSheetCake = addon.cakeProductType === 'sheet-cake';
                   const addonSize = addonSizes[addon.id] || '';
-                  const addonResolvedSize = isSheetCake && addonSize
-                    ? resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize))
-                    : resolvedSize;
-                  const addonPrice = addonResolvedSize
-                    ? resolvePricingGridPrice(addon.pricingGrid, addonResolvedSize, 'default')
-                    : null;
                   const isEnabled = enabledAddonIds.includes(addon.id);
                   const noSize = isSheetCake ? false : !resolvedSize;
+
+                  // Compute displayed price for this addon
+                  let addonPriceCents = 0;
+                  if (isSheetCake) {
+                    if (addonSize) {
+                      const r = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize));
+                      if (r) { const p = resolvePricingGridPrice(addon.pricingGrid, r, 'default'); if (p) addonPriceCents = p.priceInCents; }
+                    }
+                  } else if (resolvedSize) {
+                    // Price at main cake size
+                    const p = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
+                    if (p) addonPriceCents += p.priceInCents;
+                    // Also price at each enabled sheet cake's size
+                    for (const sid of enabledAddonIds) {
+                      const sa = addons.find((a) => a.id === sid);
+                      if (!sa || sa.cakeProductType !== 'sheet-cake') continue;
+                      const ss = addonSizes[sid];
+                      if (!ss) continue;
+                      const sr = resolveNearestSize(getAvailableSizes(sa.pricingGrid), parseInt(ss));
+                      if (!sr) continue;
+                      const sp = resolvePricingGridPrice(addon.pricingGrid, sr, 'default');
+                      if (sp) addonPriceCents += sp.priceInCents;
+                    }
+                  }
 
                   return (
                     <div key={addon.id} className="space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
-                          {addonPrice && (
+                          {addonPriceCents > 0 && (
                             <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                              +${(addonPrice.priceInCents / 100).toFixed(2)}
+                              +${(addonPriceCents / 100).toFixed(2)}
                             </p>
                           )}
                         </div>
