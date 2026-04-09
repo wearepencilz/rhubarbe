@@ -643,10 +643,17 @@ function CakeInlineCart({
     if (!selectedProduct) return false;
     const sheetAddon = addons.find((a) => a.cakeProductType === 'sheet-cake');
     if (!sheetAddon || !enabledAddonIds.includes(sheetAddon.id)) return false;
-    const size = parseInt(addonSizes[sheetAddon.id]);
-    if (!size || !sheetCakeFlavour) return true; // enabled but no flavour or size
+    const sizeStr = addonSizes[sheetAddon.id];
+    const size = sizeStr ? parseInt(sizeStr) : 0;
+    // Must have flavour and valid size to proceed
+    if (!sheetCakeFlavour || !size) return true;
     if (sheetAddon.cakeMinPeople && size < sheetAddon.cakeMinPeople) return true;
     if (sheetAddon.cakeMaxPeople && size > sheetAddon.cakeMaxPeople) return true;
+    // Must resolve to a valid price
+    const resolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), size);
+    if (!resolved) return true;
+    const price = resolvePricingGridPrice(sheetAddon.pricingGrid, resolved, sheetCakeFlavour);
+    if (!price) return true;
     return false;
   }, [selectedProduct, addons, enabledAddonIds, addonSizes, sheetCakeFlavour]);
 
