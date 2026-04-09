@@ -1416,10 +1416,21 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   }, []);
 
   const handleToggleAddon = useCallback((addonId: string) => {
-    setEnabledAddonIds((prev) =>
-      prev.includes(addonId) ? prev.filter((id) => id !== addonId) : [...prev, addonId]
-    );
-  }, []);
+    setEnabledAddonIds((prev) => {
+      const removing = prev.includes(addonId);
+      if (removing) {
+        // If removing a sheet cake, clear its related state
+        const addon = (selectedProduct?.addons || []).find((a) => a.id === addonId);
+        if (addon?.cakeProductType === 'sheet-cake') {
+          setSheetCakeAddonIds([]);
+          setSheetCakeFlavour('');
+          setAddonSizes((s) => { const next = { ...s }; delete next[addonId]; return next; });
+        }
+        return prev.filter((id) => id !== addonId);
+      }
+      return [...prev, addonId];
+    });
+  }, [selectedProduct]);
 
   // ── Cart persistence: save on state changes ──
   useEffect(() => {
