@@ -700,6 +700,19 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setTitleFr(data.translations?.fr?.title ?? '');
       setProdDescriptionFr(data.translations?.fr?.description ?? '');
       setShortCardCopyFr(data.translations?.fr?.shortCardCopy ?? '');
+
+      // Auto-sync status and image from Shopify if linked
+      if (data.shopifyProductId) {
+        fetch(`/api/products/${params.id}/sync-shopify-status`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((synced) => {
+            if (synced) {
+              if (synced.status) setProductStatus(synced.status);
+              if (synced.image) setProductImage(synced.image);
+            }
+          })
+          .catch(() => {});
+      }
     } catch {
       setError('Failed to load cake product');
     } finally {
