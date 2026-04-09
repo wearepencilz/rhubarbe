@@ -23,6 +23,7 @@ import ShopifyVariantsDisplay from '../../components/ShopifyVariantsDisplay';
 import TaxonomySelect from '@/app/admin/components/TaxonomySelect';
 import VariantEditor from '@/app/admin/components/VariantEditor';
 import type { FlavourIngredient, ContentTranslations, ProductVariant } from '@/types';
+import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
 
 /** Convert a UTC ISO string to a local date value (YYYY-MM-DD) */
 function toLocalDate(iso: string): string {
@@ -45,6 +46,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const [shopifyLinkBroken, setShopifyLinkBroken] = useState(false);
   const [verifyingShopifyLink, setVerifyingShopifyLink] = useState(false);
   const toast = useToast();
+  const allergenOptions = useAllergenOptions();
 
   const [volumeEnabled, setVolumeEnabled] = useState(false);
   const [cakeEnabled, setCakeEnabled] = useState(false);
@@ -453,7 +455,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
             </div>
             <div className="px-6 py-6">
               <div className="flex flex-wrap gap-2">
-                {['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'].map((a) => {
+                {allergenOptions.map((a) => {
                   const selected = (formData as any).allergens?.includes(a) ?? false;
                   return (
                     <button key={a} type="button"

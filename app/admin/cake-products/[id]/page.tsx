@@ -18,6 +18,7 @@ import ImageUploader from '@/app/admin/components/ImageUploader';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 import TaxShippingSection from '@/app/admin/components/TaxShippingSection';
 import type { ContentTranslations } from '@/types';
+import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -37,8 +38,6 @@ interface CakeFlavourEntry {
   endDate: string | null;
   allergens?: string[];
 }
-
-const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
 
 interface CakeTierDetailEntry {
   sizeValue: string;
@@ -156,9 +155,11 @@ function CollapsibleSectionCard({
 function FlavourConfigEditor({
   flavours,
   onChange,
+  allergenOptions,
 }: {
   flavours: CakeFlavourEntry[];
   onChange: (flavours: CakeFlavourEntry[]) => void;
+  allergenOptions: string[];
 }) {
   function addFlavour() {
     onChange([
@@ -330,7 +331,7 @@ function FlavourConfigEditor({
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Allergens</label>
               <div className="flex flex-wrap gap-1.5">
-                {ALLERGEN_OPTIONS.map((a) => {
+                {allergenOptions.map((a) => {
                   const selected = flavour.allergens?.includes(a) ?? false;
                   return (
                     <button key={a} type="button"
@@ -697,7 +698,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const shopifyPickerOpenRef = useRef<(() => void) | null>(null);
   const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
 
-  const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
+  const allergenOptions = useAllergenOptions();
 
   useEffect(() => {
     fetchProduct();
@@ -1061,7 +1062,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         {/* Allergens */}
         <SectionCard title="Allergens" description="Product-level allergens. Per-flavour allergens are set in the Flavour Configuration below.">
           <div className="flex flex-wrap gap-2">
-            {ALLERGEN_OPTIONS.map((a) => (
+            {allergenOptions.map((a) => (
               <button key={a} type="button" onClick={() => { setAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]); markDirty(); }}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${allergens.includes(a) ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                 {a}
@@ -1189,6 +1190,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
             <FlavourConfigEditor
               flavours={flavourConfig}
               onChange={(f) => { setFlavourConfig(f); markDirty(); }}
+              allergenOptions={allergenOptions}
             />
           </CollapsibleSectionCard>
         )}

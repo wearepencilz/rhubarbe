@@ -6,6 +6,7 @@ import EditPageLayout from '@/app/admin/components/EditPageLayout';
 import { Input } from '@/app/admin/components/ui/input';
 import { Select } from '@/app/admin/components/ui/select';
 import { useToast } from '@/app/admin/components/ToastContainer';
+import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
 
 const CATERING_TYPE_OPTIONS = [
   { id: 'brunch', label: 'Brunch' },
@@ -13,7 +14,6 @@ const CATERING_TYPE_OPTIONS = [
   { id: 'dinatoire', label: 'Dînatoire' },
 ];
 
-const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
 const DIETARY_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
 const TEMPERATURE_OPTIONS = ['hot', 'cold'];
 
@@ -24,6 +24,7 @@ function slugify(name: string): string {
 export default function CreateCateringProductPage() {
   const router = useRouter();
   const toast = useToast();
+  const allergenOptions = useAllergenOptions();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -139,7 +140,7 @@ export default function CreateCateringProductPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Allergens</label>
             <div className="flex flex-wrap gap-2">
-              {ALLERGEN_OPTIONS.map((a) => (
+              {allergenOptions.map((a) => (
                 <button key={a} type="button" onClick={() => toggleTag(allergens, setAllergens, a)}
                   className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${allergens.includes(a) ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                   {a}

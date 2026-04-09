@@ -9,6 +9,7 @@ import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import { Input } from '@/app/admin/components/ui/input';
 import { Button } from '@/app/admin/components/ui/button';
 import { useToast } from '@/app/admin/components/ToastContainer';
+import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
 import { Plus, Trash01 } from '@untitledui/icons';
 import type { ContentTranslations } from '@/types';
 
@@ -114,7 +115,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const [flavourNameEn, setFlavourNameEn] = useState('');
   const [flavourNameFr, setFlavourNameFr] = useState('');
 
-  const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
+  const allergenOptions = useAllergenOptions();
   const DIETARY_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
   const TEMPERATURE_OPTIONS = ['hot', 'cold'];
 
@@ -407,7 +408,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Allergens</label>
             <div className="flex flex-wrap gap-2">
-              {ALLERGEN_OPTIONS.map((a) => (
+              {allergenOptions.map((a: string) => (
                 <button key={a} type="button" onClick={() => { setAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]); markDirty(); }}
                   className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${allergens.includes(a) ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                   {a}
