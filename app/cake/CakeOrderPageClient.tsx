@@ -827,9 +827,6 @@ function CakeInlineCart({
             <>
               <hr className="border-gray-200" />
               <div className="space-y-2">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">
-                  {isFr ? 'Options' : 'Add-ons'}
-                </p>
                 {addons.filter((a) => a.cakeProductType !== 'sheet-cake').map((addon) => {
                   const isEnabled = enabledAddonIds.includes(addon.id);
                   let priceCents = 0;
@@ -839,14 +836,10 @@ function CakeInlineCart({
                   }
                   return (
                     <div key={addon.id} className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
-                        {priceCents > 0 && (
-                          <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(priceCents / 100).toFixed(2)}</p>
-                        )}
-                      </div>
+                      <p className="text-xs text-gray-700 flex-1 min-w-0">{tr(addon.title, locale)}</p>
+                      {priceCents > 0 && <span className="text-[11px] text-gray-400 shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(priceCents / 100).toFixed(2)}</span>}
                       <button type="button" onClick={() => onToggleAddon(addon.id)} disabled={!resolvedSize}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${!resolvedSize ? 'bg-gray-200 cursor-not-allowed' : isEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
+                        className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${!resolvedSize ? 'bg-gray-200 cursor-not-allowed' : isEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
                         aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`} aria-pressed={isEnabled}>
                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                       </button>
@@ -957,7 +950,6 @@ function CakeInlineCart({
                       {/* Add-ons for sheet cake — price on right before toggle */}
                       {regularAddons.length > 0 && sheetResolved && (
                         <div className="space-y-1.5">
-                          <p className="text-[11px] text-gray-400 uppercase tracking-wide">{isFr ? 'Options' : 'Add-ons'}</p>
                           {regularAddons.map((addon) => {
                             const isOn = sheetCakeAddonIds.includes(addon.id);
                             const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
