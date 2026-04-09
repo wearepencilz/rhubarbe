@@ -48,7 +48,12 @@ interface AddonLink {
 interface CakeProduct {
   id: string;
   name: string;
+  slug: string;
   image: string | null;
+  description: string | null;
+  category: string | null;
+  status: string | null;
+  allergens: string[] | null;
   cakeEnabled: boolean;
   cakeDescription: { en: string; fr: string } | null;
   cakeInstructions: { en: string; fr: string } | null;
@@ -604,6 +609,17 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const [addonLinks, setAddonLinks] = useState<AddonLink[]>([]);
   const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
 
+  // Core product fields (merged from product edit page)
+  const [productName, setProductName] = useState('');
+  const [productSlug, setProductSlug] = useState('');
+  const [productImage, setProductImage] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [productCategory, setProductCategory] = useState('');
+  const [productStatus, setProductStatus] = useState('draft');
+  const [allergens, setAllergens] = useState<string[]>([]);
+
+  const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
+
   useEffect(() => {
     fetchProduct();
   }, [params.id]);
@@ -634,6 +650,15 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setTierDetailConfig(data.cakeTierDetailConfig ?? []);
       setAddonLinks(data.addonLinks ?? []);
       setMaxAdvanceDays(data.maxAdvanceDays ?? null);
+
+      // Core product fields
+      setProductName(data.name ?? '');
+      setProductSlug(data.slug ?? '');
+      setProductImage(data.image ?? '');
+      setProductDescription(data.description ?? '');
+      setProductCategory(data.category ?? '');
+      setProductStatus(data.status ?? 'draft');
+      setAllergens(data.allergens ?? []);
     } catch {
       setError('Failed to load cake product');
     } finally {
@@ -721,6 +746,22 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
 
     setSaving(true);
     try {
+      // Save core product fields
+      await fetch(`/api/products/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: productName,
+          slug: productSlug,
+          image: productImage || null,
+          description: productDescription || null,
+          category: productCategory || null,
+          status: productStatus,
+          allergens,
+        }),
+      });
+
+      // Save cake-specific fields
       const payload: Record<string, unknown> = {
         cakeEnabled,
         cakeDescription: descriptionEn || descriptionFr
@@ -825,6 +866,43 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
 
         {/* Left column */}
         <div className="col-span-2 space-y-6">
+
+        {/* Product Details */}
+        <SectionCard title="Product Details" description="Core product identity.">
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Name" value={productName} onChange={(v) => { setProductName(v); markDirty(); }} isRequired />
+            <Input label="Slug" value={productSlug} onChange={(v) => { setProductSlug(v); markDirty(); }} />
+          </div>
+          <Input label="Image URL" value={productImage} onChange={(v) => { setProductImage(v); markDirty(); }} placeholder="https://..." />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Category" value={productCategory} onChange={(v) => { setProductCategory(v); markDirty(); }} placeholder="e.g. cake" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              {product?.shopifyProductId ? (
+                <p className="text-sm text-gray-600 py-2">{productStatus} <span className="text-xs text-gray-400">(managed in Shopify)</span></p>
+              ) : (
+                <select value={productStatus} onChange={(e) => { setProductStatus(e.target.value); markDirty(); }}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Allergens */}
+        <SectionCard title="Allergens" description="Product-level allergens. Per-flavour allergens are set in the Flavour Configuration below.">
+          <div className="flex flex-wrap gap-2">
+            {ALLERGEN_OPTIONS.map((a) => (
+              <button key={a} type="button" onClick={() => { setAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]); markDirty(); }}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${allergens.includes(a) ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                {a}
+              </button>
+            ))}
+          </div>
+        </SectionCard>
 
         {/* Order rules: min people + lead time tiers */}
         <SectionCard
@@ -1083,9 +1161,6 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                   {syncing ? 'Syncing…' : 'Sync from Shopify'}
                 </Button>
               )}
-              <a href={`/admin/products/${params.id}`} className="block">
-                <Button variant="secondary" size="sm" className="w-full">View product page</Button>
-              </a>
               {shopifyAdminUrl && (
                 <a href={shopifyAdminUrl} target="_blank" rel="noopener noreferrer" className="block">
                   <Button variant="secondary" size="sm" className="w-full">View in Shopify</Button>

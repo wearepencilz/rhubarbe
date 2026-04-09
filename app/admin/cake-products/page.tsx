@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Table, TableCard } from '@/src/app/admin/components/ui/application/table/table';
 import { Badge } from '@/src/app/admin/components/ui/base/badges/badges';
 import { Button } from '@/app/admin/components/ui/button';
 import { Edit01, Plus } from '@untitledui/icons';
 import Link from 'next/link';
+import ShopifyProductPicker from '@/app/admin/components/ShopifyProductPicker';
+import { useToast } from '@/app/admin/components/ToastContainer';
 
 interface CakeProduct {
   id: string;
@@ -27,8 +29,11 @@ const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning' | 'error'> = {
 
 export default function CakeProductsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [products, setProducts] = useState<CakeProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const shopifyPickerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -44,18 +49,50 @@ export default function CakeProductsPage() {
     }
   }
 
+  async function handleImportFromShopify(shopifyProduct: { id: string; handle: string; title: string } | null) {
+    if (!shopifyProduct) return;
+    setImporting(true);
+    try {
+      const res = await fetch('/api/cake-products/import-from-shopify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopifyProductId: shopifyProduct.id }),
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        toast.error('Already imported', 'A product linked to this Shopify product already exists');
+        router.push(`/admin/cake-products/${data.existingProductId}`);
+        return;
+      }
+      if (!res.ok) { toast.error('Import failed', data.error || 'Failed to import'); return; }
+      toast.success('Imported', `"${shopifyProduct.title}" imported as cake product`);
+      router.push(`/admin/cake-products/${data.id}`);
+    } catch {
+      toast.error('Import failed', 'An unexpected error occurred');
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
-    <TableCard.Root>
-      <TableCard.Header
-        title="Cake Products"
-        badge={products.length}
-        description="Manage products available for cake ordering"
-        contentTrailing={
-          <Link href="/admin/cake-products/create">
-            <Button variant="primary" size="sm" iconLeading={Plus}>Create Cake Product</Button>
-          </Link>
-        }
-      />
+    <>
+      <ShopifyProductPicker onSelect={handleImportFromShopify} onOpenRef={shopifyPickerRef} />
+      <TableCard.Root>
+        <TableCard.Header
+          title="Cake Products"
+          badge={products.length}
+          description="Manage products available for cake ordering"
+          contentTrailing={
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" size="sm" onClick={() => shopifyPickerRef.current?.()} isDisabled={importing}>
+                {importing ? 'Importing…' : 'Import from Shopify'}
+              </Button>
+              <Link href="/admin/cake-products/create">
+                <Button variant="primary" size="sm" iconLeading={Plus}>Create Cake Product</Button>
+              </Link>
+            </div>
+          }
+        />
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -106,6 +143,7 @@ export default function CakeProductsPage() {
           </Table.Body>
         </Table>
       )}
-    </TableCard.Root>
+      </TableCard.Root>
+    </>
   );
 }
