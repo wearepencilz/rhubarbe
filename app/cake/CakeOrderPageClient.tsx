@@ -87,7 +87,8 @@ interface PersistedCart {
   selectedFlavourHandles: string[];
   selectedSize: string;
   addonIds: string[];
-  addonSizes?: Record<string, string>; // addonId → guest count for sheet cake add-ons
+  addonSizes?: Record<string, string>;
+  sheetCakeAddonIds?: string[];
   computedPrice: number | null;
 }
 
@@ -488,7 +489,7 @@ function CakeInlineCart({
   // New props for grid-based products
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
-  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange,
+  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange, sheetCakeAddonIds, onToggleSheetAddon,
   gridMinSize, gridMaxSize, blockedDates, latestDateStr,
 }: {
   selectedProduct: CakeProduct | null;
@@ -528,6 +529,8 @@ function CakeInlineCart({
   onToggleAddon: (addonId: string) => void;
   addonSizes: Record<string, string>;
   onAddonSizeChange: (addonId: string, size: string) => void;
+  sheetCakeAddonIds: string[];
+  onToggleSheetAddon: (addonId: string) => void;
   gridMinSize: number;
   gridMaxSize: number | null;
   blockedDates: Set<string>;
@@ -596,14 +599,16 @@ function CakeInlineCart({
       const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default');
       if (sheetPrice) total += sheetPrice.priceInCents;
       // Add-ons at sheet cake tier
-      for (const addon of regularAddons) {
+      for (const addonId of sheetCakeAddonIds) {
+        const addon = regularAddons.find((a) => a.id === addonId);
+        if (!addon) continue;
         const price = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
         if (price) total += price.priceInCents;
       }
     }
 
     return total;
-  }, [selectedProduct, enabledAddonIds, resolvedSize, addons, addonSizes]);
+  }, [selectedProduct, enabledAddonIds, sheetCakeAddonIds, resolvedSize, addons, addonSizes]);
 
   // Selected flavour names and allergens for display
   const selectedFlavourNames = useMemo(() => {
@@ -793,100 +798,132 @@ function CakeInlineCart({
             </div>
           )}
 
-          {/* Add-on toggles (grid-based products only) */}
-          {isGridProduct && addons.length > 0 && (
+          {/* Add-ons for main cake (non-sheet-cake only) */}
+          {isGridProduct && addons.filter((a) => a.cakeProductType !== 'sheet-cake').length > 0 && (
             <>
               <hr className="border-gray-200" />
               <div className="space-y-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">
                   {isFr ? 'Options' : 'Add-ons'}
                 </p>
-                {addons.map((addon) => {
-                  const isSheetCake = addon.cakeProductType === 'sheet-cake';
-                  const addonSize = addonSizes[addon.id] || '';
+                {addons.filter((a) => a.cakeProductType !== 'sheet-cake').map((addon) => {
                   const isEnabled = enabledAddonIds.includes(addon.id);
-                  const noSize = isSheetCake ? false : !resolvedSize;
-
-                  // Regular add-on: price at main cake tier only
-                  let displayPriceCents = 0;
-                  if (!isSheetCake && resolvedSize) {
+                  let priceCents = 0;
+                  if (resolvedSize) {
                     const p = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
-                    if (p) displayPriceCents = p.priceInCents;
+                    if (p) priceCents = p.priceInCents;
                   }
-
-                  // Sheet cake: compute subtotal (sheet + add-ons at sheet tier)
-                  let sheetSubtotal = 0;
-                  let sheetResolved: string | null = null;
-                  if (isSheetCake && addonSize) {
-                    sheetResolved = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize));
-                    if (sheetResolved) {
-                      const sp = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
-                      if (sp) sheetSubtotal += sp.priceInCents;
-                      // Add enabled regular add-ons at sheet tier
-                      for (const rid of enabledAddonIds) {
-                        const ra = addons.find((a) => a.id === rid);
-                        if (!ra || ra.cakeProductType === 'sheet-cake') continue;
-                        const rp = resolvePricingGridPrice(ra.pricingGrid, sheetResolved, 'default');
-                        if (rp) sheetSubtotal += rp.priceInCents;
-                      }
-                    }
-                  }
-
                   return (
-                    <div key={addon.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
-                          {!isSheetCake && displayPriceCents > 0 && (
-                            <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                              +${(displayPriceCents / 100).toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onToggleAddon(addon.id)}
-                          disabled={noSize}
-                          className={`relative w-9 h-5 rounded-full transition-colors ${
-                            noSize ? 'bg-gray-200 cursor-not-allowed' :
-                            isEnabled ? 'bg-[#333112]' : 'bg-gray-300'
-                          }`}
-                          aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`}
-                          aria-pressed={isEnabled}
-                        >
-                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                            isEnabled ? 'translate-x-4' : 'translate-x-0'
-                          }`} />
-                        </button>
+                    <div key={addon.id} className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
+                        {priceCents > 0 && (
+                          <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(priceCents / 100).toFixed(2)}</p>
+                        )}
                       </div>
-                      {/* Sheet cake: guests input + subtotal */}
-                      {isSheetCake && isEnabled && (
-                        <div className="pl-2 space-y-1">
-                          <input
-                            type="number"
-                            min={1}
-                            value={addonSize}
-                            placeholder={isFr ? 'Invités' : 'Guests'}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              onAddonSizeChange(addon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0))));
-                            }}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent"
-                            aria-label={`${tr(addon.title, locale)} guests`}
-                          />
-                          {sheetSubtotal > 0 && (
-                            <p className="text-[11px] text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                              {tr(addon.title, locale)} + {isFr ? 'options' : 'add-ons'}: ${(sheetSubtotal / 100).toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      <button type="button" onClick={() => onToggleAddon(addon.id)} disabled={!resolvedSize}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${!resolvedSize ? 'bg-gray-200 cursor-not-allowed' : isEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
+                        aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`} aria-pressed={isEnabled}>
+                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
                     </div>
                   );
                 })}
               </div>
             </>
           )}
+
+          {/* Sheet cake section */}
+          {isGridProduct && addons.some((a) => a.cakeProductType === 'sheet-cake') && (() => {
+            const sheetAddon = addons.find((a) => a.cakeProductType === 'sheet-cake')!;
+            const sheetEnabled = enabledAddonIds.includes(sheetAddon.id);
+            const sheetSize = addonSizes[sheetAddon.id] || '';
+            const sheetResolved = sheetSize ? resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize)) : null;
+            const sheetPrice = sheetResolved ? resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default') : null;
+            const regularAddons = addons.filter((a) => a.cakeProductType !== 'sheet-cake');
+
+            // Sheet cake subtotal: sheet price + enabled sheet add-ons
+            let sheetSubtotal = sheetPrice?.priceInCents ?? 0;
+            if (sheetResolved) {
+              for (const rid of sheetCakeAddonIds) {
+                const ra = regularAddons.find((a) => a.id === rid);
+                if (!ra) continue;
+                const rp = resolvePricingGridPrice(ra.pricingGrid, sheetResolved, 'default');
+                if (rp) sheetSubtotal += rp.priceInCents;
+              }
+            }
+
+            return (
+              <>
+                <hr className="border-gray-200" />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">
+                      {tr(sheetAddon.title, locale)}
+                    </p>
+                    <button type="button" onClick={() => onToggleAddon(sheetAddon.id)}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${sheetEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
+                      aria-label={`${sheetEnabled ? 'Remove' : 'Add'} ${tr(sheetAddon.title, locale)}`} aria-pressed={sheetEnabled}>
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${sheetEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {sheetEnabled && (
+                    <div className="space-y-2 pl-1 border-l-2 border-gray-100 ml-1">
+                      {/* Guests input */}
+                      <div className="pl-2">
+                        <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</label>
+                        <input type="number" min={1} value={sheetSize} placeholder=""
+                          onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent mt-0.5"
+                          aria-label={`${tr(sheetAddon.title, locale)} guests`} />
+                      </div>
+
+                      {/* Sheet cake price */}
+                      {sheetPrice && sheetSize && (
+                        <div className="flex justify-between text-xs text-gray-600 pl-2">
+                          <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
+                          <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(sheetPrice.priceInCents / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      {/* Add-ons for sheet cake */}
+                      {regularAddons.length > 0 && sheetResolved && (
+                        <div className="space-y-1.5 pl-2">
+                          <p className="text-[11px] text-gray-400 uppercase tracking-wide">{isFr ? 'Options' : 'Add-ons'}</p>
+                          {regularAddons.map((addon) => {
+                            const isOn = sheetCakeAddonIds.includes(addon.id);
+                            const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
+                            return (
+                              <div key={addon.id} className="flex items-center justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] text-gray-600">{tr(addon.title, locale)}</p>
+                                  {ap && <p className="text-[10px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(ap.priceInCents / 100).toFixed(2)}</p>}
+                                </div>
+                                <button type="button" onClick={() => onToggleSheetAddon(addon.id)}
+                                  className={`relative w-8 h-4 rounded-full transition-colors ${isOn ? 'bg-[#333112]' : 'bg-gray-300'}`}
+                                  aria-label={`${isOn ? 'Remove' : 'Add'} ${tr(addon.title, locale)} for sheet cake`} aria-pressed={isOn}>
+                                  <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${isOn ? 'translate-x-4' : 'translate-x-0'}`} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Sheet subtotal */}
+                      {sheetSubtotal > 0 && (
+                        <div className="flex justify-between text-xs font-medium text-gray-700 pl-2 pt-1 border-t border-gray-100">
+                          <span>{tr(sheetAddon.title, locale)}</span>
+                          <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(sheetSubtotal / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
 
           {/* Addon total */}
           {addonTotal > 0 && (
@@ -1065,6 +1102,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [enabledAddonIds, setEnabledAddonIds] = useState<string[]>([]);
   const [addonSizes, setAddonSizes] = useState<Record<string, string>>({});
+  const [sheetCakeAddonIds, setSheetCakeAddonIds] = useState<string[]>([]); // regular add-ons enabled for sheet cake
 
   const [pickupDate, setPickupDate] = useState<string>('');
   const [eventType, setEventType] = useState<string>('');
@@ -1375,9 +1413,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       selectedSize,
       addonIds: enabledAddonIds,
       addonSizes,
+      sheetCakeAddonIds,
       computedPrice: effectivePrice,
     });
-  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, addonSizes, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
+  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, addonSizes, sheetCakeAddonIds, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
 
   // ── Cart persistence: restore on page load ──
   useEffect(() => {
@@ -1396,6 +1435,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     setSelectedSize(saved.selectedSize || '');
     setEnabledAddonIds(saved.addonIds || []);
     setAddonSizes(saved.addonSizes || {});
+    setSheetCakeAddonIds(saved.sheetCakeAddonIds || []);
 
     if (isLegacy(product) && product.pricingTiers.length > 0) {
       const minPeople = product.pricingTiers
@@ -1500,9 +1540,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
             });
           }
 
-          // Regular add-ons at sheet cake tier
-          for (const addonId of regularAddonIds) {
-            const addon = (selectedProduct.addons || []).find((a) => a.id === addonId)!;
+          // Regular add-ons at sheet cake tier (independently toggled)
+          for (const addonId of sheetCakeAddonIds) {
+            const addon = (selectedProduct.addons || []).find((a) => a.id === addonId);
+            if (!addon) continue;
             const addonPrice = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
             if (!addonPrice) continue;
             items.push({
@@ -1592,6 +1633,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     onToggleAddon: handleToggleAddon,
     addonSizes,
     onAddonSizeChange: (addonId: string, size: string) => setAddonSizes((prev) => ({ ...prev, [addonId]: size })),
+    sheetCakeAddonIds,
+    onToggleSheetAddon: (addonId: string) => setSheetCakeAddonIds((prev) => prev.includes(addonId) ? prev.filter((id) => id !== addonId) : [...prev, addonId]),
     gridMinSize,
     gridMaxSize,
     blockedDates,
