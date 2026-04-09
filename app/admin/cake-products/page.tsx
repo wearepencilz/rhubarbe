@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Table, TableCard } from '@/src/app/admin/components/ui/application/table/table';
 import { Badge } from '@/src/app/admin/components/ui/base/badges/badges';
@@ -16,6 +16,7 @@ interface CakeProduct {
   image: string | null;
   cakeMinPeople: number | null;
   cakeEnabled: boolean;
+  cakeProductType: string | null;
   status: string | null;
   tierCount: number;
 }
@@ -26,6 +27,16 @@ const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning' | 'error'> = {
   'sold-out': 'warning',
   archived: 'error',
 };
+
+const TYPE_LABELS: Record<string, string> = {
+  'cake-xxl': 'Large Format (XXL)',
+  'sheet-cake': 'Sheet Cake',
+  'croquembouche': 'Croquembouche',
+  'wedding-cake-tiered': 'Tiered Wedding Cake',
+  'wedding-cake-tasting': 'Wedding Cake Tasting',
+};
+
+const TYPE_ORDER = ['cake-xxl', 'sheet-cake', 'croquembouche', 'wedding-cake-tiered', 'wedding-cake-tasting', '__unassigned__'];
 
 export default function CakeProductsPage() {
   const router = useRouter();
@@ -74,6 +85,66 @@ export default function CakeProductsPage() {
     }
   }
 
+  const grouped = useMemo(() => {
+    const groups: Record<string, CakeProduct[]> = {};
+    for (const type of TYPE_ORDER) groups[type] = [];
+    for (const p of products) {
+      const key = p.cakeProductType && TYPE_ORDER.includes(p.cakeProductType) ? p.cakeProductType : '__unassigned__';
+      groups[key].push(p);
+    }
+    return groups;
+  }, [products]);
+
+  function renderGroup(typeKey: string, items: CakeProduct[]) {
+    if (items.length === 0) return null;
+    const label = typeKey === '__unassigned__' ? 'No Type Assigned' : (TYPE_LABELS[typeKey] ?? typeKey);
+    return (
+      <div key={typeKey} className="mb-6">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-2">{label}</h3>
+        <Table aria-label={`${label} Cake Products`}>
+          <Table.Header>
+            <Table.Head isRowHeader label="Product" />
+            <Table.Head label="Type" />
+            <Table.Head label="Min People" />
+            <Table.Head label="Tiers" />
+            <Table.Head label="Status" />
+            <Table.Head label="" />
+          </Table.Header>
+          <Table.Body items={items}>
+            {(product) => (
+              <Table.Row key={product.id} id={product.id} onAction={() => router.push(`/admin/cake-products/${product.id}`)}>
+                <Table.Cell>
+                  <div className="flex items-center gap-3">
+                    {product.image && <img src={product.image} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />}
+                    <p className="text-sm font-medium text-primary">{product.name}</p>
+                  </div>
+                </Table.Cell>
+                <Table.Cell>
+                  {product.cakeProductType
+                    ? <Badge color="gray">{TYPE_LABELS[product.cakeProductType] ?? product.cakeProductType}</Badge>
+                    : <Badge color="warning">No type</Badge>}
+                </Table.Cell>
+                <Table.Cell><span className="text-sm text-primary">{product.cakeMinPeople ?? '—'}</span></Table.Cell>
+                <Table.Cell>
+                  <span className="text-sm text-primary">{Number(product.tierCount) || 0}</span>
+                  {Number(product.tierCount) === 0 && <span className="ml-2 text-xs text-warning-600">No tiers</span>}
+                </Table.Cell>
+                <Table.Cell><Badge color={STATUS_COLOR[product.status ?? ''] ?? 'gray'}>{product.status ?? 'unknown'}</Badge></Table.Cell>
+                <Table.Cell>
+                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Link href={`/admin/cake-products/${product.id}`}>
+                      <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Edit"><Edit01 className="w-4 h-4" /></button>
+                    </Link>
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            )}
+          </Table.Body>
+        </Table>
+      </div>
+    );
+  }
+
   return (
     <>
       <ShopifyProductPicker onSelect={handleImportFromShopify} onOpenRef={shopifyPickerRef} />
@@ -104,44 +175,9 @@ export default function CakeProductsPage() {
           <p className="text-xs text-tertiary max-w-sm">Click &quot;Create Cake Product&quot; to get started.</p>
         </div>
       ) : (
-        <Table aria-label="Cake Products">
-          <Table.Header>
-            <Table.Head isRowHeader label="Product" />
-            <Table.Head label="Min People" />
-            <Table.Head label="Lead Time Tiers" />
-            <Table.Head label="Status" />
-            <Table.Head label="" />
-          </Table.Header>
-          <Table.Body items={products}>
-            {(product) => (
-              <Table.Row key={product.id} id={product.id} onAction={() => router.push(`/admin/cake-products/${product.id}`)}>
-                <Table.Cell>
-                  <div className="flex items-center gap-3">
-                    {product.image && <img src={product.image} alt={product.name} className="h-10 w-10 rounded-lg object-cover" />}
-                    <p className="text-sm font-medium text-primary">{product.name}</p>
-                  </div>
-                </Table.Cell>
-                <Table.Cell><span className="text-sm text-primary">{product.cakeMinPeople ?? '—'}</span></Table.Cell>
-                <Table.Cell>
-                  <span className="text-sm text-primary">{Number(product.tierCount) || 0}</span>
-                  {Number(product.tierCount) === 0 && <span className="ml-2 text-xs text-warning-600">No tiers</span>}
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge color={STATUS_COLOR[product.status ?? ''] ?? 'gray'}>{product.status ?? 'unknown'}</Badge>
-                </Table.Cell>
-                <Table.Cell>
-                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Link href={`/admin/cake-products/${product.id}`}>
-                      <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Edit">
-                        <Edit01 className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                </Table.Cell>
-              </Table.Row>
-            )}
-          </Table.Body>
-        </Table>
+        <div className="p-4">
+          {TYPE_ORDER.map((type) => renderGroup(type, grouped[type] ?? []))}
+        </div>
       )}
       </TableCard.Root>
     </>

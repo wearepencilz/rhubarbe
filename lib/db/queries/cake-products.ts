@@ -29,6 +29,7 @@ export async function listCakeProducts() {
       image: products.image,
       cakeMinPeople: products.cakeMinPeople,
       cakeEnabled: products.cakeEnabled,
+      cakeProductType: products.cakeProductType,
       status: products.status,
       tierCount: sql<number>`coalesce((
         SELECT count(*)::int FROM cake_lead_time_tiers t
