@@ -128,6 +128,29 @@ function SectionCard({
   );
 }
 
+// ─── Collapsible Section Card ────────────────────────────────────────
+
+function CollapsibleSectionCard({
+  title, description, count, countLabel, children,
+}: {
+  title: string; description?: string; count: number; countLabel: string; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          {description && !open && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+        </div>
+        <span className="text-xs text-gray-400">{count} {countLabel} {open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div className="px-6 py-5 space-y-4 border-t border-gray-100">{children}</div>}
+    </div>
+  );
+}
+
 // ─── Flavour Config Editor ───────────────────────────────────────────
 
 function FlavourConfigEditor({
@@ -589,6 +612,31 @@ function AddonLinksEditor({
       ) : links.length > 0 ? (
         <p className="text-xs text-gray-400">All available products are already linked.</p>
       ) : null}
+    </div>
+  );
+}
+
+// ─── Collapsible Shopify Variants ────────────────────────────────────
+
+function CollapsibleCount({ label, shopifyProductId }: { label: string; shopifyProductId: string }) {
+  const [open, setOpen] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/shopify/products/${encodeURIComponent(shopifyProductId)}/variants`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.variants) setCount(data.variants.length); })
+      .catch(() => {});
+  }, [shopifyProductId]);
+
+  return (
+    <div className="border-t border-gray-100">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full px-6 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-xs text-gray-400">{count != null ? `${count} variants` : '…'} {open ? '▾' : '▸'}</span>
+      </button>
+      {open && <ShopifyVariantsDisplay shopifyProductId={shopifyProductId} />}
     </div>
   );
 }
@@ -1132,15 +1180,17 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
 
         {/* 6.2 — Flavour Config Editor */}
         {showFlavourConfig && (
-          <SectionCard
+          <CollapsibleSectionCard
             title="Flavour Configuration"
+            count={flavourConfig.length}
+            countLabel="flavours"
             description="Define available flavours for this product. Each flavour maps to a column in the pricing grid."
           >
             <FlavourConfigEditor
               flavours={flavourConfig}
               onChange={(f) => { setFlavourConfig(f); markDirty(); }}
             />
-          </SectionCard>
+          </CollapsibleSectionCard>
         )}
 
         {/* 6.3 — Tier Detail Editor */}
@@ -1251,7 +1301,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
                     <Button variant="danger" size="sm" onClick={() => setUnlinkConfirmOpen(true)}>Unlink</Button>
                   </div>
                 </div>
-                <ShopifyVariantsDisplay shopifyProductId={shopifyProductId} />
+                <CollapsibleCount label="Variants" shopifyProductId={shopifyProductId} />
                 <div className="px-6 py-3 border-t border-gray-200">
                   <Button
                     variant="primary" size="sm" className="w-full"
