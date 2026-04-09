@@ -888,11 +888,16 @@ function CakeInlineCart({
                 <hr className="border-gray-200" />
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">
-                      {tr(sheetAddon.title, locale)}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                        {tr(sheetAddon.title, locale)}
+                      </p>
+                      {tr(sheetAddon.cakeDescription, locale) && (
+                        <p className="text-[11px] text-gray-400 leading-relaxed mt-0.5">{tr(sheetAddon.cakeDescription, locale)}</p>
+                      )}
+                    </div>
                     <button type="button" onClick={() => onToggleAddon(sheetAddon.id)}
-                      className={`relative w-9 h-5 rounded-full transition-colors ${sheetEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
+                      className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${sheetEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
                       aria-label={`${sheetEnabled ? 'Remove' : 'Add'} ${tr(sheetAddon.title, locale)}`} aria-pressed={sheetEnabled}>
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${sheetEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                     </button>
@@ -900,18 +905,14 @@ function CakeInlineCart({
 
                   {sheetEnabled && (
                     <div className="space-y-2">
-                      {/* Description */}
-                      {tr(sheetAddon.cakeDescription, locale) && (
-                        <p className="text-[11px] text-gray-400 leading-relaxed">{tr(sheetAddon.cakeDescription, locale)}</p>
-                      )}
 
-                      {/* Flavour selector — label left, input right */}
+                      {/* Flavour selector — 50/50 */}
                       {sheetFlavours && sheetFlavours.length > 0 && (
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[11px] text-gray-500 uppercase tracking-wide shrink-0">{isFr ? 'Saveur' : 'Flavour'}</span>
+                        <div className="grid grid-cols-2 gap-2 items-center">
+                          <span className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
                           <select value={sheetFlavourHandle}
                             onChange={(e) => onSheetCakeFlavourChange(e.target.value)}
-                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent">
+                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent">
                             <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
                             {sheetFlavours.filter((f) => f.active).map((f) => (
                               <option key={f.handle} value={f.handle}>{tr(f.label, locale)}</option>
@@ -920,13 +921,13 @@ function CakeInlineCart({
                         </div>
                       )}
 
-                      {/* Guests input — label left, input right */}
+                      {/* Guests input — 50/50 */}
                       <div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[11px] text-gray-500 uppercase tracking-wide shrink-0">{isFr ? 'Invités' : 'Guests'}</span>
+                        <div className="grid grid-cols-2 gap-2 items-center">
+                          <span className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
                           <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
                             onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
-                            className={`flex-1 px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent ${
+                            className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent ${
                               (sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople) ||
                               (sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople)
                                 ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'
