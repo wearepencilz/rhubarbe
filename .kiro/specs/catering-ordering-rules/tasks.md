@@ -10,7 +10,7 @@ Add new columns to the database schema and create the Drizzle migration.
 - [x] 1.2 Add `allergens` (jsonb, nullable) column to `cakeVariants` table in `lib/db/schema.ts`
 - [x] 1.3 Add `allergens` (jsonb, nullable) column to `volumeVariants` table in `lib/db/schema.ts`
 - [x] 1.4 Generate Drizzle migration `0023_add_catering_fields.sql` with `IF NOT EXISTS` guards and index on `catering_type`
-- [ ] 1.5 Run `npm run db:migrate` to verify migration applies cleanly
+- [x] 1.5 Run `npm run db:migrate` to verify migration applies cleanly
 
 ## Task 2: Data migration script — backfill existing products and seed settings
 
@@ -22,7 +22,7 @@ Create an idempotent data migration script that backfills new columns and seeds 
   - Logs catering products needing manual `cateringType` assignment
 - [x] 2.2 Seed `cateringOrderingRules` into settings table (brunch: min 12/step 6, lunch: min 6/step 1, dinatoire: min 3/step 1) using `ON CONFLICT DO NOTHING`
 - [x] 2.3 Seed `cateringLeadTimeDays = 28` into settings table using `ON CONFLICT DO NOTHING`
-- [ ] 2.4 Verify script is idempotent (safe to run multiple times)
+- [x] 2.4 Verify script is idempotent (safe to run multiple times)
 
 ## Task 3: Ordering rule engine — validation logic for catering quantities and lead time
 
