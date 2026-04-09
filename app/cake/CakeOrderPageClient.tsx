@@ -565,11 +565,11 @@ function CakeInlineCart({
   const displayPrice = isGridProduct ? gridPrice?.priceInCents ?? null : calculatedPrice;
 
   // Compute addon total
+  // Add-ons are priced per-cake: once at main cake tier, once at sheet cake tier
   const addonTotal = useMemo(() => {
     if (!selectedProduct || enabledAddonIds.length === 0) return 0;
     let total = 0;
 
-    // Separate sheet cake add-ons from regular add-ons
     const sheetCakeAddons: AddonProduct[] = [];
     const regularAddons: AddonProduct[] = [];
     for (const addonId of enabledAddonIds) {
@@ -579,7 +579,7 @@ function CakeInlineCart({
       else regularAddons.push(addon);
     }
 
-    // Regular add-ons priced at main cake size
+    // Regular add-ons at main cake tier
     if (resolvedSize) {
       for (const addon of regularAddons) {
         const price = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
@@ -587,16 +587,15 @@ function CakeInlineCart({
       }
     }
 
-    // Sheet cake add-ons priced at their own size
+    // Each sheet cake: its own price + regular add-ons at sheet cake tier
     for (const sheetAddon of sheetCakeAddons) {
       const sheetSize = addonSizes[sheetAddon.id];
       if (!sheetSize) continue;
       const sheetResolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize));
       if (!sheetResolved) continue;
-      // Sheet cake itself
       const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default');
       if (sheetPrice) total += sheetPrice.priceInCents;
-      // Regular add-ons duplicated at sheet cake size
+      // Add-ons at sheet cake tier
       for (const addon of regularAddons) {
         const price = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
         if (price) total += price.priceInCents;
@@ -808,27 +807,28 @@ function CakeInlineCart({
                   const isEnabled = enabledAddonIds.includes(addon.id);
                   const noSize = isSheetCake ? false : !resolvedSize;
 
-                  // Compute displayed price for this addon
-                  let addonPriceCents = 0;
-                  if (isSheetCake) {
-                    if (addonSize) {
-                      const r = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize));
-                      if (r) { const p = resolvePricingGridPrice(addon.pricingGrid, r, 'default'); if (p) addonPriceCents = p.priceInCents; }
-                    }
-                  } else if (resolvedSize) {
-                    // Price at main cake size
+                  // Regular add-on: price at main cake tier only
+                  let displayPriceCents = 0;
+                  if (!isSheetCake && resolvedSize) {
                     const p = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
-                    if (p) addonPriceCents += p.priceInCents;
-                    // Also price at each enabled sheet cake's size
-                    for (const sid of enabledAddonIds) {
-                      const sa = addons.find((a) => a.id === sid);
-                      if (!sa || sa.cakeProductType !== 'sheet-cake') continue;
-                      const ss = addonSizes[sid];
-                      if (!ss) continue;
-                      const sr = resolveNearestSize(getAvailableSizes(sa.pricingGrid), parseInt(ss));
-                      if (!sr) continue;
-                      const sp = resolvePricingGridPrice(addon.pricingGrid, sr, 'default');
-                      if (sp) addonPriceCents += sp.priceInCents;
+                    if (p) displayPriceCents = p.priceInCents;
+                  }
+
+                  // Sheet cake: compute subtotal (sheet + add-ons at sheet tier)
+                  let sheetSubtotal = 0;
+                  let sheetResolved: string | null = null;
+                  if (isSheetCake && addonSize) {
+                    sheetResolved = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize));
+                    if (sheetResolved) {
+                      const sp = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
+                      if (sp) sheetSubtotal += sp.priceInCents;
+                      // Add enabled regular add-ons at sheet tier
+                      for (const rid of enabledAddonIds) {
+                        const ra = addons.find((a) => a.id === rid);
+                        if (!ra || ra.cakeProductType === 'sheet-cake') continue;
+                        const rp = resolvePricingGridPrice(ra.pricingGrid, sheetResolved, 'default');
+                        if (rp) sheetSubtotal += rp.priceInCents;
+                      }
                     }
                   }
 
@@ -837,9 +837,9 @@ function CakeInlineCart({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
-                          {addonPriceCents > 0 && (
+                          {!isSheetCake && displayPriceCents > 0 && (
                             <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                              +${(addonPriceCents / 100).toFixed(2)}
+                              +${(displayPriceCents / 100).toFixed(2)}
                             </p>
                           )}
                         </div>
@@ -859,9 +859,9 @@ function CakeInlineCart({
                           }`} />
                         </button>
                       </div>
-                      {/* Sheet cake add-on: independent guests input */}
+                      {/* Sheet cake: guests input + subtotal */}
                       {isSheetCake && isEnabled && (
-                        <div className="pl-2">
+                        <div className="pl-2 space-y-1">
                           <input
                             type="number"
                             min={1}
@@ -874,6 +874,11 @@ function CakeInlineCart({
                             className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent"
                             aria-label={`${tr(addon.title, locale)} guests`}
                           />
+                          {sheetSubtotal > 0 && (
+                            <p className="text-[11px] text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                              {tr(addon.title, locale)} + {isFr ? 'options' : 'add-ons'}: ${(sheetSubtotal / 100).toFixed(2)}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1450,89 +1455,63 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         price,
       }];
 
-      // Add addon items
+      // Add addon items — each add-on is priced individually per cake tier
       if (isGridBased(selectedProduct) && enabledAddonIds.length > 0) {
+        const sheetCakeIds: string[] = [];
+        const regularAddonIds: string[] = [];
         for (const addonId of enabledAddonIds) {
           const addon = (selectedProduct.addons || []).find((a) => a.id === addonId);
           if (!addon) continue;
-
-          if (addon.cakeProductType === 'sheet-cake') {
-            // Sheet cake add-on: use its own size
-            const sheetSize = addonSizes[addonId];
-            if (!sheetSize) continue;
-            const sheetResolved = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(sheetSize));
-            if (!sheetResolved) continue;
-            const sheetPrice = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
-            if (!sheetPrice) continue;
-            items.push({
-              productId: addon.id,
-              productName: addon.name,
-              shopifyProductId: '',
-              variantId: addon.id,
-              variantLabel: `${sheetSize} ${isFr ? 'invités' : 'guests'}`,
-              shopifyVariantId: sheetPrice.shopifyVariantId ?? '',
-              sizeValue: sheetResolved,
-              flavourHandle: 'default',
-              quantity: 1,
-              price: sheetPrice.priceInCents,
-              isAddon: true,
-            });
-          } else {
-            // Regular add-ons: use main product's resolved size
-            const addonResolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize!, 'default');
-            if (!addonResolved) continue;
-            items.push({
-              productId: addon.id,
-              productName: addon.name,
-              shopifyProductId: '',
-              variantId: addon.id,
-              variantLabel: addon.name,
-              shopifyVariantId: addonResolved.shopifyVariantId ?? '',
-              sizeValue: resolvedSize,
-              flavourHandle: 'default',
-              quantity: 1,
-              price: addonResolved.priceInCents,
-              isAddon: true,
-            });
-          }
+          if (addon.cakeProductType === 'sheet-cake') sheetCakeIds.push(addonId);
+          else regularAddonIds.push(addonId);
         }
 
-        // Duplicate shared add-ons (non-sheet-cake) for sheet cake add-ons
-        const sheetCakeAddonIds = enabledAddonIds.filter((id) => {
-          const a = (selectedProduct.addons || []).find((x) => x.id === id);
-          return a?.cakeProductType === 'sheet-cake';
-        });
-        if (sheetCakeAddonIds.length > 0) {
-          const sharedAddonIds = enabledAddonIds.filter((id) => {
-            const a = (selectedProduct.addons || []).find((x) => x.id === id);
-            return a && a.cakeProductType !== 'sheet-cake';
+        // Regular add-ons at main cake tier
+        for (const addonId of regularAddonIds) {
+          const addon = (selectedProduct.addons || []).find((a) => a.id === addonId)!;
+          const addonResolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize!, 'default');
+          if (!addonResolved) continue;
+          items.push({
+            productId: addon.id, productName: addon.name, shopifyProductId: '',
+            variantId: addon.id, variantLabel: addon.name,
+            shopifyVariantId: addonResolved.shopifyVariantId ?? '',
+            sizeValue: resolvedSize, flavourHandle: 'default', quantity: 1,
+            price: addonResolved.priceInCents, isAddon: true,
           });
-          for (const sheetId of sheetCakeAddonIds) {
-            const sheetSize = addonSizes[sheetId];
-            if (!sheetSize) continue;
-            const sheetResolved = resolveNearestSize(getAvailableSizes(
-              ((selectedProduct.addons || []).find((a) => a.id === sheetId))?.pricingGrid || []
-            ), parseInt(sheetSize));
-            if (!sheetResolved) continue;
-            for (const sharedId of sharedAddonIds) {
-              const shared = (selectedProduct.addons || []).find((a) => a.id === sharedId);
-              if (!shared) continue;
-              const sharedPrice = resolvePricingGridPrice(shared.pricingGrid, sheetResolved, 'default');
-              if (!sharedPrice) continue;
-              items.push({
-                productId: shared.id,
-                productName: `${shared.name} (${isFr ? 'gâteau feuille' : 'sheet cake'})`,
-                shopifyProductId: '',
-                variantId: `${shared.id}-sheet-${sheetId}`,
-                variantLabel: `${shared.name} — ${sheetSize} ${isFr ? 'invités' : 'guests'}`,
-                shopifyVariantId: sharedPrice.shopifyVariantId ?? '',
-                sizeValue: sheetResolved,
-                flavourHandle: 'default',
-                quantity: 1,
-                price: sharedPrice.priceInCents,
-                isAddon: true,
-              });
-            }
+        }
+
+        // Sheet cake add-ons + regular add-ons at sheet cake tier
+        for (const sheetId of sheetCakeIds) {
+          const sheetAddon = (selectedProduct.addons || []).find((a) => a.id === sheetId)!;
+          const sheetSize = addonSizes[sheetId];
+          if (!sheetSize) continue;
+          const sheetResolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize));
+          if (!sheetResolved) continue;
+
+          // Sheet cake itself
+          const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default');
+          if (sheetPrice) {
+            items.push({
+              productId: sheetAddon.id, productName: sheetAddon.name, shopifyProductId: '',
+              variantId: sheetAddon.id, variantLabel: `${sheetSize} ${isFr ? 'invités' : 'guests'}`,
+              shopifyVariantId: sheetPrice.shopifyVariantId ?? '',
+              sizeValue: sheetResolved, flavourHandle: 'default', quantity: 1,
+              price: sheetPrice.priceInCents, isAddon: true,
+            });
+          }
+
+          // Regular add-ons at sheet cake tier
+          for (const addonId of regularAddonIds) {
+            const addon = (selectedProduct.addons || []).find((a) => a.id === addonId)!;
+            const addonPrice = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
+            if (!addonPrice) continue;
+            items.push({
+              productId: addon.id, productName: addon.name, shopifyProductId: '',
+              variantId: `${addon.id}-sheet`, variantLabel: `${addon.name} (${isFr ? 'gâteau feuille' : 'sheet cake'})`,
+              shopifyVariantId: addonPrice.shopifyVariantId ?? '',
+              sizeValue: sheetResolved, flavourHandle: 'default', quantity: 1,
+              price: addonPrice.priceInCents, isAddon: true,
+            });
           }
         }
       }
