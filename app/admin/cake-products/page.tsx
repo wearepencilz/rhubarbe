@@ -113,12 +113,8 @@ export default function CakeProductsPage() {
     if (items.length === 0) return null;
     const label = typeKey === '__unassigned__' ? 'Uncategorized' : (TYPE_LABELS[typeKey] ?? typeKey);
     return (
-      <div key={typeKey} className="mb-8 last:mb-0">
-        <div className="flex items-center gap-3 mb-3 px-6">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h3>
-          <span className="text-xs text-gray-400">{items.length}</span>
-          <div className="flex-1 border-t border-gray-100" />
-        </div>
+      <TableCard.Root key={typeKey}>
+        <TableCard.Header title={label} badge={items.length} />
         <Table aria-label={`${label} Cake Products`}>
           <Table.Header>
             <Table.Head isRowHeader label="Product" />
@@ -157,45 +153,44 @@ export default function CakeProductsPage() {
             )}
           </Table.Body>
         </Table>
-      </div>
+      </TableCard.Root>
     );
   }
 
   return (
     <>
       <ShopifyProductPicker onSelect={handleImportFromShopify} onOpenRef={shopifyPickerRef} trigger={<span />} />
-      <TableCard.Root>
-        <TableCard.Header
-          title="Cake Products"
-          badge={products.length}
-          description="Manage products available for cake ordering"
-          contentTrailing={
-            <div className="flex items-center gap-3">
-              <Button variant="secondary" size="sm" onClick={() => shopifyPickerRef.current?.()} isDisabled={importing}>
-                {importing ? 'Importing…' : 'Import from Shopify'}
-              </Button>
-              <Link href="/admin/cake-products/create">
-                <Button variant="primary" size="sm" iconLeading={Plus}>Create Cake Product</Button>
-              </Link>
-            </div>
-          }
-        />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
-          </div>
-        ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <p className="text-sm text-tertiary">No cake products found</p>
-            <p className="text-xs text-tertiary max-w-sm">Import from Shopify or create a new cake product to get started.</p>
-          </div>
-        ) : (
-          <div className="py-4">
-            {TYPE_ORDER.map((type) => renderGroup(type, grouped[type] ?? []))}
-          </div>
-        )}
-      </TableCard.Root>
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Cake Products</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage products available for cake ordering</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={() => shopifyPickerRef.current?.()} isDisabled={importing}>
+            {importing ? 'Importing…' : 'Import from Shopify'}
+          </Button>
+          <Link href="/admin/cake-products/create">
+            <Button variant="primary" size="sm" iconLeading={Plus}>Create Cake Product</Button>
+          </Link>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
+        </div>
+      ) : products.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <p className="text-sm text-tertiary">No cake products found</p>
+          <p className="text-xs text-tertiary max-w-sm">Import from Shopify or create a new cake product to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {TYPE_ORDER.map((type) => renderGroup(type, grouped[type] ?? []))}
+        </div>
+      )}
     </>
   );
 }
