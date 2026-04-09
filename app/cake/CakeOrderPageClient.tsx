@@ -89,6 +89,7 @@ interface PersistedCart {
   addonIds: string[];
   addonSizes?: Record<string, string>;
   sheetCakeAddonIds?: string[];
+  sheetCakeFlavour?: string;
   computedPrice: number | null;
 }
 
@@ -489,7 +490,7 @@ function CakeInlineCart({
   // New props for grid-based products
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
-  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange, sheetCakeAddonIds, onToggleSheetAddon,
+  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange, sheetCakeAddonIds, onToggleSheetAddon, sheetCakeFlavour, onSheetCakeFlavourChange,
   gridMinSize, gridMaxSize, blockedDates, latestDateStr,
 }: {
   selectedProduct: CakeProduct | null;
@@ -531,6 +532,8 @@ function CakeInlineCart({
   onAddonSizeChange: (addonId: string, size: string) => void;
   sheetCakeAddonIds: string[];
   onToggleSheetAddon: (addonId: string) => void;
+  sheetCakeFlavour: string;
+  onSheetCakeFlavourChange: (handle: string) => void;
   gridMinSize: number;
   gridMaxSize: number | null;
   blockedDates: Set<string>;
@@ -593,10 +596,10 @@ function CakeInlineCart({
     // Each sheet cake: its own price + regular add-ons at sheet cake tier
     for (const sheetAddon of sheetCakeAddons) {
       const sheetSize = addonSizes[sheetAddon.id];
-      if (!sheetSize) continue;
+      if (!sheetSize || !sheetCakeFlavour) continue;
       const sheetResolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize));
       if (!sheetResolved) continue;
-      const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default');
+      const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, sheetCakeFlavour);
       if (sheetPrice) total += sheetPrice.priceInCents;
       // Add-ons at sheet cake tier
       for (const addonId of sheetCakeAddonIds) {
@@ -608,7 +611,7 @@ function CakeInlineCart({
     }
 
     return total;
-  }, [selectedProduct, enabledAddonIds, sheetCakeAddonIds, resolvedSize, addons, addonSizes]);
+  }, [selectedProduct, enabledAddonIds, sheetCakeAddonIds, sheetCakeFlavour, resolvedSize, addons, addonSizes]);
 
   // Selected flavour names and allergens for display
   const selectedFlavourNames = useMemo(() => {
@@ -839,10 +842,16 @@ function CakeInlineCart({
             const sheetEnabled = enabledAddonIds.includes(sheetAddon.id);
             const sheetSize = addonSizes[sheetAddon.id] || '';
             const sheetResolved = sheetSize ? resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize)) : null;
-            const sheetPrice = sheetResolved ? resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default') : null;
+            const sheetFlavourHandle = sheetCakeFlavour || '';
+            const sheetPrice = (sheetResolved && sheetFlavourHandle)
+              ? resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, sheetFlavourHandle)
+              : null;
             const regularAddons = addons.filter((a) => a.cakeProductType !== 'sheet-cake');
 
-            // Sheet cake subtotal: sheet price + enabled sheet add-ons
+            // Available flavours from the sheet cake's config
+            const sheetFlavours = (sheetAddon as any).cakeFlavourConfig as Array<{ handle: string; label: { en: string; fr: string }; active: boolean }> | undefined;
+
+            // Sheet cake subtotal
             let sheetSubtotal = sheetPrice?.priceInCents ?? 0;
             if (sheetResolved) {
               for (const rid of sheetCakeAddonIds) {
@@ -870,6 +879,21 @@ function CakeInlineCart({
 
                   {sheetEnabled && (
                     <div className="space-y-2 pl-1 border-l-2 border-gray-100 ml-1">
+                      {/* Flavour selector */}
+                      {sheetFlavours && sheetFlavours.length > 0 && (
+                        <div className="pl-2">
+                          <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</label>
+                          <select value={sheetFlavourHandle}
+                            onChange={(e) => onSheetCakeFlavourChange(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent mt-0.5">
+                            <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
+                            {sheetFlavours.filter((f) => f.active).map((f) => (
+                              <option key={f.handle} value={f.handle}>{tr(f.label, locale)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
                       {/* Guests input */}
                       <div className="pl-2">
                         <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</label>
@@ -1102,7 +1126,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [enabledAddonIds, setEnabledAddonIds] = useState<string[]>([]);
   const [addonSizes, setAddonSizes] = useState<Record<string, string>>({});
-  const [sheetCakeAddonIds, setSheetCakeAddonIds] = useState<string[]>([]); // regular add-ons enabled for sheet cake
+  const [sheetCakeAddonIds, setSheetCakeAddonIds] = useState<string[]>([]);
+  const [sheetCakeFlavour, setSheetCakeFlavour] = useState(''); // regular add-ons enabled for sheet cake
 
   const [pickupDate, setPickupDate] = useState<string>('');
   const [eventType, setEventType] = useState<string>('');
@@ -1414,9 +1439,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       addonIds: enabledAddonIds,
       addonSizes,
       sheetCakeAddonIds,
+      sheetCakeFlavour,
       computedPrice: effectivePrice,
     });
-  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, addonSizes, sheetCakeAddonIds, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
+  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, addonSizes, sheetCakeAddonIds, sheetCakeFlavour, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
 
   // ── Cart persistence: restore on page load ──
   useEffect(() => {
@@ -1436,6 +1462,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     setEnabledAddonIds(saved.addonIds || []);
     setAddonSizes(saved.addonSizes || {});
     setSheetCakeAddonIds(saved.sheetCakeAddonIds || []);
+    setSheetCakeFlavour(saved.sheetCakeFlavour || '');
 
     if (isLegacy(product) && product.pricingTiers.length > 0) {
       const minPeople = product.pricingTiers
@@ -1529,13 +1556,13 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           if (!sheetResolved) continue;
 
           // Sheet cake itself
-          const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, 'default');
+          const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, sheetCakeFlavour || 'default');
           if (sheetPrice) {
             items.push({
               productId: sheetAddon.id, productName: sheetAddon.name, shopifyProductId: '',
               variantId: sheetAddon.id, variantLabel: `${sheetSize} ${isFr ? 'invités' : 'guests'}`,
               shopifyVariantId: sheetPrice.shopifyVariantId ?? '',
-              sizeValue: sheetResolved, flavourHandle: 'default', quantity: 1,
+              sizeValue: sheetResolved, flavourHandle: sheetCakeFlavour || 'default', quantity: 1,
               price: sheetPrice.priceInCents, isAddon: true,
             });
           }
@@ -1635,6 +1662,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     onAddonSizeChange: (addonId: string, size: string) => setAddonSizes((prev) => ({ ...prev, [addonId]: size })),
     sheetCakeAddonIds,
     onToggleSheetAddon: (addonId: string) => setSheetCakeAddonIds((prev) => prev.includes(addonId) ? prev.filter((id) => id !== addonId) : [...prev, addonId]),
+    sheetCakeFlavour,
+    onSheetCakeFlavourChange: setSheetCakeFlavour,
     gridMinSize,
     gridMaxSize,
     blockedDates,

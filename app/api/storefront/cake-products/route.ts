@@ -156,6 +156,7 @@ export async function GET() {
             shopifyProductId: products.shopifyProductId,
             cakeDescription: products.cakeDescription,
             cakeProductType: products.cakeProductType,
+            cakeFlavourConfig: products.cakeFlavourConfig,
             translations: products.translations,
           })
           .from(products)
@@ -277,6 +278,7 @@ export async function GET() {
               image: addonProduct.image ?? null,
               cakeDescription: addonProduct.cakeDescription ?? { en: '', fr: '' },
               cakeProductType: addonProduct.cakeProductType ?? null,
+              cakeFlavourConfig: addonProduct.cakeFlavourConfig ?? [],
               pricingGrid: addonPricing.pricingGrid,
             };
           })
