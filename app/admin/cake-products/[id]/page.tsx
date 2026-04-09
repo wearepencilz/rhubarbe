@@ -74,6 +74,7 @@ interface CakeProduct {
   cakeDescription: { en: string; fr: string } | null;
   cakeInstructions: { en: string; fr: string } | null;
   cakeMinPeople: number | null;
+  cakeMaxPeople: number | null;
   cakeFlavourNotes: { en: string; fr: string } | null;
   cakeDeliveryAvailable: boolean;
   shopifyProductId: string | null;
@@ -674,6 +675,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
   const [tierDetailConfig, setTierDetailConfig] = useState<CakeTierDetailEntry[]>([]);
   const [addonLinks, setAddonLinks] = useState<AddonLink[]>([]);
   const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
+  const [cakeMaxPeople, setCakeMaxPeople] = useState<number | null>(null);
 
   // Core product fields (merged from product edit page)
   const [productName, setProductName] = useState('');
@@ -730,6 +732,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       setTierDetailConfig(data.cakeTierDetailConfig ?? []);
       setAddonLinks(data.addonLinks ?? []);
       setMaxAdvanceDays(data.maxAdvanceDays ?? null);
+      setCakeMaxPeople(data.cakeMaxPeople ?? null);
 
       // Core product fields
       setProductName(data.name ?? '');
@@ -865,6 +868,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
           category: productCategory || null,
           status: productStatus,
           allergens,
+          cakeMaxPeople: cakeMaxPeople && cakeMaxPeople > 0 ? cakeMaxPeople : null,
           taxBehavior,
           taxThreshold,
           taxUnitCount,
@@ -1144,19 +1148,35 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
           </div>
 
           {/* Max advance booking */}
-          <div>
-            <label htmlFor="maxAdvanceDays" className="block text-sm font-medium text-gray-700 mb-1">Max advance booking (days)</label>
-            <input
-              id="maxAdvanceDays"
-              type="number"
-              min={0}
-              max={365}
-              value={maxAdvanceDays ?? ''}
-              onChange={(e) => { setMaxAdvanceDays(e.target.value ? parseInt(e.target.value) || null : null); markDirty(); }}
-              placeholder="No limit"
-              className="w-40 px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            <p className="text-xs text-gray-400 mt-1">How far in advance customers can book. Leave empty for no limit.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="maxAdvanceDays" className="block text-sm font-medium text-gray-700 mb-1">Max advance booking (days)</label>
+              <input
+                id="maxAdvanceDays"
+                type="number"
+                min={0}
+                max={365}
+                value={maxAdvanceDays ?? ''}
+                onChange={(e) => { setMaxAdvanceDays(e.target.value ? parseInt(e.target.value) || null : null); markDirty(); }}
+                placeholder="No limit"
+                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">How far in advance customers can book.</p>
+            </div>
+            <div>
+              <label htmlFor="cakeMaxPeople" className="block text-sm font-medium text-gray-700 mb-1">Maximum size (people)</label>
+              <input
+                id="cakeMaxPeople"
+                type="number"
+                min={1}
+                max={1000}
+                value={cakeMaxPeople ?? ''}
+                onChange={(e) => { setCakeMaxPeople(e.target.value ? parseInt(e.target.value) || null : null); markDirty(); }}
+                placeholder="No limit"
+                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Largest order size in people/guests.</p>
+            </div>
           </div>
         </SectionCard>
 

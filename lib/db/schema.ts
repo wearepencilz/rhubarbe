@@ -103,6 +103,7 @@ export const products = pgTable('products', {
   cakeDescription: customJsonb<{ en: string; fr: string }>('cake_description'),
   cakeInstructions: customJsonb<{ en: string; fr: string }>('cake_instructions'),
   cakeMinPeople: integer('cake_min_people'),
+  cakeMaxPeople: integer('cake_max_people'),
 
   // Ordering system extension fields
   nextAvailableDate: timestamp('next_available_date'),

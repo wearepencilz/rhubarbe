@@ -63,6 +63,7 @@ interface CakeProduct {
   cakeFlavourNotes: TranslationObject | null;
   cakeInstructions: TranslationObject;
   cakeMinPeople: number;
+  cakeMaxPeople: number | null;
   shortCardCopy: string | null;
   allergens: string[];
   leadTimeTiers: LeadTimeTier[];
@@ -486,7 +487,7 @@ function CakeInlineCart({
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
   gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon,
-  gridMinSize, blockedDates, latestDateStr,
+  gridMinSize, gridMaxSize, blockedDates, latestDateStr,
 }: {
   selectedProduct: CakeProduct | null;
   numberOfPeople: number;
@@ -524,6 +525,7 @@ function CakeInlineCart({
   enabledAddonIds: string[];
   onToggleAddon: (addonId: string) => void;
   gridMinSize: number;
+  gridMaxSize: number | null;
   blockedDates: Set<string>;
   latestDateStr: string | null;
 }) {
@@ -592,9 +594,11 @@ function CakeInlineCart({
     return Array.from(all);
   }, [selectedProduct, selectedFlavourHandles]);
 
+  const aboveMax = gridMaxSize != null && parseInt(selectedSize) > gridMaxSize;
+
   // Can checkout?
   const canCheckout = useMemo(() => {
-    if (!selectedProduct || !pickupDate || !!dateWarning || belowMin) return false;
+    if (!selectedProduct || !pickupDate || !!dateWarning || belowMin || aboveMax) return false;
     if (isTastingProduct) return true;
     if (isGridProduct) {
       // Croquembouche can checkout with just size (flavours are optional metadata)
@@ -603,7 +607,7 @@ function CakeInlineCart({
     }
     // Legacy
     return calculatedPrice != null;
-  }, [selectedProduct, pickupDate, dateWarning, belowMin, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
+  }, [selectedProduct, pickupDate, dateWarning, belowMin, aboveMax, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
@@ -714,6 +718,11 @@ function CakeInlineCart({
                 {belowMin && (
                   <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                     {isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}
+                  </p>
+                )}
+                {gridMaxSize && parseInt(selectedSize) > gridMaxSize && (
+                  <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    {isFr ? `Maximum ${gridMaxSize}` : `Maximum ${gridMaxSize}`}
                   </p>
                 )}
               </div>
@@ -1186,6 +1195,12 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     return isCroquembouche(selectedProduct) ? Math.ceil(min / CROQ_CHOUX_PER_GUEST) : min;
   }, [selectedProduct]);
 
+  // Grid maximum for display (from cakeMaxPeople)
+  const gridMaxSize = useMemo(() => {
+    if (!selectedProduct?.cakeMaxPeople) return null;
+    return selectedProduct.cakeMaxPeople;
+  }, [selectedProduct]);
+
   // ── Flavour toggle handler ──
   const handleToggleFlavour = useCallback((handle: string) => {
     if (!selectedProduct) return;
@@ -1455,6 +1470,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     enabledAddonIds,
     onToggleAddon: handleToggleAddon,
     gridMinSize,
+    gridMaxSize,
     blockedDates,
     latestDateStr,
   };
