@@ -977,16 +977,6 @@ function CakeInlineCart({
             );
           })()}
 
-          {/* Addon total */}
-          {addonTotal > 0 && (
-            <div className="flex justify-between text-xs text-gray-600">
-              <span>{isFr ? 'Options' : 'Add-ons'}</span>
-              <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                +${(addonTotal / 100).toFixed(2)}
-              </span>
-            </div>
-          )}
-
           {/* Grand total for grid products */}
           {isGridProduct && gridPrice && (
             <div className="flex justify-between text-sm font-semibold border-t border-gray-100 pt-2">
