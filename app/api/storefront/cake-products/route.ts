@@ -157,6 +157,8 @@ export async function GET() {
             cakeDescription: products.cakeDescription,
             cakeProductType: products.cakeProductType,
             cakeFlavourConfig: products.cakeFlavourConfig,
+            cakeMinPeople: products.cakeMinPeople,
+            cakeMaxPeople: products.cakeMaxPeople,
             translations: products.translations,
           })
           .from(products)
@@ -279,6 +281,8 @@ export async function GET() {
               cakeDescription: addonProduct.cakeDescription ?? { en: '', fr: '' },
               cakeProductType: addonProduct.cakeProductType ?? null,
               cakeFlavourConfig: addonProduct.cakeFlavourConfig ?? [],
+              cakeMinPeople: addonProduct.cakeMinPeople ?? null,
+              cakeMaxPeople: addonProduct.cakeMaxPeople ?? null,
               pricingGrid: addonPricing.pricingGrid,
             };
           })

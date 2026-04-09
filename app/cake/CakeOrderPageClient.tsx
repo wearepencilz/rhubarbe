@@ -50,6 +50,8 @@ interface AddonProduct {
   image: string | null;
   cakeDescription: { en: string; fr: string };
   cakeProductType: string | null;
+  cakeMinPeople?: number | null;
+  cakeMaxPeople?: number | null;
   pricingGrid: PricingGridRow[];
 }
 
@@ -636,9 +638,21 @@ function CakeInlineCart({
 
   const aboveMax = gridMaxSize != null && parseInt(selectedSize) > gridMaxSize;
 
+  // Sheet cake validation
+  const sheetCakeInvalid = useMemo(() => {
+    if (!selectedProduct) return false;
+    const sheetAddon = addons.find((a) => a.cakeProductType === 'sheet-cake');
+    if (!sheetAddon || !enabledAddonIds.includes(sheetAddon.id)) return false;
+    const size = parseInt(addonSizes[sheetAddon.id]);
+    if (!size || !sheetCakeFlavour) return true; // enabled but no flavour or size
+    if (sheetAddon.cakeMinPeople && size < sheetAddon.cakeMinPeople) return true;
+    if (sheetAddon.cakeMaxPeople && size > sheetAddon.cakeMaxPeople) return true;
+    return false;
+  }, [selectedProduct, addons, enabledAddonIds, addonSizes, sheetCakeFlavour]);
+
   // Can checkout?
   const canCheckout = useMemo(() => {
-    if (!selectedProduct || !pickupDate || !!dateWarning || belowMin || aboveMax) return false;
+    if (!selectedProduct || !pickupDate || !!dateWarning || belowMin || aboveMax || sheetCakeInvalid) return false;
     if (isTastingProduct) return true;
     if (isGridProduct) {
       // Croquembouche can checkout with just size (flavours are optional metadata)
@@ -647,7 +661,7 @@ function CakeInlineCart({
     }
     // Legacy
     return calculatedPrice != null;
-  }, [selectedProduct, pickupDate, dateWarning, belowMin, aboveMax, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
+  }, [selectedProduct, pickupDate, dateWarning, belowMin, aboveMax, sheetCakeInvalid, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
@@ -897,10 +911,24 @@ function CakeInlineCart({
                       {/* Guests input */}
                       <div className="pl-2">
                         <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</label>
-                        <input type="number" min={1} value={sheetSize} placeholder=""
+                        <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
                           onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent mt-0.5"
+                          className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent mt-0.5 ${
+                            (sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople) ||
+                            (sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople)
+                              ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'
+                          }`}
                           aria-label={`${tr(sheetAddon.title, locale)} guests`} />
+                        {sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople && (
+                          <p className="text-[10px] text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                            {isFr ? `Minimum ${sheetAddon.cakeMinPeople}` : `Minimum ${sheetAddon.cakeMinPeople}`}
+                          </p>
+                        )}
+                        {sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople && (
+                          <p className="text-[10px] text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                            {isFr ? `Maximum ${sheetAddon.cakeMaxPeople}` : `Maximum ${sheetAddon.cakeMaxPeople}`}
+                          </p>
+                        )}
                       </div>
 
                       {/* Sheet cake price */}
