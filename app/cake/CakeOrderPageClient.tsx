@@ -900,13 +900,18 @@ function CakeInlineCart({
 
                   {sheetEnabled && (
                     <div className="space-y-2">
-                      {/* Flavour selector */}
+                      {/* Description */}
+                      {tr(sheetAddon.cakeDescription, locale) && (
+                        <p className="text-[11px] text-gray-400 leading-relaxed">{tr(sheetAddon.cakeDescription, locale)}</p>
+                      )}
+
+                      {/* Flavour selector — label left, input right */}
                       {sheetFlavours && sheetFlavours.length > 0 && (
-                        <div className="">
-                          <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</label>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] text-gray-500 uppercase tracking-wide shrink-0">{isFr ? 'Saveur' : 'Flavour'}</span>
                           <select value={sheetFlavourHandle}
                             onChange={(e) => onSheetCakeFlavourChange(e.target.value)}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent mt-0.5">
+                            className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent">
                             <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
                             {sheetFlavours.filter((f) => f.active).map((f) => (
                               <option key={f.handle} value={f.handle}>{tr(f.label, locale)}</option>
@@ -915,24 +920,26 @@ function CakeInlineCart({
                         </div>
                       )}
 
-                      {/* Guests input */}
-                      <div className="">
-                        <label className="text-[11px] text-gray-500 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</label>
-                        <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
-                          onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
-                          className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent mt-0.5 ${
-                            (sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople) ||
-                            (sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople)
-                              ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'
-                          }`}
-                          aria-label={`${tr(sheetAddon.title, locale)} guests`} />
+                      {/* Guests input — label left, input right */}
+                      <div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] text-gray-500 uppercase tracking-wide shrink-0">{isFr ? 'Invités' : 'Guests'}</span>
+                          <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
+                            onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
+                            className={`flex-1 px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent ${
+                              (sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople) ||
+                              (sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople)
+                                ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-gray-900'
+                            }`}
+                            aria-label={`${tr(sheetAddon.title, locale)} guests`} />
+                        </div>
                         {sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople && (
-                          <p className="text-[10px] text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                          <p className="text-[10px] text-red-500 mt-0.5 text-right" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                             {isFr ? `Minimum ${sheetAddon.cakeMinPeople}` : `Minimum ${sheetAddon.cakeMinPeople}`}
                           </p>
                         )}
                         {sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople && (
-                          <p className="text-[10px] text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                          <p className="text-[10px] text-red-500 mt-0.5 text-right" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
                             {isFr ? `Maximum ${sheetAddon.cakeMaxPeople}` : `Maximum ${sheetAddon.cakeMaxPeople}`}
                           </p>
                         )}
@@ -946,7 +953,7 @@ function CakeInlineCart({
                         </div>
                       )}
 
-                      {/* Add-ons for sheet cake */}
+                      {/* Add-ons for sheet cake — price on right before toggle */}
                       {regularAddons.length > 0 && sheetResolved && (
                         <div className="space-y-1.5">
                           <p className="text-[11px] text-gray-400 uppercase tracking-wide">{isFr ? 'Options' : 'Add-ons'}</p>
@@ -955,12 +962,10 @@ function CakeInlineCart({
                             const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
                             return (
                               <div key={addon.id} className="flex items-center justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] text-gray-600">{tr(addon.title, locale)}</p>
-                                  {ap && <p className="text-[10px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(ap.priceInCents / 100).toFixed(2)}</p>}
-                                </div>
+                                <p className="text-[11px] text-gray-600 flex-1 min-w-0">{tr(addon.title, locale)}</p>
+                                {ap && <span className="text-[10px] text-gray-400 shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(ap.priceInCents / 100).toFixed(2)}</span>}
                                 <button type="button" onClick={() => onToggleSheetAddon(addon.id)}
-                                  className={`relative w-8 h-4 rounded-full transition-colors ${isOn ? 'bg-[#333112]' : 'bg-gray-300'}`}
+                                  className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${isOn ? 'bg-[#333112]' : 'bg-gray-300'}`}
                                   aria-label={`${isOn ? 'Remove' : 'Add'} ${tr(addon.title, locale)} for sheet cake`} aria-pressed={isOn}>
                                   <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${isOn ? 'translate-x-4' : 'translate-x-0'}`} />
                                 </button>
