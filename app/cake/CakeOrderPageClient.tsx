@@ -49,6 +49,7 @@ interface AddonProduct {
   title: { en: string; fr: string };
   image: string | null;
   cakeDescription: { en: string; fr: string };
+  cakeProductType: string | null;
   pricingGrid: PricingGridRow[];
 }
 
@@ -86,6 +87,7 @@ interface PersistedCart {
   selectedFlavourHandles: string[];
   selectedSize: string;
   addonIds: string[];
+  addonSizes?: Record<string, string>; // addonId → guest count for sheet cake add-ons
   computedPrice: number | null;
 }
 
@@ -486,7 +488,7 @@ function CakeInlineCart({
   // New props for grid-based products
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
-  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon,
+  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange,
   gridMinSize, gridMaxSize, blockedDates, latestDateStr,
 }: {
   selectedProduct: CakeProduct | null;
@@ -524,6 +526,8 @@ function CakeInlineCart({
   addons: AddonProduct[];
   enabledAddonIds: string[];
   onToggleAddon: (addonId: string) => void;
+  addonSizes: Record<string, string>;
+  onAddonSizeChange: (addonId: string, size: string) => void;
   gridMinSize: number;
   gridMaxSize: number | null;
   blockedDates: Set<string>;
@@ -562,16 +566,28 @@ function CakeInlineCart({
 
   // Compute addon total
   const addonTotal = useMemo(() => {
-    if (!selectedProduct || enabledAddonIds.length === 0 || !resolvedSize) return 0;
+    if (!selectedProduct || enabledAddonIds.length === 0) return 0;
     let total = 0;
     for (const addonId of enabledAddonIds) {
       const addon = addons.find((a) => a.id === addonId);
       if (!addon) continue;
-      const resolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
-      if (resolved) total += resolved.priceInCents;
+      // Sheet cake add-ons use their own size
+      if (addon.cakeProductType === 'sheet-cake') {
+        const addonSize = addonSizes[addonId];
+        if (!addonSize) continue;
+        const addonResolved = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize));
+        if (!addonResolved) continue;
+        const price = resolvePricingGridPrice(addon.pricingGrid, addonResolved, 'default');
+        if (price) total += price.priceInCents;
+      } else {
+        // Other add-ons use the main product's resolved size
+        if (!resolvedSize) continue;
+        const price = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
+        if (price) total += price.priceInCents;
+      }
     }
     return total;
-  }, [selectedProduct, enabledAddonIds, resolvedSize, addons]);
+  }, [selectedProduct, enabledAddonIds, resolvedSize, addons, addonSizes]);
 
   // Selected flavour names and allergens for display
   const selectedFlavourNames = useMemo(() => {
@@ -770,37 +786,61 @@ function CakeInlineCart({
                   {isFr ? 'Options' : 'Add-ons'}
                 </p>
                 {addons.map((addon) => {
-                  const addonPrice = resolvedSize
-                    ? resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default')
+                  const isSheetCake = addon.cakeProductType === 'sheet-cake';
+                  const addonSize = addonSizes[addon.id] || '';
+                  const addonResolvedSize = isSheetCake && addonSize
+                    ? resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(addonSize))
+                    : resolvedSize;
+                  const addonPrice = addonResolvedSize
+                    ? resolvePricingGridPrice(addon.pricingGrid, addonResolvedSize, 'default')
                     : null;
                   const isEnabled = enabledAddonIds.includes(addon.id);
-                  const noSize = !resolvedSize;
+                  const noSize = isSheetCake ? false : !resolvedSize;
 
                   return (
-                    <div key={addon.id} className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
-                        {addonPrice && (
-                          <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                            +${(addonPrice.priceInCents / 100).toFixed(2)}
-                          </p>
-                        )}
+                    <div key={addon.id} className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-700">{tr(addon.title, locale)}</p>
+                          {addonPrice && (
+                            <p className="text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                              +${(addonPrice.priceInCents / 100).toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onToggleAddon(addon.id)}
+                          disabled={noSize}
+                          className={`relative w-9 h-5 rounded-full transition-colors ${
+                            noSize ? 'bg-gray-200 cursor-not-allowed' :
+                            isEnabled ? 'bg-[#333112]' : 'bg-gray-300'
+                          }`}
+                          aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`}
+                          aria-pressed={isEnabled}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            isEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onToggleAddon(addon.id)}
-                        disabled={noSize}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${
-                          noSize ? 'bg-gray-200 cursor-not-allowed' :
-                          isEnabled ? 'bg-[#333112]' : 'bg-gray-300'
-                        }`}
-                        aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`}
-                        aria-pressed={isEnabled}
-                      >
-                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                          isEnabled ? 'translate-x-4' : 'translate-x-0'
-                        }`} />
-                      </button>
+                      {/* Sheet cake add-on: independent guests input */}
+                      {isSheetCake && isEnabled && (
+                        <div className="pl-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={addonSize}
+                            placeholder={isFr ? 'Invités' : 'Guests'}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              onAddonSizeChange(addon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0))));
+                            }}
+                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-900 bg-transparent"
+                            aria-label={`${tr(addon.title, locale)} guests`}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -984,6 +1024,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const [selectedFlavourHandles, setSelectedFlavourHandles] = useState<string[]>([]);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [enabledAddonIds, setEnabledAddonIds] = useState<string[]>([]);
+  const [addonSizes, setAddonSizes] = useState<Record<string, string>>({});
 
   const [pickupDate, setPickupDate] = useState<string>('');
   const [eventType, setEventType] = useState<string>('');
@@ -1293,9 +1334,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       selectedFlavourHandles,
       selectedSize,
       addonIds: enabledAddonIds,
+      addonSizes,
       computedPrice: effectivePrice,
     });
-  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
+  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, addonSizes, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
 
   // ── Cart persistence: restore on page load ──
   useEffect(() => {
@@ -1313,6 +1355,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     setSelectedFlavourHandles(saved.selectedFlavourHandles || []);
     setSelectedSize(saved.selectedSize || '');
     setEnabledAddonIds(saved.addonIds || []);
+    setAddonSizes(saved.addonSizes || {});
 
     if (isLegacy(product) && product.pricingTiers.length > 0) {
       const minPeople = product.pricingTiers
@@ -1377,21 +1420,85 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         for (const addonId of enabledAddonIds) {
           const addon = (selectedProduct.addons || []).find((a) => a.id === addonId);
           if (!addon) continue;
-          const addonResolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize!, 'default');
-          if (!addonResolved) continue;
-          items.push({
-            productId: addon.id,
-            productName: addon.name,
-            shopifyProductId: '',
-            variantId: addon.id,
-            variantLabel: addon.name,
-            shopifyVariantId: addonResolved.shopifyVariantId ?? '',
-            sizeValue: resolvedSize,
-            flavourHandle: 'default',
-            quantity: 1,
-            price: addonResolved.priceInCents,
-            isAddon: true,
+
+          if (addon.cakeProductType === 'sheet-cake') {
+            // Sheet cake add-on: use its own size
+            const sheetSize = addonSizes[addonId];
+            if (!sheetSize) continue;
+            const sheetResolved = resolveNearestSize(getAvailableSizes(addon.pricingGrid), parseInt(sheetSize));
+            if (!sheetResolved) continue;
+            const sheetPrice = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
+            if (!sheetPrice) continue;
+            items.push({
+              productId: addon.id,
+              productName: addon.name,
+              shopifyProductId: '',
+              variantId: addon.id,
+              variantLabel: `${sheetSize} ${isFr ? 'invités' : 'guests'}`,
+              shopifyVariantId: sheetPrice.shopifyVariantId ?? '',
+              sizeValue: sheetResolved,
+              flavourHandle: 'default',
+              quantity: 1,
+              price: sheetPrice.priceInCents,
+              isAddon: true,
+            });
+          } else {
+            // Regular add-ons: use main product's resolved size
+            const addonResolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize!, 'default');
+            if (!addonResolved) continue;
+            items.push({
+              productId: addon.id,
+              productName: addon.name,
+              shopifyProductId: '',
+              variantId: addon.id,
+              variantLabel: addon.name,
+              shopifyVariantId: addonResolved.shopifyVariantId ?? '',
+              sizeValue: resolvedSize,
+              flavourHandle: 'default',
+              quantity: 1,
+              price: addonResolved.priceInCents,
+              isAddon: true,
+            });
+          }
+        }
+
+        // Duplicate shared add-ons (non-sheet-cake) for sheet cake add-ons
+        const sheetCakeAddonIds = enabledAddonIds.filter((id) => {
+          const a = (selectedProduct.addons || []).find((x) => x.id === id);
+          return a?.cakeProductType === 'sheet-cake';
+        });
+        if (sheetCakeAddonIds.length > 0) {
+          const sharedAddonIds = enabledAddonIds.filter((id) => {
+            const a = (selectedProduct.addons || []).find((x) => x.id === id);
+            return a && a.cakeProductType !== 'sheet-cake';
           });
+          for (const sheetId of sheetCakeAddonIds) {
+            const sheetSize = addonSizes[sheetId];
+            if (!sheetSize) continue;
+            const sheetResolved = resolveNearestSize(getAvailableSizes(
+              ((selectedProduct.addons || []).find((a) => a.id === sheetId))?.pricingGrid || []
+            ), parseInt(sheetSize));
+            if (!sheetResolved) continue;
+            for (const sharedId of sharedAddonIds) {
+              const shared = (selectedProduct.addons || []).find((a) => a.id === sharedId);
+              if (!shared) continue;
+              const sharedPrice = resolvePricingGridPrice(shared.pricingGrid, sheetResolved, 'default');
+              if (!sharedPrice) continue;
+              items.push({
+                productId: shared.id,
+                productName: `${shared.name} (${isFr ? 'gâteau feuille' : 'sheet cake'})`,
+                shopifyProductId: '',
+                variantId: `${shared.id}-sheet-${sheetId}`,
+                variantLabel: `${shared.name} — ${sheetSize} ${isFr ? 'invités' : 'guests'}`,
+                shopifyVariantId: sharedPrice.shopifyVariantId ?? '',
+                sizeValue: sheetResolved,
+                flavourHandle: 'default',
+                quantity: 1,
+                price: sharedPrice.priceInCents,
+                isAddon: true,
+              });
+            }
+          }
         }
       }
 
@@ -1469,6 +1576,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     addons: selectedProduct?.addons ?? [],
     enabledAddonIds,
     onToggleAddon: handleToggleAddon,
+    addonSizes,
+    onAddonSizeChange: (addonId: string, size: string) => setAddonSizes((prev) => ({ ...prev, [addonId]: size })),
     gridMinSize,
     gridMaxSize,
     blockedDates,
