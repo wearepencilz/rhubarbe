@@ -108,6 +108,7 @@ export async function PUT(
       'defaultPickupRequired', 'onlineOrderable', 'pickupOnly',
       'volumeEnabled', 'volumeDescription', 'volumeInstructions', 'volumeMinOrderQuantity',
       'cakeEnabled', 'cakeDescription', 'cakeInstructions', 'cakeMinPeople', 'cakeMaxPeople',
+      'cakeProductType', 'cakeFlavourConfig', 'cakeTierDetailConfig', 'cakeMaxFlavours',
       'nextAvailableDate', 'servesPerUnit', 'cakeFlavourNotes', 'cakeDeliveryAvailable',
       'taxBehavior', 'taxThreshold', 'taxUnitCount', 'shopifyTaxExemptVariantId',
     ]);
