@@ -15,6 +15,7 @@ export async function list(filters?: {
   const rows = await db
     .select()
     .from(products)
+    .where(eq(products.cakeEnabled, false))
     .orderBy(asc(products.name));
 
   let result = rows;
