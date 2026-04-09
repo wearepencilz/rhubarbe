@@ -29,6 +29,15 @@ interface VolumeProduct {
   maxAdvanceDays: number | null;
   shopifyProductId: string | null;
   shopifyProductHandle: string | null;
+  cateringType: string | null;
+  cateringDescription: { en: string; fr: string } | null;
+  cateringFlavourName: { en: string; fr: string } | null;
+  cateringEndDate: string | null;
+  allergens: string[] | null;
+  dietaryTags: string[] | null;
+  temperatureTags: string[] | null;
+  tags: string[] | null;
+  status: string | null;
   leadTimeTiers: LeadTimeTier[];
   volumeVariants: Array<{
     id?: string;
@@ -94,6 +103,21 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
     description: { en: string; fr: string };
   }>>([]);
 
+  // Catering-specific state
+  const [cateringType, setCateringType] = useState('');
+  const [allergens, setAllergens] = useState<string[]>([]);
+  const [dietaryTags, setDietaryTags] = useState<string[]>([]);
+  const [temperatureTags, setTemperatureTags] = useState<string[]>([]);
+  const [cateringEndDate, setCateringEndDate] = useState('');
+  const [cateringDescEn, setCateringDescEn] = useState('');
+  const [cateringDescFr, setCateringDescFr] = useState('');
+  const [flavourNameEn, setFlavourNameEn] = useState('');
+  const [flavourNameFr, setFlavourNameFr] = useState('');
+
+  const ALLERGEN_OPTIONS = ['dairy', 'egg', 'gluten', 'tree-nuts', 'peanuts', 'sesame', 'soy'];
+  const DIETARY_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
+  const TEMPERATURE_OPTIONS = ['hot', 'cold'];
+
   useEffect(() => {
     fetchProduct();
   }, [params.id]);
@@ -125,6 +149,16 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           description: v.description || { en: '', fr: '' },
         }))
       );
+      // Catering fields
+      setCateringType(data.cateringType ?? '');
+      setAllergens(data.allergens ?? []);
+      setDietaryTags(data.dietaryTags ?? []);
+      setTemperatureTags(data.temperatureTags ?? []);
+      setCateringEndDate(data.cateringEndDate ? data.cateringEndDate.split('T')[0] : '');
+      setCateringDescEn(data.cateringDescription?.en ?? '');
+      setCateringDescFr(data.cateringDescription?.fr ?? '');
+      setFlavourNameEn(data.cateringFlavourName?.en ?? '');
+      setFlavourNameFr(data.cateringFlavourName?.fr ?? '');
     } catch {
       setError('Failed to load catering product');
     } finally {
@@ -241,6 +275,13 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         volumeMinOrderQuantity: tiers.length > 0 ? tiers[0].minQuantity : null,
         volumeUnitLabel,
         maxAdvanceDays: maxAdvanceDays && maxAdvanceDays > 0 ? maxAdvanceDays : null,
+        cateringType: cateringType || null,
+        cateringDescription: (cateringDescEn || cateringDescFr) ? { en: cateringDescEn, fr: cateringDescFr } : null,
+        cateringFlavourName: (flavourNameEn || flavourNameFr) ? { en: flavourNameEn, fr: flavourNameFr } : null,
+        cateringEndDate: cateringEndDate || null,
+        allergens,
+        dietaryTags,
+        temperatureTags,
         leadTimeTiers: tiers,
         volumeVariants: volumeVariants.map((v, idx) => ({
           label: v.label,
@@ -327,6 +368,76 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
         {/* Left column */}
         <div className="col-span-2 space-y-6">
+
+        {/* Catering Type & End Date */}
+        <SectionCard title="Catering Classification">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Catering Type</label>
+              <select
+                value={cateringType}
+                onChange={(e) => { setCateringType(e.target.value); markDirty(); }}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
+                <option value="">Select type…</option>
+                <option value="brunch">Brunch</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinatoire">Dînatoire</option>
+              </select>
+              {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required for ordering rules</p>}
+            </div>
+            <Input label="End Date" value={cateringEndDate} onChange={(v) => { setCateringEndDate(v); markDirty(); }} placeholder="YYYY-MM-DD" />
+          </div>
+        </SectionCard>
+
+        {/* Catering Flavour Name & Description */}
+        <SectionCard title="Catering Display">
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Flavour Name (EN)" value={flavourNameEn} onChange={(v) => { setFlavourNameEn(v); markDirty(); }} placeholder="Leave blank to use product name" />
+            <Input label="Flavour Name (FR)" value={flavourNameFr} onChange={(v) => { setFlavourNameFr(v); markDirty(); }} placeholder="Laisser vide pour utiliser le nom" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Description (EN)" value={cateringDescEn} onChange={(v) => { setCateringDescEn(v); markDirty(); }} placeholder="Description for customers" />
+            <Input label="Description (FR)" value={cateringDescFr} onChange={(v) => { setCateringDescFr(v); markDirty(); }} placeholder="Description pour les clients" />
+          </div>
+        </SectionCard>
+
+        {/* Allergens & Tags */}
+        <SectionCard title="Allergens & Dietary">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Allergens</label>
+            <div className="flex flex-wrap gap-2">
+              {ALLERGEN_OPTIONS.map((a) => (
+                <button key={a} type="button" onClick={() => { setAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]); markDirty(); }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${allergens.includes(a) ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Tags</label>
+            <div className="flex flex-wrap gap-2">
+              {DIETARY_OPTIONS.map((d) => (
+                <button key={d} type="button" onClick={() => { setDietaryTags(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]); markDirty(); }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${dietaryTags.includes(d) ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Temperature</label>
+            <div className="flex flex-wrap gap-2">
+              {TEMPERATURE_OPTIONS.map((t) => (
+                <button key={t} type="button" onClick={() => { setTemperatureTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]); markDirty(); }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${temperatureTags.includes(t) ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
 
         {/* Order rules: min quantity + lead time tiers */}
         <SectionCard
@@ -574,6 +685,16 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               )}
             </div>
           </div>
+
+          {/* Shopify-managed fields (read-only) */}
+          {product.shopifyProductId && (
+            <SectionCard title="Shopify Data" description="Managed in Shopify — read-only here.">
+              <div className="space-y-2 text-sm">
+                <div><span className="text-gray-500">Status:</span> <span className="font-medium">{product.status ?? '—'}</span></div>
+                <div><span className="text-gray-500">Tags:</span> <span className="font-medium">{product.tags?.join(', ') || '—'}</span></div>
+              </div>
+            </SectionCard>
+          )}
 
         </div>
       </div>

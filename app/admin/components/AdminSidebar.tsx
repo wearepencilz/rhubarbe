@@ -20,7 +20,6 @@ const sections: NavSectionType[] = [
         label: 'Products',
         items: [
             { label: 'Products', href: '/admin/products', icon: '🎁' },
-            { label: 'Ingredients', href: '/admin/ingredients', icon: '🌿' },
         ],
     },
     {

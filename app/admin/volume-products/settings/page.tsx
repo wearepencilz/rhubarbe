@@ -20,6 +20,10 @@ export default function CateringSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Ordering rules state
+  const [orderingRules, setOrderingRules] = useState<Record<string, { minQuantity: number; quantityStep: number; label: { en: string; fr: string } }>>({});
+  const [leadTimeDays, setLeadTimeDays] = useState<number>(28);
+
   useEffect(() => {
     Promise.all([
       fetch('/api/pickup-locations?active=true').then((r) => r.json()),
@@ -28,6 +32,8 @@ export default function CateringSettingsPage() {
       .then(([locs, settings]) => {
         setLocations(locs);
         setSelectedLocationId(settings.cateringPickupLocationId || '');
+        if (settings.cateringOrderingRules) setOrderingRules(settings.cateringOrderingRules);
+        if (settings.cateringLeadTimeDays != null) setLeadTimeDays(settings.cateringLeadTimeDays);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -43,7 +49,12 @@ export default function CateringSettingsPage() {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...current, cateringPickupLocationId: selectedLocationId || null }),
+        body: JSON.stringify({
+          ...current,
+          cateringPickupLocationId: selectedLocationId || null,
+          cateringOrderingRules: orderingRules,
+          cateringLeadTimeDays: leadTimeDays,
+        }),
       });
       if (res.ok) toast.success('Settings saved');
       else toast.error('Failed to save');
@@ -53,6 +64,13 @@ export default function CateringSettingsPage() {
       setSaving(false);
     }
   };
+
+  function updateRule(type: string, field: 'minQuantity' | 'quantityStep', value: number) {
+    setOrderingRules((prev) => ({
+      ...prev,
+      [type]: { ...prev[type], [field]: value },
+    }));
+  }
 
   if (loading) {
     return (
@@ -109,6 +127,53 @@ export default function CateringSettingsPage() {
             </p>
           </div>
         )}
+
+        <div className="pt-2">
+          <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>
+            Save Settings
+          </Button>
+        </div>
+      </div>
+
+      {/* Ordering Rules */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 mt-6">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Ordering Rules</h2>
+          <p className="text-xs text-gray-500 mt-1">Minimum quantity and increment step per catering type.</p>
+        </div>
+
+        {Object.entries(orderingRules).map(([type, rule]) => (
+          <div key={type} className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0">
+            <span className="text-sm font-medium text-gray-700 w-24">{rule.label?.en || type}</span>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Min</label>
+              <input type="number" min={1} value={rule.minQuantity} onChange={(e) => updateRule(type, 'minQuantity', parseInt(e.target.value) || 1)}
+                className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Step</label>
+              <input type="number" min={1} value={rule.quantityStep} onChange={(e) => updateRule(type, 'quantityStep', parseInt(e.target.value) || 1)}
+                className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+          </div>
+        ))}
+
+        {Object.keys(orderingRules).length === 0 && (
+          <p className="text-sm text-gray-400">No ordering rules configured. Run the data migration to seed defaults.</p>
+        )}
+      </div>
+
+      {/* Lead Time */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4 mt-6">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Lead Time</h2>
+          <p className="text-xs text-gray-500 mt-1">Minimum days in advance for catering orders.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <input type="number" min={1} max={365} value={leadTimeDays} onChange={(e) => setLeadTimeDays(parseInt(e.target.value) || 28)}
+            className="w-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          <span className="text-sm text-gray-500">days</span>
+        </div>
 
         <div className="pt-2">
           <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>
