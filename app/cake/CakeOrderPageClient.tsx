@@ -128,6 +128,8 @@ function isCroquembouche(product: CakeProduct): boolean {
   return product.cakeProductType === 'croquembouche';
 }
 
+const CROQ_CHOUX_PER_GUEST = 3;
+
 /** Check if a product is only used as an addon (linked by another product) */
 function isAddonProduct(product: CakeProduct, allProducts: CakeProduct[]): boolean {
   return allProducts.some((p) => p.addons?.some((a) => a.id === product.id));
@@ -545,9 +547,7 @@ function CakeInlineCart({
     return getAvailableSizes(selectedProduct.pricingGrid);
   }, [selectedProduct, isGridProduct]);
 
-  const sizeLabel = isCroq
-    ? 'Choux'
-    : (isFr ? 'Invités' : 'Guests');
+  const sizeLabel = isFr ? 'Invités' : 'Guests';
 
   // For legacy products: min people from pricing tiers
   const minPeople = selectedProduct?.pricingTiers?.length
@@ -1021,7 +1021,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     if (!selectedSize) return null;
     const inputNum = parseInt(selectedSize);
     if (isNaN(inputNum) || inputNum < 1) return null;
-    return resolveNearestSize(getAvailableSizes(selectedProduct.pricingGrid), inputNum);
+    // Croquembouche: customer enters guests, grid uses choux (guests × 3)
+    const lookupValue = isCroquembouche(selectedProduct) ? inputNum * CROQ_CHOUX_PER_GUEST : inputNum;
+    return resolveNearestSize(getAvailableSizes(selectedProduct.pricingGrid), lookupValue);
   }, [selectedProduct, selectedSize]);
 
   const gridPrice = useMemo(() => {
@@ -1158,13 +1160,15 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const belowMin = useMemo(() => {
     if (!selectedProduct) return false;
     if (isGridBased(selectedProduct)) {
-      // For grid products, minimum is the smallest sizeValue in the grid
       if (selectedProduct.pricingGrid.length === 0) return false;
       const sizes = getAvailableSizes(selectedProduct.pricingGrid).map(Number).filter(Boolean);
       if (sizes.length === 0) return false;
       const minSize = Math.min(...sizes);
       const inputNum = parseInt(selectedSize);
-      return !isNaN(inputNum) && inputNum > 0 && inputNum < minSize;
+      if (isNaN(inputNum) || inputNum <= 0) return false;
+      // Croquembouche: compare guest input × 3 against choux grid min
+      const compareValue = isCroquembouche(selectedProduct) ? inputNum * CROQ_CHOUX_PER_GUEST : inputNum;
+      return compareValue < minSize;
     }
     // Legacy
     if (selectedProduct.pricingTiers.length === 0) return false;
@@ -1176,7 +1180,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const gridMinSize = useMemo(() => {
     if (!selectedProduct || !isGridBased(selectedProduct)) return 0;
     const sizes = getAvailableSizes(selectedProduct.pricingGrid).map(Number).filter(Boolean);
-    return sizes.length > 0 ? Math.min(...sizes) : 0;
+    if (sizes.length === 0) return 0;
+    const min = Math.min(...sizes);
+    // Croquembouche: show min in guest units
+    return isCroquembouche(selectedProduct) ? Math.ceil(min / CROQ_CHOUX_PER_GUEST) : min;
   }, [selectedProduct]);
 
   // ── Flavour toggle handler ──
@@ -1341,7 +1348,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         shopifyProductId: selectedProduct.shopifyProductId ?? '',
         variantId: selectedProduct.id,
         variantLabel: isGridBased(selectedProduct)
-          ? `${selectedSize} ${isCroquembouche(selectedProduct) ? 'choux' : (isFr ? 'invités' : 'guests')}`
+          ? `${selectedSize} ${isFr ? 'invités' : 'guests'}`
           : `${matchedTier?.minPeople ?? numberOfPeople} ${C.numberOfPeopleShort}`,
         shopifyVariantId: shopifyVariantId ?? '',
         sizeValue,
