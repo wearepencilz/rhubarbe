@@ -709,6 +709,8 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
             if (synced) {
               if (synced.status) setProductStatus(synced.status);
               if (synced.image) setProductImage(synced.image);
+              if (synced.name) setProductName(synced.name);
+              if (synced.slug) setProductSlug(synced.slug);
             }
           })
           .catch(() => {});
@@ -972,27 +974,39 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
         </div>
 
         {/* Product details */}
-        <SectionCard title="Product Details" description="Slug, status, and category.">
+        <SectionCard title="Product Details" description="Name and slug sync from Shopify when linked.">
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Name" value={productName} onChange={(v) => { setProductName(v); markDirty(); }} isRequired />
-            <Input label="Slug" value={productSlug} onChange={(v) => { setProductSlug(v); markDirty(); }} isRequired />
+            {shopifyProductId ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <p className="text-sm text-gray-900 py-2">{productName} <span className="text-xs text-gray-400">(from Shopify)</span></p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                  <p className="text-sm text-gray-900 py-2 font-mono">{productSlug} <span className="text-xs text-gray-400">(from Shopify)</span></p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Input label="Name" value={productName} onChange={(v) => { setProductName(v); markDirty(); }} isRequired />
+                <Input label="Slug" value={productSlug} onChange={(v) => { setProductSlug(v); markDirty(); }} isRequired />
+              </>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Category" value={productCategory} onChange={(v) => { setProductCategory(v); markDirty(); }} placeholder="e.g. cake" />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              {shopifyProductId ? (
-                <p className="text-sm text-gray-600 py-2">{productStatus} <span className="text-xs text-gray-400">(managed in Shopify)</span></p>
-              ) : (
-                <select value={productStatus} onChange={(e) => { setProductStatus(e.target.value); markDirty(); }}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="sold-out">Sold Out</option>
-                  <option value="archived">Archived</option>
-                </select>
-              )}
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            {shopifyProductId ? (
+              <p className="text-sm text-gray-600 py-2">{productStatus} <span className="text-xs text-gray-400">(managed in Shopify)</span></p>
+            ) : (
+              <select value={productStatus} onChange={(e) => { setProductStatus(e.target.value); markDirty(); }}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="sold-out">Sold Out</option>
+                <option value="archived">Archived</option>
+              </select>
+            )}
           </div>
         </SectionCard>
 

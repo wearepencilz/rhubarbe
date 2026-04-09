@@ -32,13 +32,20 @@ export async function GET(
     const statusMap: Record<string, string> = { ACTIVE: 'active', DRAFT: 'draft', ARCHIVED: 'archived' };
     const status = statusMap[shopifyProduct.status] ?? product.status;
     const image = shopifyProduct.featuredImage?.url ?? product.image;
+    const name = shopifyProduct.title ?? product.name;
+    const slug = shopifyProduct.handle ?? product.slug;
 
     // Update CMS if changed
-    if (status !== product.status || image !== product.image) {
-      await productQueries.update(params.id, { status, image });
+    const updates: Record<string, any> = {};
+    if (status !== product.status) updates.status = status;
+    if (image !== product.image) updates.image = image;
+    if (name !== product.name) updates.name = name;
+    if (slug !== product.slug) updates.slug = slug;
+    if (Object.keys(updates).length > 0) {
+      await productQueries.update(params.id, updates);
     }
 
-    return NextResponse.json({ status, image });
+    return NextResponse.json({ status, image, name, slug });
   } catch (error: any) {
     console.error('Error syncing Shopify status:', error);
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
