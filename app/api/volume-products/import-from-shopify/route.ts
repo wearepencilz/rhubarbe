@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { shopifyProductId } = await request.json();
+    const { shopifyProductId, cateringType } = await request.json();
     if (!shopifyProductId) return NextResponse.json({ error: 'shopifyProductId is required' }, { status: 400 });
 
     const existing = await productQueries.findByShopifyId(shopifyProductId);
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       shopifyProductId: shopifyProduct.id,
       shopifyProductHandle: shopifyProduct.handle,
       volumeEnabled: true,
+      cateringType: cateringType || null,
       allergens: [],
       tags: [],
       keyNotes: [],

@@ -64,20 +64,31 @@ export default function VolumeProductsPage() {
     }
   }
 
+  const [pendingImports, setPendingImports] = useState<{ id: string; handle: string; title: string }[]>([]);
+  const [pendingType, setPendingType] = useState('');
+
   async function handleImportMultiple(shopifyProducts: { id: string; handle: string; title: string }[]) {
     if (shopifyProducts.length === 0) return;
+    // Show type selection step before importing
+    setPendingImports(shopifyProducts);
+    setPendingType('');
+  }
+
+  async function confirmImport() {
+    if (pendingImports.length === 0) return;
     setImporting(true);
     let imported = 0;
-    for (const sp of shopifyProducts) {
+    for (const sp of pendingImports) {
       try {
         const res = await fetch('/api/volume-products/import-from-shopify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shopifyProductId: sp.id }),
+          body: JSON.stringify({ shopifyProductId: sp.id, cateringType: pendingType || null }),
         });
         if (res.ok) imported++;
       } catch { /* skip failures */ }
     }
+    setPendingImports([]);
     if (imported > 0) {
       toast.success('Imported', `${imported} product${imported > 1 ? 's' : ''} imported`);
       fetchData();
@@ -182,6 +193,46 @@ export default function VolumeProductsPage() {
       ) : (
         <div className="space-y-6">
           {TYPE_ORDER.map((type) => renderGroup(type, grouped[type] ?? []))}
+        </div>
+      )}
+
+      {/* Catering type selection step */}
+      {pendingImports.length > 0 && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPendingImports([])}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Set Catering Type</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {pendingImports.length} product{pendingImports.length > 1 ? 's' : ''} selected. Choose a catering type to apply to all.
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              {[
+                { value: 'brunch', label: 'Brunch' },
+                { value: 'lunch', label: 'Lunch' },
+                { value: 'dinatoire', label: 'Dînatoire' },
+              ].map((opt) => (
+                <button key={opt.value} type="button" onClick={() => setPendingType(opt.value)}
+                  className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                    pendingType === opt.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  }`}>
+                  <span className="text-sm font-medium">{opt.label}</span>
+                </button>
+              ))}
+              <button type="button" onClick={() => setPendingType('')}
+                className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                  pendingType === '' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-500'
+                }`}>
+                <span className="text-sm font-medium">Skip — set later</span>
+              </button>
+            </div>
+            <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex gap-3">
+              <Button variant="secondary" size="md" onClick={() => setPendingImports([])} className="flex-1">Cancel</Button>
+              <Button variant="primary" size="md" onClick={confirmImport} isLoading={importing} className="flex-1">
+                Import {pendingImports.length} product{pendingImports.length > 1 ? 's' : ''}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </>
