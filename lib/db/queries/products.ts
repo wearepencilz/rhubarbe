@@ -1,6 +1,6 @@
 import { db } from '@/lib/db/client';
 import { products, productIngredients, ingredients } from '@/lib/db/schema';
-import { eq, asc, inArray } from 'drizzle-orm';
+import { eq, asc, inArray, and } from 'drizzle-orm';
 import { TaxConfig } from '@/lib/tax/resolve-variant';
 
 /**
@@ -15,7 +15,7 @@ export async function list(filters?: {
   const rows = await db
     .select()
     .from(products)
-    .where(eq(products.cakeEnabled, false))
+    .where(and(eq(products.cakeEnabled, false), eq(products.volumeEnabled, false)))
     .orderBy(asc(products.name));
 
   let result = rows;
