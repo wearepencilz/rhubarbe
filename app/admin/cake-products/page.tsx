@@ -74,29 +74,27 @@ export default function CakeProductsPage() {
     }
   }
 
-  async function handleImportFromShopify(shopifyProduct: { id: string; handle: string; title: string } | null) {
-    if (!shopifyProduct) return;
+  async function handleImportMultiple(shopifyProducts: { id: string; handle: string; title: string }[]) {
+    if (shopifyProducts.length === 0) return;
     setImporting(true);
-    try {
-      const res = await fetch('/api/cake-products/import-from-shopify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shopifyProductId: shopifyProduct.id }),
-      });
-      const data = await res.json();
-      if (res.status === 409) {
-        toast.error('Already imported', 'A product linked to this Shopify product already exists');
-        router.push(`/admin/cake-products/${data.existingProductId}`);
-        return;
-      }
-      if (!res.ok) { toast.error('Import failed', data.error || 'Failed to import'); return; }
-      toast.success('Imported', `"${shopifyProduct.title}" imported as cake product`);
-      router.push(`/admin/cake-products/${data.id}`);
-    } catch {
-      toast.error('Import failed', 'An unexpected error occurred');
-    } finally {
-      setImporting(false);
+    let imported = 0;
+    for (const sp of shopifyProducts) {
+      try {
+        const res = await fetch('/api/cake-products/import-from-shopify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shopifyProductId: sp.id }),
+        });
+        if (res.ok) imported++;
+      } catch { /* skip failures */ }
     }
+    if (imported > 0) {
+      toast.success('Imported', `${imported} product${imported > 1 ? 's' : ''} imported`);
+      fetchData();
+    } else {
+      toast.error('Import failed', 'No products could be imported');
+    }
+    setImporting(false);
   }
 
   const grouped = useMemo(() => {
@@ -159,7 +157,7 @@ export default function CakeProductsPage() {
 
   return (
     <>
-      <ShopifyProductPicker onSelect={handleImportFromShopify} onOpenRef={shopifyPickerRef} trigger={<span />} />
+      <ShopifyProductPicker onSelect={() => {}} onSelectMultiple={handleImportMultiple} multiSelect onOpenRef={shopifyPickerRef} trigger={<span />} />
 
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">

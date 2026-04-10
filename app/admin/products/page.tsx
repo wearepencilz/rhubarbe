@@ -169,6 +169,29 @@ export default function ProductsPage() {
     }
   }
 
+  async function handleImportMultiple(shopifyProducts: { id: string; handle: string; title: string }[]) {
+    if (shopifyProducts.length === 0) return;
+    setImporting(true);
+    let imported = 0;
+    for (const sp of shopifyProducts) {
+      try {
+        const res = await fetch('/api/products/import-from-shopify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shopifyProductId: sp.id }),
+        });
+        if (res.ok) imported++;
+      } catch { /* skip */ }
+    }
+    if (imported > 0) {
+      toast.success('Imported', `${imported} product${imported > 1 ? 's' : ''} imported`);
+      fetchData();
+    } else {
+      toast.error('Import failed', 'No products could be imported');
+    }
+    setImporting(false);
+  }
+
   return (
     <>
       <TableCard.Root>
@@ -232,6 +255,8 @@ export default function ProductsPage() {
         <div style={{ display: 'contents' }}>
           <ShopifyProductPicker
             onSelect={handleImportFromShopify}
+            onSelectMultiple={handleImportMultiple}
+            multiSelect
             onOpenRef={shopifyPickerRef}
             trigger={<span />}
           />
