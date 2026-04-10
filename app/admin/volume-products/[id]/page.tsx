@@ -1,15 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import EditPageLayout from '@/app/admin/components/EditPageLayout';
 import TranslationFields from '@/app/admin/components/TranslationFields';
 import AdminLocaleSwitcher from '@/app/admin/components/AdminLocaleSwitcher';
 import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import { Input } from '@/app/admin/components/ui/input';
+import { Textarea } from '@/app/admin/components/ui/textarea';
+import { Badge } from '@/app/admin/components/ui/nav/badges';
 import { Button } from '@/app/admin/components/ui/button';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
+import ShopifyProductPicker from '@/app/admin/components/ShopifyProductPicker';
+import ShopifyVariantsDisplay from '@/app/admin/components/ShopifyVariantsDisplay';
+import ImageUploader from '@/app/admin/components/ImageUploader';
+import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
+import TaxShippingSection from '@/app/admin/components/TaxShippingSection';
 import { Plus, Trash01 } from '@untitledui/icons';
 import type { ContentTranslations } from '@/types';
 
@@ -21,7 +28,17 @@ interface LeadTimeTier {
 interface VolumeProduct {
   id: string;
   name: string;
+  slug: string;
+  title: string | null;
   image: string | null;
+  description: string | null;
+  shortCardCopy: string | null;
+  status: string | null;
+  price: number | null;
+  translations: Record<string, Record<string, string>> | null;
+  taxBehavior: string;
+  taxThreshold: number;
+  taxUnitCount: number;
   volumeEnabled: boolean;
   volumeDescription: { en: string; fr: string } | null;
   volumeInstructions: { en: string; fr: string } | null;
@@ -37,8 +54,6 @@ interface VolumeProduct {
   allergens: string[] | null;
   dietaryTags: string[] | null;
   temperatureTags: string[] | null;
-  tags: string[] | null;
-  status: string | null;
   leadTimeTiers: LeadTimeTier[];
   volumeVariants: Array<{
     id?: string;
@@ -119,6 +134,25 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const DIETARY_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
   const TEMPERATURE_OPTIONS = ['hot', 'cold'];
 
+  // Core product fields
+  const [productName, setProductName] = useState('');
+  const [productSlug, setProductSlug] = useState('');
+  const [productImage, setProductImage] = useState('');
+  const [productTitle, setProductTitle] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [productShortCardCopy, setProductShortCardCopy] = useState('');
+  const [productStatus, setProductStatus] = useState('draft');
+  const [shopifyProductId, setShopifyProductId] = useState('');
+  const [shopifyProductHandle, setShopifyProductHandle] = useState('');
+  const [taxBehavior, setTaxBehavior] = useState('always_taxable');
+  const [taxThreshold, setTaxThreshold] = useState(6);
+  const [taxUnitCount, setTaxUnitCount] = useState(1);
+  const [titleFr, setTitleFr] = useState('');
+  const [prodDescriptionFr, setProdDescriptionFr] = useState('');
+  const [shortCardCopyFr, setShortCardCopyFr] = useState('');
+  const shopifyPickerOpenRef = useRef<(() => void) | null>(null);
+  const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
+
   useEffect(() => {
     fetchProduct();
   }, [params.id]);
@@ -160,6 +194,37 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setCateringDescFr(data.cateringDescription?.fr ?? '');
       setFlavourNameEn(data.cateringFlavourName?.en ?? '');
       setFlavourNameFr(data.cateringFlavourName?.fr ?? '');
+
+      // Core product fields
+      setProductName(data.name ?? '');
+      setProductSlug(data.slug ?? '');
+      setProductImage(data.image ?? '');
+      setProductTitle(data.title ?? data.name ?? '');
+      setProductDescription(data.description ?? '');
+      setProductShortCardCopy(data.shortCardCopy ?? '');
+      setProductStatus(data.status ?? 'draft');
+      setShopifyProductId(data.shopifyProductId ?? '');
+      setShopifyProductHandle(data.shopifyProductHandle ?? '');
+      setTaxBehavior(data.taxBehavior ?? 'always_taxable');
+      setTaxThreshold(data.taxThreshold ?? 6);
+      setTaxUnitCount(data.taxUnitCount ?? 1);
+      setTitleFr(data.translations?.fr?.title ?? '');
+      setProdDescriptionFr(data.translations?.fr?.description ?? '');
+      setShortCardCopyFr(data.translations?.fr?.shortCardCopy ?? '');
+
+      // Auto-sync from Shopify
+      if (data.shopifyProductId) {
+        fetch(`/api/products/${params.id}/sync-shopify-status`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((synced) => {
+            if (synced) {
+              if (synced.status) setProductStatus(synced.status);
+              if (synced.image) setProductImage(synced.image);
+              if (synced.name) setProductName(synced.name);
+              if (synced.slug) setProductSlug(synced.slug);
+            }
+          }).catch(() => {});
+      }
     } catch {
       setError('Failed to load catering product');
     } finally {
@@ -265,6 +330,22 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
     setSaving(true);
     try {
+      // Save core product fields
+      await fetch(`/api/products/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: productName, title: productTitle, slug: productSlug,
+          image: productImage || null, description: productDescription || null,
+          shortCardCopy: productShortCardCopy || null, status: productStatus,
+          allergens, taxBehavior, taxThreshold, taxUnitCount,
+          translations: (titleFr || prodDescriptionFr || shortCardCopyFr)
+            ? { fr: { title: titleFr || undefined, description: prodDescriptionFr || undefined, shortCardCopy: shortCardCopyFr || undefined } }
+            : undefined,
+        }),
+      });
+
+      // Save catering-specific fields
       const payload = {
         volumeEnabled,
         volumeDescription: descriptionEn || descriptionFr
@@ -345,8 +426,8 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
     );
   }
 
-  const shopifyAdminUrl = product.shopifyProductId
-    ? `https://admin.shopify.com/store/${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN?.replace('.myshopify.com', '')}/products/${product.shopifyProductId.replace('gid://shopify/Product/', '')}`
+  const shopifyAdminUrl = shopifyProductId
+    ? `https://admin.shopify.com/store/${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN?.replace('.myshopify.com', '')}/products/${shopifyProductId.replace('gid://shopify/Product/', '')}`
     : null;
 
   return (
@@ -370,29 +451,73 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         {/* Left column */}
         <div className="col-span-2 space-y-6">
 
-        {/* Catering Type & End Date */}
-        <SectionCard title="Catering Classification">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Catering Type</label>
-              <select
-                value={cateringType}
-                onChange={(e) => { setCateringType(e.target.value); markDirty(); }}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
-              >
-                <option value="">Select type…</option>
-                <option value="brunch">Brunch</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinatoire">Dînatoire</option>
-              </select>
-              {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required for ordering rules</p>}
+        {/* Bilingual product content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+              <span className="text-base">🇫🇷</span>
+              <h2 className="text-sm font-semibold text-gray-900">Français</h2>
+              <div className="ml-auto">
+                <AiTranslateButton targetLocale="en"
+                  fields={{ title: titleFr, description: prodDescriptionFr, shortCardCopy: shortCardCopyFr }}
+                  onResult={(t) => { if (t.title) setProductTitle(t.title); if (t.description) setProductDescription(t.description); if (t.shortCardCopy) setProductShortCardCopy(t.shortCardCopy); markDirty(); }} />
+              </div>
             </div>
-            <Input label="End Date" value={cateringEndDate} onChange={(v) => { setCateringEndDate(v); markDirty(); }} placeholder="YYYY-MM-DD" />
+            <div className="px-6 py-6 space-y-4">
+              <Input label="Titre" value={titleFr} onChange={(v) => { setTitleFr(v); markDirty(); }} placeholder={productTitle || 'Titre'} />
+              <Textarea label="Description" value={prodDescriptionFr} onChange={(v) => { setProdDescriptionFr(v); markDirty(); }} rows={4} placeholder="Description en français" />
+              <Input label="Texte carte" value={shortCardCopyFr} onChange={(v) => { setShortCardCopyFr(v); markDirty(); }} placeholder="Texte court" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+              <span className="text-base">🇬🇧</span>
+              <h2 className="text-sm font-semibold text-gray-900">English</h2>
+              <div className="ml-auto">
+                <AiTranslateButton targetLocale="fr"
+                  fields={{ title: productTitle, description: productDescription, shortCardCopy: productShortCardCopy }}
+                  onResult={(t) => { if (t.title) setTitleFr(t.title); if (t.description) setProdDescriptionFr(t.description); if (t.shortCardCopy) setShortCardCopyFr(t.shortCardCopy); markDirty(); }} />
+              </div>
+            </div>
+            <div className="px-6 py-6 space-y-4">
+              <Input label="Title" value={productTitle} onChange={(v) => { setProductTitle(v); markDirty(); }} isRequired />
+              <Textarea label="Description" value={productDescription} onChange={(v) => { setProductDescription(v); markDirty(); }} rows={4} />
+              <Input label="Short card copy" value={productShortCardCopy} onChange={(v) => { setProductShortCardCopy(v); markDirty(); }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Product Details */}
+        <SectionCard title="Product Details" description="Name and slug sync from Shopify when linked.">
+          <div className="grid grid-cols-2 gap-4">
+            {shopifyProductId ? (
+              <>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Name</label><p className="text-sm text-gray-900 py-2">{productName} <span className="text-xs text-gray-400">(from Shopify)</span></p></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Slug</label><p className="text-sm text-gray-900 py-2 font-mono">{productSlug} <span className="text-xs text-gray-400">(from Shopify)</span></p></div>
+              </>
+            ) : (
+              <>
+                <Input label="Name" value={productName} onChange={(v) => { setProductName(v); markDirty(); }} isRequired />
+                <Input label="Slug" value={productSlug} onChange={(v) => { setProductSlug(v); markDirty(); }} isRequired />
+              </>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            {shopifyProductId ? (
+              <p className="text-sm text-gray-600 py-2">{productStatus} <span className="text-xs text-gray-400">(managed in Shopify)</span></p>
+            ) : (
+              <select value={productStatus} onChange={(e) => { setProductStatus(e.target.value); markDirty(); }}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                <option value="draft">Draft</option><option value="active">Active</option><option value="sold-out">Sold Out</option><option value="archived">Archived</option>
+              </select>
+            )}
           </div>
         </SectionCard>
 
-        {/* Catering Flavour Name & Description */}
+        {/* Catering Display */}
         <SectionCard title="Catering Display">
+          <Input label="End Date" value={cateringEndDate} onChange={(v) => { setCateringEndDate(v); markDirty(); }} placeholder="YYYY-MM-DD" />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Flavour Name (EN)" value={flavourNameEn} onChange={(v) => { setFlavourNameEn(v); markDirty(); }} placeholder="Leave blank to use product name" />
             <Input label="Flavour Name (FR)" value={flavourNameFr} onChange={(v) => { setFlavourNameFr(v); markDirty(); }} placeholder="Laisser vide pour utiliser le nom" />
@@ -614,102 +739,83 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
         {/* Right column */}
         <div className="col-span-1 space-y-6">
 
-          {/* Volume toggle */}
-          <SectionCard title="Catering Sales" description="Enable or disable catering ordering for this product.">
-            <label className="inline-flex items-center gap-3 cursor-pointer">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={volumeEnabled}
-                onClick={() => handleToggleVolume(!volumeEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  volumeEnabled ? 'bg-brand-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    volumeEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className="text-sm text-gray-700">
-                {volumeEnabled ? 'Catering ordering enabled' : 'Catering ordering disabled'}
-              </span>
-            </label>
-            {volumeEnabled && tiers.length === 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-warning-secondary border border-warning-200">
-                <span className="text-xs text-warning-700">
-                  ⚠ No lead time tiers configured. This product won't appear on the catering ordering page until at least one tier is added.
-                </span>
+          {/* Image */}
+          <SectionCard title="Image" description={shopifyProductId ? 'Managed by Shopify.' : 'Product photo.'}>
+            {shopifyProductId ? (
+              productImage ? <img src={productImage} alt={productName} className="w-full aspect-square object-cover rounded-lg" />
+              : <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center"><span className="text-sm text-gray-400">No image</span></div>
+            ) : (
+              <ImageUploader value={productImage} onChange={(url) => { setProductImage(url); markDirty(); }} aspectRatio="1:1" label="" />
+            )}
+          </SectionCard>
+
+          {/* Shopify integration */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">Shopify</h2>
+              {shopifyProductId ? <Badge color="success">Linked</Badge> : <Badge color="gray">Not linked</Badge>}
+            </div>
+            {shopifyProductId ? (
+              <>
+                <div className="px-6 py-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium font-mono text-gray-900 truncate">{shopifyProductHandle}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">ID: {shopifyProductId}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {shopifyAdminUrl && <a href={shopifyAdminUrl} target="_blank" rel="noopener noreferrer"><Button variant="secondary" size="sm">View</Button></a>}
+                    <Button variant="danger" size="sm" onClick={() => setUnlinkConfirmOpen(true)}>Unlink</Button>
+                  </div>
+                </div>
+                <ShopifyVariantsDisplay shopifyProductId={shopifyProductId} />
+              </>
+            ) : (
+              <div className="px-6 py-4 flex items-start justify-between gap-4">
+                <div><p className="text-sm font-medium text-gray-900">Link existing</p><p className="text-xs text-gray-500 mt-0.5">Connect to a Shopify product.</p></div>
+                <ShopifyProductPicker onSelect={(p) => { if (p) { setShopifyProductId(p.id); setShopifyProductHandle(p.handle); if (p.featuredImage?.url) setProductImage(p.featuredImage.url); markDirty(); } }} onOpenRef={shopifyPickerOpenRef} />
+                <Button variant="secondary" size="sm" onClick={() => shopifyPickerOpenRef.current?.()}>Link</Button>
               </div>
             )}
+          </div>
+
+          {/* Catering Type */}
+          <SectionCard title="Catering Type">
+            <select value={cateringType} onChange={(e) => { setCateringType(e.target.value); markDirty(); }}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+              <option value="">Select type…</option>
+              <option value="brunch">Brunch</option><option value="lunch">Lunch</option><option value="dinatoire">Dînatoire</option>
+            </select>
+            {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required for ordering rules</p>}
           </SectionCard>
 
           {/* Unit label */}
           <SectionCard title="Unit Label" description="How quantities are displayed to customers.">
             <div className="flex gap-2">
               {(['quantity', 'people'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => { setVolumeUnitLabel(opt); markDirty(); }}
-                  className={`flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-colors ${
-                    volumeUnitLabel === opt
-                      ? 'bg-brand-600 text-white border-brand-600'
-                      : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
+                <button key={opt} type="button" onClick={() => { setVolumeUnitLabel(opt); markDirty(); }}
+                  className={`flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-colors ${volumeUnitLabel === opt ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}>
                   {opt === 'quantity' ? 'Quantity' : 'People'}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {volumeUnitLabel === 'people'
-                ? 'Card and summary will show "people" instead of quantity.'
-                : 'Standard quantity display.'}
-            </p>
           </SectionCard>
 
-          {/* Links */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-900">Links</h2>
-            </div>
-            <div className="px-6 py-4 flex flex-col gap-3">
-              <a href={`/admin/products/${params.id}`} className="block">
-                <Button variant="secondary" size="sm" className="w-full">View product page</Button>
-              </a>
-              {shopifyAdminUrl && (
-                <a href={shopifyAdminUrl} target="_blank" rel="noopener noreferrer" className="block">
-                  <Button variant="secondary" size="sm" className="w-full">View in Shopify</Button>
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* Shopify-managed fields (read-only) */}
-          {product.shopifyProductId && (
-            <SectionCard title="Shopify Data" description="Managed in Shopify — read-only here.">
-              <div className="space-y-2 text-sm">
-                <div><span className="text-gray-500">Status:</span> <span className="font-medium">{product.status ?? '—'}</span></div>
-                <div><span className="text-gray-500">Tags:</span> <span className="font-medium">{product.tags?.join(', ') || '—'}</span></div>
-              </div>
-            </SectionCard>
-          )}
+          {/* Tax */}
+          <TaxShippingSection
+            data={{ taxBehavior, taxThreshold, taxUnitCount }}
+            onChange={(tax) => { setTaxBehavior(tax.taxBehavior ?? taxBehavior); setTaxThreshold(tax.taxThreshold ?? taxThreshold); setTaxUnitCount(tax.taxUnitCount ?? taxUnitCount); markDirty(); }}
+            shopifyProductId={shopifyProductId || undefined}
+          />
 
         </div>
       </div>
 
-      {/* Disable confirmation modal */}
-      <ConfirmModal
-        isOpen={disableConfirmOpen}
-        variant="warning"
-        title="Disable Catering Ordering?"
-        message="This product will no longer appear on the catering ordering page. Existing orders will not be affected."
-        confirmLabel="Disable"
-        cancelLabel="Cancel"
-        onConfirm={confirmDisable}
-        onCancel={() => setDisableConfirmOpen(false)}
+      {/* Unlink Shopify confirmation */}
+      <ConfirmModal isOpen={unlinkConfirmOpen} variant="warning" title="Unlink Shopify product"
+        message="This will remove the Shopify connection. The product will not be deleted from Shopify."
+        confirmLabel="Unlink" cancelLabel="Cancel"
+        onConfirm={async () => { setUnlinkConfirmOpen(false); await fetch(`/api/products/${params.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shopifyProductId: null, shopifyProductHandle: null }) }); setShopifyProductId(''); setShopifyProductHandle(''); toast.success('Unlinked'); markDirty(); }}
+        onCancel={() => setUnlinkConfirmOpen(false)}
       />
     </EditPageLayout>
   );
