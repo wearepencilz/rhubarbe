@@ -37,11 +37,23 @@ export default function ShopifyProductPicker({ selectedProductId, selectedProduc
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set());
+  const [hideLinked, setHideLinked] = useState(true);
 
   const handleModalOpen = () => {
     setShowModal(true);
     setSelected(new Set());
     loadProducts('*');
+    if (multiSelect) fetchLinkedIds();
+  };
+
+  const fetchLinkedIds = async () => {
+    try {
+      const res = await fetch('/api/products/linked-shopify-ids');
+      if (!res.ok) return;
+      const ids: string[] = await res.json();
+      setLinkedIds(new Set(ids));
+    } catch { /* ignore */ }
   };
 
   useEffect(() => {
@@ -170,38 +182,72 @@ export default function ShopifyProductPicker({ selectedProductId, selectedProduc
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2">
-                  {multiSelect && products.length > 0 && (
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-1">
-                      <button type="button" onClick={() => {
-                        if (selected.size === products.length) setSelected(new Set());
-                        else setSelected(new Set(products.map((p) => p.id)));
-                      }} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                        {selected.size === products.length ? 'Deselect all' : `Select all (${products.length})`}
-                      </button>
-                      {selected.size > 0 && (
-                        <span className="text-xs text-gray-500">{selected.size} selected</span>
-                      )}
-                    </div>
-                  )}
-                  {products.map((product) => {
-                    const isSelected = selected.has(product.id);
+                  {multiSelect && products.length > 0 && (() => {
+                    const filteredProducts = hideLinked ? products.filter((p) => !linkedIds.has(p.id)) : products;
+                    const linkedCount = products.length - filteredProducts.length;
                     return (
-                      <button key={product.id} type="button"
-                        onClick={() => multiSelect ? toggleSelection(product.id) : handleSingleSelect(product)}
-                        className={`text-left p-3 border rounded-lg transition-colors bg-white flex gap-3 items-center ${
-                          multiSelect && isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
-                        }`}>
-                        {multiSelect && (
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                          }`}>
-                            {isSelected && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
+                      <>
+                        <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-1">
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={() => {
+                              if (selected.size === filteredProducts.length) setSelected(new Set());
+                              else setSelected(new Set(filteredProducts.map((p) => p.id)));
+                            }} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                              {selected.size === filteredProducts.length && filteredProducts.length > 0 ? 'Deselect all' : `Select all (${filteredProducts.length})`}
+                            </button>
+                            {linkedCount > 0 && (
+                              <button type="button" onClick={() => setHideLinked(!hideLinked)} className="text-xs text-gray-400 hover:text-gray-600">
+                                {hideLinked ? `Show ${linkedCount} already imported` : 'Hide imported'}
+                              </button>
                             )}
                           </div>
+                          {selected.size > 0 && (
+                            <span className="text-xs text-gray-500">{selected.size} selected</span>
+                          )}
+                        </div>
+                        {filteredProducts.map((product) => {
+                          const isSelected = selected.has(product.id);
+                          return (
+                            <button key={product.id} type="button"
+                              onClick={() => toggleSelection(product.id)}
+                              className={`text-left p-3 border rounded-lg transition-colors bg-white flex gap-3 items-center ${
+                                isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                              }`}>
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                              }`}>
+                                {isSelected && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              {product.featuredImage && (
+                                <div className="w-12 h-12 shrink-0 bg-gray-100 rounded overflow-hidden">
+                                  <img src={product.featuredImage.url} alt={product.featuredImage.altText || product.title} className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-gray-900">{product.title}</h4>
+                                <p className="text-xs text-gray-500 font-mono">{product.handle}</p>
+                              </div>
+                              {product.priceRangeV2 && (
+                                <span className="text-xs text-gray-500 shrink-0">${product.priceRangeV2.minVariantPrice.amount}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                        {filteredProducts.length === 0 && linkedCount > 0 && (
+                          <p className="text-center text-sm text-gray-400 py-8">All products already imported</p>
                         )}
+                      </>
+                    );
+                  })()}
+                  {!multiSelect && products.map((product) => {
+                    return (
+                      <button key={product.id} type="button"
+                        onClick={() => handleSingleSelect(product)}
+                        className="text-left p-3 border rounded-lg transition-colors bg-white flex gap-3 items-center border-gray-200 hover:border-blue-500 hover:bg-blue-50">
                         {product.featuredImage && (
                           <div className="w-12 h-12 shrink-0 bg-gray-100 rounded overflow-hidden">
                             <img src={product.featuredImage.url} alt={product.featuredImage.altText || product.title} className="w-full h-full object-cover" />
