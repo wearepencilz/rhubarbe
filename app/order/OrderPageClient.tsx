@@ -1140,11 +1140,11 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
             {/* Total + checkout */}
             <div className="border-t border-white/20 pt-4 space-y-3">
+              {checkoutError && <p className="text-[14px] text-red-300">{checkoutError}</p>}
               <div className="flex justify-between text-[18px] text-white font-medium">
                 <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
                 <span>${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}</span>
               </div>
-              {checkoutError && <p className="text-[14px] text-red-300">{checkoutError}</p>}
               <button
                 onClick={() => { setCartOpen(false); handleCheckout(); }}
                 disabled={checkoutLoading}

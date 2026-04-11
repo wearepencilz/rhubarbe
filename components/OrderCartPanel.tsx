@@ -29,7 +29,7 @@ export default function OrderCartPanel({ open, onClose, title, itemCount, childr
         }`}
         style={{ backgroundColor: '#0065B6' }}
       >
-        <div className="flex items-center justify-between p-6 border-b border-white/20">
+        <div className="flex items-center justify-between p-6">
           <h2 className="text-[24px] text-white font-medium">
             {title}<sup className="text-[14px] ml-[2px]">({itemCount})</sup>
           </h2>

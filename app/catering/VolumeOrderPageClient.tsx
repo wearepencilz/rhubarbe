@@ -107,6 +107,7 @@ interface CartGroup {
   basePrice: number;
   allergens: string[];
   volumeUnitLabel: 'quantity' | 'people';
+  cateringType: string;
   variants: Array<{ variantId: string; variantLabel: string; quantity: number; shopifyVariantId: string; price: number }>;
   totalQty: number;
   totalPrice: number;
@@ -266,7 +267,7 @@ function VolumeInlineCart({
   groups, totalQuantity, subtotal, fulfillmentDate, fulfillmentTime,
   fulfillmentType, allergenNote, dateWarning, earliestDateStr, maxLeadTimeDays,
   servesEstimate, onDateChange, onTimeChange, onFulfillmentTypeChange, onAllergenNoteChange,
-  onCheckout, onRemoveProduct, checkoutLoading, checkoutError,
+  onCheckout, onRemoveProduct, onQuantityChange, getTypeConfig, checkoutLoading, checkoutError,
   locale, hasMinViolation, deliveryDisabled, V, latestDateStr,
 }: {
   groups: CartGroup[]; totalQuantity: number; subtotal: number;
@@ -278,6 +279,8 @@ function VolumeInlineCart({
   onFulfillmentTypeChange: (t: 'pickup' | 'delivery') => void;
   onAllergenNoteChange: (n: string) => void;
   onCheckout: () => void; onRemoveProduct: (productId: string) => void;
+  onQuantityChange: (variantId: string, quantity: number) => void;
+  getTypeConfig: (group: CartGroup) => CateringTypeConfig;
   checkoutLoading: boolean; checkoutError: string | null;
   locale: string; hasMinViolation: boolean; deliveryDisabled: boolean;
   V: Record<string, string>;
@@ -291,131 +294,111 @@ function VolumeInlineCart({
     <div>
       {/* Earliest date summary */}
       {maxLeadTimeDays > 0 && (
-        <div className="py-3 border-b border-white/20 space-y-1">
-          <p className="text-xs text-gray-600 font-medium">
-            {V.earliest}{' '}
-            <span>{formatDateHuman(earliestDateStr, locale)}</span>
-            {' '}
-            <span className="text-gray-400">
-              ({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
-            </span>
+        <div className="pb-4 mb-4 border-b border-white/20">
+          <p className="text-[14px]">
+            {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
           </p>
-          {fulfillmentDate && !dateWarning && (
-            <p className="text-xs text-gray-600 font-medium">
-              {fulfillmentType === 'pickup'
-                ? `${isFr ? 'Cueillette' : 'Pickup'}: ${formatDateHuman(fulfillmentDate, locale)}`
-                : `${isFr ? 'Livraison' : 'Delivery'}: ${formatDateHuman(fulfillmentDate, locale)}`}
-              {' '}✓
-            </p>
-          )}
         </div>
       )}
       {totalQuantity === 0 ? (
-        <div className="px-5 py-8 text-center">
-          <p className="text-sm text-gray-400">{V.noItems}</p>
-          <p className="text-xs text-gray-300 mt-1">{V.startHint}</p>
+        <div className="py-8 text-center">
+          <p className="text-[16px] opacity-60">{V.noItems}</p>
+          <p className="text-[14px] opacity-40 mt-1">{V.startHint}</p>
         </div>
       ) : (
         <>
-          <div className="max-h-[40vh] overflow-y-auto">
-            {groups.map((group) => (
-              <div key={group.productId} className="px-5 py-3 border-b border-gray-100 last:border-b-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-gray-900">{group.productName}</p>
-                  {group.totalPrice > 0 && (
-                    <span className="text-sm text-gray-900 font-medium shrink-0"
-                     >${(group.totalPrice / 100).toFixed(2)}</span>
-                  )}
-                </div>
-                {group.variants.length > 1 ? (
-                  <div className="mt-1 space-y-0.5">
-                    {group.variants.map((v) => (
-                      <div key={v.variantId} className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] text-gray-400 break-words min-w-0"
-                         >{v.variantLabel}</span>
-                        <span className="text-[11px] text-gray-500 whitespace-nowrap shrink-0"
-                         >
-                          {v.quantity} {group.volumeUnitLabel === 'people' ? (isFr ? 'pers.' : 'ppl') : '\u00d7'} ${(v.price / 100).toFixed(2)}
-                        </span>
+          <div className="divide-y divide-white/20">
+            {groups.map((group) => {
+              const config = getTypeConfig(group);
+              const inc = config.increment || 1;
+              const isVariantScope = config.orderScope === 'variant';
+              const smartInc = (current: number) => {
+                if (isVariantScope && current === 0) return config.variantMinimum || inc;
+                return current + inc;
+              };
+              const smartDec = (current: number) => {
+                const next = current - inc;
+                if (isVariantScope && next < config.variantMinimum) return 0;
+                return next < 0 ? 0 : next;
+              };
+
+              return (
+                <div key={group.productId} className="py-3">
+                  {group.variants.map((v) => (
+                    <div key={v.variantId} className="flex items-center gap-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[16px] font-medium truncate">{group.productName}</p>
+                        {group.variants.length > 1 && (
+                          <p className="text-[14px] opacity-60">{v.variantLabel}</p>
+                        )}
+                        {v.price > 0 && (
+                          <p className="text-[14px] opacity-80">${(v.price / 100).toFixed(2)}</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between gap-2 mt-0.5">
-                    <span className="text-xs text-gray-400 min-w-0"
-                     >
-                      {group.variants[0]?.variantLabel || group.productName}
-                      {group.variants[0]?.price > 0 && ` @ $${(group.variants[0].price / 100).toFixed(2)}`}
-                    </span>
-                    <span className="text-xs text-gray-500 whitespace-nowrap shrink-0"
-                     >
-                      {group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}
-                    </span>
-                  </div>
-                )}
-                <button type="button" onClick={() => onRemoveProduct(group.productId)}
-                  className="text-[11px] text-gray-400 underline hover:text-red-500 mt-1"
-                 >
-                  {isFr ? 'retirer' : 'remove'}
-                </button>
-              </div>
-            ))}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button type="button"
+                          onClick={() => onQuantityChange(v.variantId, smartDec(v.quantity))}
+                          className="w-7 h-7 rounded-full border border-white/40 flex items-center justify-center text-sm hover:bg-white/20">
+                          {smartDec(v.quantity) === 0 ? '×' : '−'}
+                        </button>
+                        <span className="text-[14px] w-6 text-center">{v.quantity}</span>
+                        <button type="button"
+                          onClick={() => onQuantityChange(v.variantId, smartInc(v.quantity))}
+                          className="w-7 h-7 rounded-full border border-white/40 flex items-center justify-center text-sm hover:bg-white/20">+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
-          <div className="px-5 py-4 border-t border-gray-200 space-y-4">
+          <div className="space-y-4 pt-4 border-t border-white/20">
+            {/* Allergens */}
             {(() => {
               const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
               if (allAllergens.length === 0) return null;
               return (
-                <div className="rounded-md bg-amber-50 ring-1 ring-amber-200/60 px-3 py-2.5">
-                  <p className="text-[10px] uppercase tracking-widest text-amber-600 mb-1.5"
-                   >{isFr ? 'Contient' : 'Contains'}</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[14px] opacity-60 shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
                   <div className="flex flex-wrap gap-1">
                     {allAllergens.map((a) => (
-                      <span key={a}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium text-amber-700 ring-1 ring-amber-200/60"
-                       >{a}</span>
+                      <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white/40">{a}</span>
                     ))}
                   </div>
                 </div>
               );
             })()}
+
+            {/* Totals */}
             <div className="space-y-1">
-              <div className="flex justify-between text-sm font-semibold">
-                <span>{V.estTotal}</span>
-                <span>
-                  {subtotal > 0 ? `${(subtotal / 100).toFixed(2)}` : '\u2014'}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>{V.items}</span>
-                <span>{totalQuantity}</span>
-              </div>
               {servesEstimate > 0 && (
-                <p className="text-xs text-gray-500">
+                <p className="text-[14px] opacity-60">
                   {isFr ? `Pour environ ${servesEstimate} personnes` : `Serves approx. ${servesEstimate} people`}
                 </p>
               )}
-              <p className="text-[11px] text-gray-400">{V.taxNote}</p>
             </div>
-            <hr className="border-gray-200" />
+
+            {/* Fulfillment toggle */}
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{V.fulfillment}</p>
-              <div className="flex rounded overflow-hidden border border-gray-300">
+              <p className="text-[14px] opacity-60 mb-2">{V.fulfillment}</p>
+              <div className="flex gap-2">
                 {(['pickup', 'delivery'] as const).map((type) => (
                   <button key={type} type="button"
                     onClick={() => onFulfillmentTypeChange(type)}
                     disabled={type === 'delivery' && deliveryDisabled}
-                    className={`flex-1 py-2 text-xs uppercase tracking-widest transition-colors ${
-                      fulfillmentType === type ? 'bg-[#333112] text-white'
-                        : type === 'delivery' && deliveryDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                    className={`flex-1 py-2 text-[14px] rounded-full border transition-colors ${
+                      fulfillmentType === type
+                        ? 'border-white bg-white text-[#0065B6]'
+                        : 'border-white/40 text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
                     }`}
-                   >
+                  >
                     {type === 'pickup' ? V.pickup : V.delivery}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Date */}
             <div>
               <DatePickerField label={V.date}
                 value={toDateValue(fulfillmentDate)}
@@ -427,27 +410,37 @@ function VolumeInlineCart({
                     onDateChange(`${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`);
                   } else { onDateChange(''); }
                 }} />
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[12px] opacity-40 mt-1">
                 {isFr ? "Nous n'acceptons pas les commandes traiteur le dimanche" : "We don't take catering orders on Sundays"}
               </p>
             </div>
-            {dateWarning && <p className="text-[11px] text-red-500 -mt-2" role="alert">{dateWarning}</p>}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 uppercase tracking-wide">{V.allergenNote}</label>
+            {dateWarning && <p className="text-[12px] text-red-300" role="alert">{dateWarning}</p>}
+
+            {/* Allergen note */}
+            <div>
+              <label className="text-[14px] opacity-60 block mb-1">{V.allergenNote}</label>
               <textarea value={allergenNote} onChange={(e) => onAllergenNoteChange(e.target.value)} rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:border-gray-900 focus:outline-none transition-colors resize-none bg-transparent"
+                className="w-full px-4 py-2 text-[14px] border border-white/40 rounded-lg focus:outline-none transition-colors resize-none bg-transparent text-white placeholder:text-white/30"
                 placeholder={V.allergenPlaceholder} />
             </div>
-            {hasMinViolation && <p className="text-xs text-amber-600">{V.minWarning}</p>}
-            {!fulfillmentDate && totalQuantity > 0 && <p className="text-xs text-amber-600">{V.noDateError}</p>}
-            {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
+
+            {hasMinViolation && <p className="text-[12px] text-red-300">{V.minWarning}</p>}
+            {!fulfillmentDate && totalQuantity > 0 && <p className="text-[12px] text-red-300">{V.noDateError}</p>}
+            {checkoutError && <p className="text-[12px] text-red-300">{checkoutError}</p>}
+
+            <div className="flex justify-between text-[18px]" style={{ color: 'white' }}>
+              <span>{V.estTotal}</span>
+              <span style={{ fontWeight: 500 }}>{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '\u2014'}</span>
+            </div>
+
             <button onClick={onCheckout}
               disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation}
               data-checkout
-              className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-             >
+              className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {checkoutLoading ? V.loading : V.checkout}
             </button>
+            <p className="text-[12px] opacity-40 text-center">{V.taxNote}</p>
           </div>
         </>
       )}
@@ -648,7 +641,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       if (variants.length > 0) {
         const config = getTypeConfig(product);
         const translatedName = (locale === 'fr' ? product.translations?.fr?.title : null) || product.title || product.name;
-        groups.push({ productId: product.id, productName: translatedName, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: config.unitLabel ?? 'quantity', variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
+        groups.push({ productId: product.id, productName: translatedName, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: config.unitLabel ?? 'quantity', cateringType: product.cateringType ?? '', variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
       }
     }
     return groups;
@@ -667,12 +660,20 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   }, [products, cart]);
 
   const hasMinViolation = useMemo(() => {
+    // Group quantities by catering type for order-scope checks
+    const typeTotals = new Map<string, number>();
+    for (const p of products) {
+      const qty = getTotalQuantity(p, cart);
+      if (qty === 0) continue;
+      const type = p.cateringType ?? '';
+      typeTotals.set(type, (typeTotals.get(type) ?? 0) + qty);
+    }
+
     return products.some((p) => {
       const qty = getTotalQuantity(p, cart);
       if (qty === 0) return false;
       const config = getTypeConfig(p);
       if (config.orderScope === 'variant') {
-        // Each variant must meet variantMinimum and increment
         return p.variants.some((v) => {
           const q = cart.get(v.id) ?? 0;
           if (q === 0) return false;
@@ -681,9 +682,9 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           return false;
         });
       } else {
-        // Order total must meet orderMinimum and increment
-        if (qty < config.orderMinimum) return true;
-        if (config.increment > 0 && (qty - config.orderMinimum) % config.increment !== 0) return true;
+        // Order-scope: check total across all products of the same type
+        const typeTotal = typeTotals.get(p.cateringType ?? '') ?? 0;
+        if (typeTotal < config.orderMinimum) return true;
         return false;
       }
     });
@@ -853,6 +854,8 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           onFulfillmentTypeChange={setFulfillmentType} onAllergenNoteChange={setAllergenNote}
           onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
           onRemoveProduct={handleRemoveProduct}
+          onQuantityChange={handleQuantityChange}
+          getTypeConfig={(g: CartGroup) => typeSettings[g.cateringType] ?? DEFAULT_TYPE_CONFIG}
           checkoutLoading={checkoutLoading} checkoutError={checkoutError}
           locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr} />
       </OrderCartPanel>

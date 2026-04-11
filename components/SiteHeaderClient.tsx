@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useOrderItems } from '@/contexts/OrderItemsContext';
+import { useCart } from '@/contexts/CartContext';
 import SiteNav from '@/components/SiteNav';
 import MobileMenu from '@/components/MobileMenu';
 
@@ -15,6 +18,16 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
+  const pathname = usePathname();
+  const { orderCount, volumeCount, cakeCount } = useOrderItems();
+  const { cart } = useCart();
+
+  let currentCount = 0;
+  if (pathname?.startsWith('/order')) currentCount = orderCount;
+  else if (pathname?.startsWith('/catering')) currentCount = volumeCount;
+  else if (pathname?.startsWith('/cake')) currentCount = cakeCount;
+  else currentCount = cart?.lines.edges.reduce((sum, e) => sum + e.node.quantity, 0) ?? 0;
+  const hasCartItems = currentCount > 0;
 
   useEffect(() => {
     const onScroll = () => {
@@ -48,7 +61,7 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
       <header
         className={`fixed top-0 left-0 right-0 z-50 bg-[#FCFBF6] transition-transform duration-300 ${
           visible ? 'translate-y-0' : '-translate-y-full'
-        }`}
+        } ${hasCartItems ? 'pr-[60px]' : ''}`}
       >
         <div className="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-8 h-14 md:h-16">
           {/* Left: Logo + Nav */}
