@@ -1,0 +1,182 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .page { padding: 2rem 1.5rem; max-width: 900px; margin: 0 auto; }
+  .header { margin-bottom: 1.5rem; }
+  .header h1 { font-size: 28px; font-weight: 500; color: var(--color-text-primary); }
+  .meta { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+  .meta span { margin-right: 12px; }
+  .filters { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .filter-btn { font-size: 12px; padding: 4px 14px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
+  .section { margin-bottom: 2rem; }
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .item-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: background 0.1s; }
+  .item-row:last-child { border-bottom: none; }
+  .item-row:hover { background: var(--color-background-secondary); margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 6px; }
+  .item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-hot { background: #D85A30; }
+  .dot-cold { background: #378ADD; }
+  .item-name { flex: 1; font-size: 14px; color: var(--color-text-primary); line-height: 1.4; }
+  .item-tags { display: flex; gap: 4px; flex-shrink: 0; }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 999px; font-weight: 500; }
+  .tag-veg { background: #EAF3DE; color: #3B6D11; }
+  .tag-fish { background: #E6F1FB; color: #185FA5; }
+  .tag-meat { background: #FAECE7; color: #993C1D; }
+  .tag-dairy { background: #FAEEDA; color: #854F0B; }
+  .tag-gluten { background: #F1EFE8; color: #5F5E5A; }
+  .item-price { font-size: 13px; color: var(--color-text-secondary); flex-shrink: 0; min-width: 48px; text-align: right; }
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .qty-btn { width: 24px; height: 24px; border-radius: 50%; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .qty-btn:hover { background: var(--color-background-secondary); }
+  .qty-num { font-size: 13px; font-weight: 500; min-width: 16px; text-align: center; color: var(--color-text-primary); }
+  .cart-bar { position: sticky; bottom: 0; background: var(--color-background-primary); border-top: 0.5px solid var(--color-border-secondary); padding: 12px 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+  .cart-summary { font-size: 13px; color: var(--color-text-secondary); }
+  .cart-total { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+  .cart-btn { font-size: 13px; padding: 8px 20px; border-radius: 999px; border: none; background: var(--color-text-primary); color: var(--color-background-primary); cursor: pointer; }
+  .hidden { display: none; }
+  .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
+  @media (max-width: 600px) { .col2 { grid-template-columns: 1fr; } }
+</style>
+
+<div class="page">
+  <h2 class="sr-only">Menu bouchées — catering order interface</h2>
+  <div class="header">
+    <h1>Bouchées salées</h1>
+    <p class="meta"><span>min. 3 pièces</span><span>4,50$ / bouchée</span></p>
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all',this)">Tout</button>
+      <button class="filter-btn" onclick="setFilter('hot',this)">Chaud</button>
+      <button class="filter-btn" onclick="setFilter('cold',this)">Froid</button>
+      <button class="filter-btn" onclick="setFilter('veg',this)">Végétarien</button>
+      <button class="filter-btn" onclick="setFilter('fish',this)">Poisson</button>
+      <button class="filter-btn" onclick="setFilter('meat',this)">Viande</button>
+    </div>
+  </div>
+
+  <div id="menu-body"></div>
+</div>
+
+<div class="cart-bar" id="cart-bar" style="display:none;">
+  <div>
+    <div class="cart-summary" id="cart-summary"></div>
+    <div class="cart-total" id="cart-total"></div>
+  </div>
+  <button class="cart-btn">Voir la commande</button>
+</div>
+
+<script>
+const ITEMS = [
+  { id:1, name:"Arancini mozzarella et romesco", temp:"hot", cat:"veg", tags:["veg","dairy"], price:4.5 },
+  { id:2, name:"Gougère au gré des champs", temp:"hot", cat:"veg", tags:["veg","dairy","gluten"], price:4.5 },
+  { id:3, name:"Brochette de tofu mariné, vinaigrette asiatique", temp:"hot", cat:"veg", tags:["veg","gluten","soy"], price:4.5 },
+  { id:4, name:"Arancini pesto kale et pieuvre, yogourt citron", temp:"hot", cat:"fish", tags:["fish","dairy"], price:4.5 },
+  { id:5, name:"Brochette de kefta de morue, sauce chermoulah", temp:"hot", cat:"fish", tags:["fish"], price:4.5 },
+  { id:6, name:"Cromesquis de boeuf, mayo à la truffe", temp:"hot", cat:"meat", tags:["meat","gluten"], price:4.5 },
+  { id:7, name:"Polpette de boeuf, sauce tomate", temp:"hot", cat:"meat", tags:["meat","gluten"], price:4.5 },
+  { id:8, name:"Cake aux herbes, salade de chou yaourt épicé", temp:"cold", cat:"veg", tags:["veg","dairy","gluten"], price:4.5 },
+  { id:9, name:"Concombre, féta, menthe, pistache", temp:"cold", cat:"veg", tags:["veg","dairy"], price:4.5 },
+  { id:10, name:"Tartare de betterave, chèvre", temp:"cold", cat:"veg", tags:["veg","dairy"], price:4.5 },
+  { id:11, name:"Sablé cheddar, courge et oignon mariné", temp:"cold", cat:"veg", tags:["veg","dairy","gluten"], price:4.5 },
+  { id:12, name:"Polenta, aubergine épicée, bocconcini", temp:"cold", cat:"veg", tags:["veg","dairy"], price:4.5 },
+  { id:13, name:"Gravlax de saumon, feuille nori, caviar mujol", temp:"cold", cat:"fish", tags:["fish"], price:4.5 },
+  { id:14, name:"Terrine de pieuvre, romesco, amande rôtie, citron", temp:"cold", cat:"fish", tags:["fish","nuts"], price:4.5 },
+  { id:15, name:"Ceviche de pétoncle, beurre de pommette, caviar", temp:"cold", cat:"fish", tags:["fish","dairy"], price:4.5 },
+  { id:16, name:"Tartare de saumon, gingembre, sésame, croûton", temp:"cold", cat:"fish", tags:["fish","gluten","soy"], price:4.5 },
+  { id:17, name:"Chou à la crevette tournesol", temp:"cold", cat:"fish", tags:["fish"], price:4.5 },
+  { id:18, name:"Anguille laquée, sablé nori, mayo miso, wakame", temp:"cold", cat:"fish", tags:["fish","gluten","soy"], price:4.5 },
+  { id:19, name:"Rillettes de canard, scone cheddar et relish", temp:"cold", cat:"meat", tags:["meat","dairy","gluten"], price:4.5 },
+  { id:20, name:"Tartare de boeuf, mayo, anchois, câpres", temp:"cold", cat:"meat", tags:["meat","fish"], price:4.5 },
+  { id:21, name:"Terrine de viande fumée, foie, cornichon", temp:"cold", cat:"meat", tags:["meat"], price:4.5 },
+  { id:22, name:"Terrine de foie gras, brioche rôti, gelée de cidre", temp:"cold", cat:"meat", tags:["meat","dairy","gluten"], price:4.5 },
+  { id:23, name:"Tataki de boeuf, cake topinambour, purée d'oignon", temp:"cold", cat:"meat", tags:["meat","gluten"], price:4.5 },
+  { id:24, name:"Prosciutto, champignon, sablé cheddar", temp:"cold", cat:"meat", tags:["meat","dairy","gluten"], price:4.5 },
+  { id:25, name:"Magret de canard en sandwich, gribiche", temp:"cold", cat:"meat", tags:["meat","gluten"], price:4.5 },
+];
+
+const qty = {};
+let activeFilter = 'all';
+
+function tagLabel(t) {
+  return { veg:'Vég', fish:'Poisson', meat:'Viande', dairy:'Lait', gluten:'Gluten', soy:'Soja', nuts:'Noix' }[t] || t;
+}
+function tagClass(t) {
+  return { veg:'tag-veg', fish:'tag-fish', meat:'tag-meat', dairy:'tag-dairy', gluten:'tag-gluten', soy:'tag-gluten', nuts:'tag-dairy' }[t] || 'tag-gluten';
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function change(id, delta) {
+  qty[id] = Math.max(0, (qty[id]||0) + delta);
+  render();
+}
+
+function totalPieces() {
+  return Object.values(qty).reduce((a,b) => a+b, 0);
+}
+
+function render() {
+  const filtered = activeFilter === 'all' ? ITEMS :
+    activeFilter === 'hot' ? ITEMS.filter(i => i.temp === 'hot') :
+    activeFilter === 'cold' ? ITEMS.filter(i => i.temp === 'cold') :
+    ITEMS.filter(i => i.cat === activeFilter || i.tags.includes(activeFilter));
+
+  const sections = [];
+  if (filtered.some(i => i.temp==='hot')) {
+    const cats = ['veg','fish','meat'];
+    const hotItems = filtered.filter(i => i.temp==='hot');
+    sections.push({ label: 'Bouchées chaudes', items: hotItems, cats });
+  }
+  if (filtered.some(i => i.temp==='cold')) {
+    const coldItems = filtered.filter(i => i.temp==='cold');
+    sections.push({ label: 'Bouchées froides', items: coldItems, cats: ['veg','fish','meat'] });
+  }
+
+  const catLabel = { veg:'Végétarien', fish:'Poisson', meat:'Viande' };
+
+  let html = '';
+  for (const sec of sections) {
+    html += `<div class="section"><div class="section-label">${sec.label}</div>`;
+    for (const cat of sec.cats) {
+      const items = sec.items.filter(i => i.cat === cat);
+      if (!items.length) continue;
+      html += `<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px;">${catLabel[cat]}</div>`;
+      for (const item of items) {
+        const q = qty[item.id] || 0;
+        const allergenTags = item.tags.filter(t => !['veg','fish','meat'].includes(t));
+        html += `<div class="item-row">
+          <div class="item-dot ${item.temp==='hot'?'dot-hot':'dot-cold'}"></div>
+          <div class="item-name">${item.name}${allergenTags.map(t=>`<span class="tag ${tagClass(t)}" style="margin-left:6px;">${tagLabel(t)}</span>`).join('')}</div>
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="change(${item.id},-1)">−</button>
+            <span class="qty-num">${q}</span>
+            <button class="qty-btn" onclick="change(${item.id},1)">+</button>
+          </div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('menu-body').innerHTML = html;
+
+  const total = totalPieces();
+  const cartBar = document.getElementById('cart-bar');
+  if (total > 0) {
+    cartBar.style.display = 'flex';
+    document.getElementById('cart-summary').textContent = `${total} bouchée${total>1?'s':''} sélectionnée${total>1?'s':''}`;
+    document.getElementById('cart-total').textContent = `${(total * 4.5).toFixed(2).replace('.',',')} $`;
+  } else {
+    cartBar.style.display = 'none';
+  }
+}
+
+render();
+</script>

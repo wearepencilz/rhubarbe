@@ -88,7 +88,7 @@ const fr = {
     items: 'Articles',
     taxNote: 'Taxes calculées à la caisse',
     pickup: 'Cueillette',
-    date: 'Date de cueillette',
+    date: 'Date',
     earliest: 'Dès le',
     eventType: 'Type d\'événement',
     eventOptions: {

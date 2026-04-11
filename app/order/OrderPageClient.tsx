@@ -160,91 +160,75 @@ function ProductCard({
 
   // Resolve display price: variant price overrides base price
   const displayPrice = activeVariant?.price ?? product.price;
+  const hasItems = quantity > 0;
+  const [hovered, setHovered] = useState(false);
+  const showOverlay = (hasItems || hovered) && !soldOut;
+  const allergens = product.allergens ?? [];
 
   return (
-    <div className={`group flex flex-col ${soldOut ? 'opacity-60' : ''}`}>
+    <div className={`flex flex-col ${soldOut ? 'opacity-60' : ''}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       {product.image && (
         <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
-          <img
-            src={product.image}
-            alt={displayName}
-            className="w-full h-full object-cover"
-          />
-          {/* Allergen badges */}
-          {product.allergens && product.allergens.length > 0 && (
-            <div className="absolute top-[16px] left-[16px] flex flex-wrap gap-1">
-              {product.allergens.map((a) => (
-                <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">
-                  {a}
-                </span>
-              ))}
-            </div>
+          {!showOverlay && (
+            <>
+              <img src={product.image} alt={displayName} className="w-full h-full object-cover" />
+              {allergens.length > 0 && (
+                <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
+                  {allergens.map((a) => (
+                    <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>
+                  ))}
+                </div>
+              )}
+            </>
           )}
-          {/* Hover overlay */}
-          {!soldOut && (
-            <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-[16px]">
-              {/* Serves badge top-left */}
-              {product.serves && (
-                <div className="self-start">
+          {showOverlay && (
+            <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-between p-4">
+              <div className="flex flex-wrap gap-1">
+                {product.serves && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] text-white border border-white">
                     {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
                   </span>
-                </div>
-              )}
-              {!product.serves && <div />}
-              {/* Bottom controls */}
+                )}
+                {allergens.map((a) => (
+                  <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
+                ))}
+              </div>
               <div className="flex flex-col gap-2">
-              {/* Variant selector inside overlay */}
-              {hasVariants && availableVariants.length > 1 && (
-                <div className="flex flex-wrap gap-1.5 justify-center">
-                  {availableVariants.map((v) => {
-                    const isActive = v.id === (activeVariant?.id);
-                    const label = isFr && v.labelFr ? v.labelFr : v.label;
-                    return (
-                      <button
-                        key={v.id}
-                        onClick={(e) => { e.stopPropagation(); onSelectVariant(v.id); }}
-                        className={`px-3 py-1.5 text-[16px] rounded-full border transition-colors ${
-                          isActive
-                            ? 'border-white bg-white text-[#D49BCB]'
-                            : 'border-white text-white hover:bg-white/20'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {quantity === 0 ? (
-                <button
-                  onClick={onAdd}
-                  disabled={atMax || (hasVariants && !activeVariant)}
-                  className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium transition-colors hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isFr ? '+ Ajouter' : '+ Add'}
-                </button>
-              ) : (
-                <div className="flex items-center justify-between rounded-full border border-white overflow-hidden h-10 w-full">
-                  <button onClick={onRemove} className="px-4 h-full text-white text-lg hover:bg-white/20">−</button>
-                  <span className="text-[16px] text-white font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
-                  <button onClick={onAdd} disabled={atMax} className="px-4 h-full text-white text-lg hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
-                </div>
-              )}
+                {hasVariants && availableVariants.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    {availableVariants.map((v) => {
+                      const isActive = v.id === (activeVariant?.id);
+                      const label = isFr && v.labelFr ? v.labelFr : v.label;
+                      return (
+                        <button key={v.id} onClick={(e) => { e.stopPropagation(); onSelectVariant(v.id); }}
+                          className={`px-3 py-1.5 text-[16px] rounded-full border transition-colors ${isActive ? 'border-white bg-white text-[#D49BCB]' : 'border-white text-white hover:bg-white/20'}`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {quantity === 0 ? (
+                  <button onClick={onAdd} disabled={atMax || (hasVariants && !activeVariant)}
+                    className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isFr ? '+ Ajouter' : '+ Add'}
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between rounded-full border border-white overflow-hidden h-10 w-full">
+                    <button onClick={onRemove} className="px-4 h-full text-white text-lg hover:bg-white/20">−</button>
+                    <span className="text-[16px] text-white font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
+                    <button onClick={onAdd} disabled={atMax} className="px-4 h-full text-white text-lg hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+                  </div>
+                )}
               </div>
             </div>
           )}
           {soldOut && (
             <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-              <p className="text-center text-white text-[16px] font-medium">
-                {isFr ? 'Épuisé' : 'Sold out'}
-              </p>
-              {product.nextAvailableDate && (
-                <p className="text-center text-[10px] text-white/80 mt-1">
-                  {isFr ? 'Prochaine disponibilité\u00a0: ' : 'Next available: '}
-                  {formatDate(product.nextAvailableDate, locale)}
-                </p>
-              )}
+              <p className="text-center text-white text-[16px] font-medium">{isFr ? 'Épuisé' : 'Sold out'}</p>
             </div>
           )}
         </div>
@@ -394,6 +378,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
   useEffect(() => {
     const total = cart.reduce((s, i) => s + i.quantity, 0);
     setOrderCount(total);
+    try { localStorage.setItem('rhubarbe:order:count', String(total)); } catch {}
   }, [cart, setOrderCount]);
 
   useEffect(() => {
@@ -415,10 +400,15 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
         if (initialSlug && list.length > 0) {
           const idx = list.findIndex((l: any) => l.slug === initialSlug);
           if (idx >= 0) setActiveLaunchIdx(idx);
-        }
-        // Set URL to the active launch's slug on initial load
-        if (!initialSlug && list.length > 0 && list[0].slug) {
-          window.history.replaceState(null, '', `/order/${list[0].slug}`);
+        } else if (list.length > 0) {
+          // If cart has items from a specific launch, navigate to that one
+          const savedLaunchId = cartLaunchId;
+          const cartIdx = savedLaunchId ? list.findIndex((l: any) => l.id === savedLaunchId) : -1;
+          const targetIdx = cartIdx >= 0 ? cartIdx : 0;
+          setActiveLaunchIdx(targetIdx);
+          if (list[targetIdx].slug) {
+            window.history.replaceState(null, '', `/order/${list[targetIdx].slug}`);
+          }
         }
       })
       .catch(() => {})
@@ -1084,13 +1074,17 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
       />
 
       {/* Order cart slide-in panel */}
-      <OrderCartPanel open={cartOpen} onClose={() => setCartOpen(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={cart.reduce((s, i) => s + i.quantity, 0)}>
+      <OrderCartPanel open={cartOpen} onClose={() => setCartOpen(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={cart.reduce((s, i) => s + i.quantity, 0)}
+        footer={<OrderCartFooter cart={cart} checkoutLoading={checkoutLoading} isFr={isFr} onCheckout={() => { setCartOpen(false); handleCheckout(); }} />}>
         {cart.length === 0 ? (
-          <p className="text-white/60 text-[16px] text-center py-12">{isFr ? 'Aucun article' : 'No items yet'}</p>
+          <p className="text-white text-[16px] text-center py-12">{isFr ? 'Aucun article' : 'No items yet'}</p>
         ) : (
           <div className="space-y-4">
-            <div className="divide-y divide-white/20">
-              {cart.map((item) => (
+            <div>
+              {cart.map((item) => {
+                const max = getMaxForProduct(item.productId);
+                const atMax = max != null && item.quantity >= max;
+                return (
                 <div key={item.productId} className="flex items-center gap-3 py-3">
                   {item.image && (
                     <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-white/10">
@@ -1099,9 +1093,9 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[16px] text-white font-medium truncate">{item.name}</p>
-                    {item.variantLabel && <p className="text-[14px] text-white/60">{item.variantLabel}</p>}
-                    <p className="text-[14px] text-white/80">${(item.price / 100).toFixed(2)}</p>
+                    {item.variantLabel && <p className="text-[14px] text-white">{item.variantLabel}</p>}
                   </div>
+                  <span className="text-[13px] text-white shrink-0">${(item.price / 100).toFixed(2)}</span>
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => item.quantity <= 1 ? removeFromCart(item.productId) : updateCartQty(item.productId, item.quantity - 1)}
                       className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">
@@ -1109,55 +1103,67 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                     </button>
                     <span className="text-white text-[14px] w-6 text-center">{item.quantity}</span>
                     <button onClick={() => updateCartQty(item.productId, item.quantity + 1)}
-                      className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">+</button>
+                      disabled={atMax}
+                      className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Pickup slot selectors */}
-            {launch && (availablePickupDays.length > 1 || (launch.pickupSlots || []).length > 0) && (
-              <div className="space-y-2 border-t border-white/20 pt-4">
-                <p className="text-[14px] text-white/60">{isFr ? 'Créneau de cueillette' : 'Pickup slot'}</p>
-                {availablePickupDays.length > 1 && (
-                  <select value={selectedPickupDay || ''} onChange={(e) => setSelectedPickupDay(e.target.value)}
-                    className="w-full appearance-none rounded-full border border-white/40 bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
-                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
-                    <option value="">{isFr ? 'Choisir un jour…' : 'Choose a day…'}</option>
-                    {availablePickupDays.map((day) => <option key={day} value={day}>{formatDate(day, locale)}</option>)}
-                  </select>
-                )}
+            {/* Pickup date + slot selectors */}
+            {launch && (
+              <div className="border-t border-white pt-6 mt-6 space-y-3">
+                {/* Pickup date row */}
+                <div className="flex items-center justify-between">
+                  <p className="text-[14px] text-white">{isFr ? 'Date de cueillette' : 'Pickup date'}</p>
+                  {availablePickupDays.length > 1 ? (
+                    <select value={selectedPickupDay || ''} onChange={(e) => setSelectedPickupDay(e.target.value)}
+                      className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
+                      <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
+                      {availablePickupDays.map((day) => <option key={day} value={day}>{formatDate(day, locale)}</option>)}
+                    </select>
+                  ) : (
+                    <span className="text-[14px] text-white">{formatPickupRange(launch, locale)}</span>
+                  )}
+                </div>
+                {/* Time slot */}
                 {(launch.pickupSlots || []).length > 0 && (
-                  <select value={selectedSlotId || ''} onChange={(e) => setSelectedSlotId(e.target.value)}
-                    className="w-full appearance-none rounded-full border border-white/40 bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
-                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
-                    <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
-                    {launch.pickupSlots.map((s) => <option key={s.id} value={s.id}>{s.startTime} – {s.endTime}</option>)}
-                  </select>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] text-white">{isFr ? 'Créneau' : 'Time slot'}</p>
+                      {!selectedSlotId && (
+                        <span className="text-[12px]" style={{ color: '#EBE000' }}>{isFr ? 'choisir' : 'select'}</span>
+                      )}
+                    </div>
+                    <select value={selectedSlotId || ''} onChange={(e) => setSelectedSlotId(e.target.value)}
+                      className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
+                      <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
+                      {launch.pickupSlots.map((s) => <option key={s.id} value={s.id}>{s.startTime} – {s.endTime}</option>)}
+                    </select>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Total + checkout */}
-            <div className="border-t border-white/20 pt-4 space-y-3">
-              {checkoutError && <p className="text-[14px] text-red-300">{checkoutError}</p>}
-              <div className="flex justify-between text-[18px] text-white font-medium">
-                <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
-                <span>${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}</span>
-              </div>
-              <button
-                onClick={() => { setCartOpen(false); handleCheckout(); }}
-                disabled={checkoutLoading}
-                data-checkout
-                className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50"
-              >
-                {checkoutLoading ? (isFr ? 'Chargement…' : 'Loading…') : (isFr ? 'Passer à la caisse' : 'Checkout')}
-              </button>
-              <p className="text-[12px] text-white/50 text-center">{isFr ? 'Taxes calculées à la caisse' : 'Taxes calculated at checkout'}</p>
-            </div>
+            {/* Checkout */}
+            {checkoutError && <p className="text-[14px] text-red-300">{checkoutError}</p>}
           </div>
         )}
       </OrderCartPanel>
     </main>
+  );
+}
+
+function OrderCartFooter({ cart, checkoutLoading, isFr, onCheckout }: { cart: { price: number; quantity: number }[]; checkoutLoading: boolean; isFr: boolean; onCheckout: () => void }) {
+  if (cart.length === 0) return null;
+  return (
+    <button onClick={onCheckout} disabled={checkoutLoading} data-checkout
+      className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-between px-6">
+      <span>{checkoutLoading ? (isFr ? 'Chargement…' : 'Loading…') : (isFr ? 'Passer à la caisse' : 'Checkout')}</span>
+      <span>${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}</span>
+    </button>
   );
 }

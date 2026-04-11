@@ -90,7 +90,7 @@ const en: Translations = {
     items: 'Items',
     taxNote: 'Taxes calculated at checkout',
     pickup: 'Pickup',
-    date: 'Pickup Date',
+    date: 'Date',
     earliest: 'Earliest',
     eventType: 'Event Type',
     eventOptions: {

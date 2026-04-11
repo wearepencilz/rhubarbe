@@ -108,6 +108,7 @@ interface CartGroup {
   allergens: string[];
   volumeUnitLabel: 'quantity' | 'people';
   cateringType: string;
+  servesPerUnit: number | null;
   variants: Array<{ variantId: string; variantLabel: string; quantity: number; shopifyVariantId: string; price: number }>;
   totalQty: number;
   totalPrice: number;
@@ -152,6 +153,7 @@ function VolumeProductCard({
   const [focusedVariantId, setFocusedVariantId] = useState<string | null>(null);
   const focusedVariant = product.variants.find((v) => v.id === focusedVariantId);
   const displayImage = focusedVariant?.image || product.image;
+  const [hovered, setHovered] = useState(false);
 
   const handleVariantQtyChange = (variantId: string, qty: number) => {
     setFocusedVariantId(variantId);
@@ -159,45 +161,94 @@ function VolumeProductCard({
   };
 
   const hasItems = totalQty > 0;
+  const showOverlay = hasItems || hovered;
+
+  const allergens = product.allergens ?? [];
 
   return (
-    <div className="group flex flex-col">
-      {/* Image — 4:5 vertical */}
-      <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
-        {displayImage ? (
-          <img src={displayImage} alt={displayName}
-            className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full" style={{ backgroundColor: brandColor }} />
+    <div className="flex flex-col"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="aspect-[4/5] overflow-hidden relative">
+        {/* State 1: Image with black badges */}
+        {!showOverlay && (
+          <>
+            {displayImage ? (
+              <img src={displayImage} alt={displayName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full" style={{ backgroundColor: brandColor }} />
+            )}
+            {allergens.length > 0 && (
+              <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
+                {allergens.map((a) => (
+                  <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>
+                ))}
+              </div>
+            )}
+          </>
         )}
-        {/* Allergen badges */}
-        {(product.allergens ?? []).length > 0 && (
-          <div className="absolute top-[16px] left-[16px] flex flex-wrap gap-1">
-            {(product.allergens ?? []).map((a) => (
-              <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>
-            ))}
+        {/* State 2: Pink overlay with white badges + controls */}
+        {showOverlay && (
+          <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-between p-4">
+            {allergens.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {allergens.map((a) => (
+                  <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
+                ))}
+              </div>
+            ) : <div />}
+            <div className="flex flex-col gap-2">
+              {hasItems ? (
+                <>
+                  {product.variants.length > 1 ? (
+                    product.variants.map((v) => {
+                      const qty = cart.get(v.id) ?? 0;
+                      if (qty === 0) return null;
+                      return (
+                        <div key={v.id} className="flex items-center justify-between rounded-full border border-white overflow-hidden h-10 w-full">
+                          <button type="button" onClick={() => onQuantityChange(v.id, smartDecrement(qty))} className="px-4 h-full text-white text-lg hover:bg-white/20">
+                            {smartDecrement(qty) === 0 ? '×' : '−'}
+                          </button>
+                          <span className="text-[16px] text-white font-medium">{qty}</span>
+                          <button type="button" onClick={() => onQuantityChange(v.id, smartIncrement(qty))} className="px-4 h-full text-white text-lg hover:bg-white/20">+</button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="flex items-center justify-between rounded-full border border-white overflow-hidden h-10 w-full">
+                      <button type="button" onClick={() => {
+                        const vid = product.variants.length > 0 ? product.variants[0].id : product.id;
+                        const qty = cart.get(vid) ?? 0;
+                        onQuantityChange(vid, smartDecrement(qty));
+                      }} className="px-4 h-full text-white text-lg hover:bg-white/20">
+                        {smartDecrement(totalQty) === 0 ? '×' : '−'}
+                      </button>
+                      <span className="text-[16px] text-white font-medium">{totalQty}</span>
+                      <button type="button" onClick={() => {
+                        const vid = product.variants.length > 0 ? product.variants[0].id : product.id;
+                        const qty = cart.get(vid) ?? 0;
+                        onQuantityChange(vid, smartIncrement(qty));
+                      }} className="px-4 h-full text-white text-lg hover:bg-white/20">+</button>
+                    </div>
+                  )}
+                </>
+              ) : product.variants.length === 0 ? (
+                <button type="button"
+                  onClick={() => onQuantityChange(product.id, smartIncrement(0))}
+                  className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/20">
+                  {isFr ? '+ Ajouter' : '+ Add'}
+                </button>
+              ) : (
+                <button type="button"
+                  onClick={() => handleVariantQtyChange(product.variants[0].id, smartIncrement(0))}
+                  className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/20">
+                  {isFr ? '+ Ajouter' : '+ Add'}
+                </button>
+              )}
+            </div>
           </div>
         )}
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-[16px] gap-2">
-          {!hasItems && product.variants.length === 0 ? (
-            <button type="button"
-              onClick={() => onQuantityChange(product.id, smartIncrement(0))}
-              className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium transition-colors hover:bg-white/20">
-              {isFr ? '+ Ajouter' : '+ Add'}
-            </button>
-          ) : !hasItems && product.variants.length > 0 ? (
-            <button type="button"
-              onClick={() => handleVariantQtyChange(product.variants[0].id, smartIncrement(0))}
-              className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium transition-colors hover:bg-white/20">
-              {isFr ? '+ Ajouter' : '+ Add'}
-            </button>
-          ) : (
-            <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium text-center flex items-center justify-center">
-              {totalQty} {isFr ? 'ajouté' : 'added'}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="flex flex-col pt-2.5 gap-0.5">
@@ -292,87 +343,109 @@ function VolumeInlineCart({
 
   return (
     <div>
-      {/* Earliest date summary */}
+      {/* Earliest date + allergens — above the line */}
       {maxLeadTimeDays > 0 && (
-        <div className="pb-4 mb-4 border-b border-white/20">
-          <p className="text-[14px]">
-            {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
-          </p>
-        </div>
+        <p className="text-[14px] mb-2">
+          {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
+        </p>
       )}
+      {totalQuantity > 0 && (() => {
+        const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
+        if (allAllergens.length === 0) return null;
+        return (
+          <div className="flex items-center gap-3 mb-2">
+            <p className="text-[14px] shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
+            <div className="flex flex-wrap gap-1">
+              {allAllergens.map((a) => (
+                <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white">{a}</span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
       {totalQuantity === 0 ? (
         <div className="py-8 text-center">
-          <p className="text-[16px] opacity-60">{V.noItems}</p>
-          <p className="text-[14px] opacity-40 mt-1">{V.startHint}</p>
+          <p className="text-[16px] ">{V.noItems}</p>
+          <p className="text-[14px]  mt-1">{V.startHint}</p>
         </div>
       ) : (
         <>
-          <div className="divide-y divide-white/20">
-            {groups.map((group) => {
-              const config = getTypeConfig(group);
-              const inc = config.increment || 1;
-              const isVariantScope = config.orderScope === 'variant';
-              const smartInc = (current: number) => {
-                if (isVariantScope && current === 0) return config.variantMinimum || inc;
-                return current + inc;
-              };
-              const smartDec = (current: number) => {
-                const next = current - inc;
-                if (isVariantScope && next < config.variantMinimum) return 0;
-                return next < 0 ? 0 : next;
-              };
-
-              return (
-                <div key={group.productId} className="py-3">
-                  {group.variants.map((v) => (
-                    <div key={v.variantId} className="flex items-center gap-3 py-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[16px] font-medium truncate">{group.productName}</p>
-                        {group.variants.length > 1 && (
-                          <p className="text-[14px] opacity-60">{v.variantLabel}</p>
-                        )}
-                        {v.price > 0 && (
-                          <p className="text-[14px] opacity-80">${(v.price / 100).toFixed(2)}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button type="button"
-                          onClick={() => onQuantityChange(v.variantId, smartDec(v.quantity))}
-                          className="w-7 h-7 rounded-full border border-white/40 flex items-center justify-center text-sm hover:bg-white/20">
-                          {smartDec(v.quantity) === 0 ? '×' : '−'}
-                        </button>
-                        <span className="text-[14px] w-6 text-center">{v.quantity}</span>
-                        <button type="button"
-                          onClick={() => onQuantityChange(v.variantId, smartInc(v.quantity))}
-                          className="w-7 h-7 rounded-full border border-white/40 flex items-center justify-center text-sm hover:bg-white/20">+</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-          <div className="space-y-4 pt-4 border-t border-white/20">
-            {/* Allergens */}
+          <div>
             {(() => {
-              const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
-              if (allAllergens.length === 0) return null;
-              return (
-                <div className="flex items-center gap-3">
-                  <p className="text-[14px] opacity-60 shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {allAllergens.map((a) => (
-                      <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white/40">{a}</span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+              const TYPE_LABELS: Record<string, Record<string, string>> = {
+                brunch: { en: 'Brunch', fr: 'Brunch' },
+                lunch: { en: 'Lunch', fr: 'Lunch' },
+                dinatoire: { en: 'Dînatoire', fr: 'Dînatoire' },
+              };
+              const typeOrder = ['brunch', 'lunch', 'dinatoire', ''];
+              const byType = new Map<string, CartGroup[]>();
+              for (const g of groups) {
+                const t = g.cateringType || '';
+                if (!byType.has(t)) byType.set(t, []);
+                byType.get(t)!.push(g);
+              }
+              return typeOrder.filter((t) => byType.has(t)).map((type) => {
+                const typeGroups = byType.get(type)!;
+                const label = TYPE_LABELS[type]?.[locale] ?? (type || (isFr ? 'Autre' : 'Other'));
+                return (
+                  <div key={type} className="border-b border-white pb-3 mb-3 last:border-b-0 last:mb-0 last:pb-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-[20px] font-medium">{label}</p>
+                      {type === 'dinatoire' && (() => {
+                        const config = getTypeConfig(typeGroups[0]);
+                        const typeTotal = typeGroups.reduce((s, g) => s + g.totalQty, 0);
+                        if (typeTotal > 0 && typeTotal < config.orderMinimum) {
+                          return <span className="text-[11px]" style={{ color: '#EBE000' }}>
+                            {isFr ? `min ${config.orderMinimum}` : `min ${config.orderMinimum}`}
+                          </span>;
+                        }
+                        return null;
+                      })()}
+                    </div>
+                    {(() => {
+                      const typeServes = typeGroups.reduce((s, g) => s + g.totalQty * (g.servesPerUnit ?? 0), 0);
+                      return typeServes > 0 ? (
+                        <p className="text-[12px] mb-2" style={{ opacity: 0.6 }}>
+                          {isFr ? `≈ ${typeServes} personnes` : `≈ ${typeServes} people`}
+                        </p>
+                      ) : null;
+                    })()}
+                    {typeGroups.map((group) => {
+                      const config = getTypeConfig(group);
+                      const inc = config.increment || 1;
+                      const isVariantScope = config.orderScope === 'variant';
+                      const smartInc = (cur: number) => isVariantScope && cur === 0 ? config.variantMinimum || inc : cur + inc;
+                      const smartDec = (cur: number) => { const n = cur - inc; return isVariantScope && n < config.variantMinimum ? 0 : n < 0 ? 0 : n; };
 
+                      return group.variants.map((v) => (
+                        <div key={v.variantId} className="flex items-center gap-2 py-1">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[13px] truncate">{group.productName}</span>
+                            {group.variants.length > 1 && <span className="text-[11px]  ml-1">{v.variantLabel}</span>}
+                          </div>
+                          {v.price > 0 && <span className="text-[11px]  shrink-0">${(v.price / 100).toFixed(2)}</span>}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button type="button" onClick={() => onQuantityChange(v.variantId, smartDec(v.quantity))}
+                              className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-[11px] hover:bg-white/20">
+                              {smartDec(v.quantity) === 0 ? '×' : '−'}
+                            </button>
+                            <span className="text-[13px] w-5 text-center">{v.quantity}</span>
+                            <button type="button" onClick={() => onQuantityChange(v.variantId, smartInc(v.quantity))}
+                              className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-[11px] hover:bg-white/20">+</button>
+                          </div>
+                        </div>
+                      ));
+                    })}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+          <div className="space-y-4 pt-6 mt-6 border-t border-white">
             {/* Totals */}
             <div className="space-y-1">
               {servesEstimate > 0 && (
-                <p className="text-[14px] opacity-60">
+                <p className="text-[14px] ">
                   {isFr ? `Pour environ ${servesEstimate} personnes` : `Serves approx. ${servesEstimate} people`}
                 </p>
               )}
@@ -380,7 +453,6 @@ function VolumeInlineCart({
 
             {/* Fulfillment toggle */}
             <div>
-              <p className="text-[14px] opacity-60 mb-2">{V.fulfillment}</p>
               <div className="flex gap-2">
                 {(['pickup', 'delivery'] as const).map((type) => (
                   <button key={type} type="button"
@@ -389,7 +461,7 @@ function VolumeInlineCart({
                     className={`flex-1 py-2 text-[14px] rounded-full border transition-colors ${
                       fulfillmentType === type
                         ? 'border-white bg-white text-[#0065B6]'
-                        : 'border-white/40 text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
+                        : 'border-white text-white hover:bg-white/10 disabled: disabled:cursor-not-allowed'
                     }`}
                   >
                     {type === 'pickup' ? V.pickup : V.delivery}
@@ -398,9 +470,20 @@ function VolumeInlineCart({
               </div>
             </div>
 
-            {/* Date */}
-            <div>
-              <DatePickerField label={V.date}
+            {/* Date — label left, input right */}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-[14px]">{isFr ? 'Date de cueillette' : 'Pickup date'}</p>
+                  {!fulfillmentDate && totalQuantity > 0 && (
+                    <span className="text-[12px]" style={{ color: '#EBE000' }}>{V.noDateError}</span>
+                  )}
+                </div>
+                <p className="text-[11px] mt-1">
+                  {isFr ? "Pas de cueillette le dimanche" : "No pickup on Sundays"}
+                </p>
+              </div>
+              <DatePickerField
                 value={toDateValue(fulfillmentDate)}
                 minValue={minDateValue ?? today(getLocalTimeZone())}
                 maxValue={maxDateValue ?? undefined}
@@ -410,37 +493,18 @@ function VolumeInlineCart({
                     onDateChange(`${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`);
                   } else { onDateChange(''); }
                 }} />
-              <p className="text-[12px] opacity-40 mt-1">
-                {isFr ? "Nous n'acceptons pas les commandes traiteur le dimanche" : "We don't take catering orders on Sundays"}
-              </p>
             </div>
-            {dateWarning && <p className="text-[12px] text-red-300" role="alert">{dateWarning}</p>}
+            {dateWarning && <p className="text-[12px]" style={{ color: "#EBE000" }} role="alert">{dateWarning}</p>}
 
             {/* Allergen note */}
             <div>
-              <label className="text-[14px] opacity-60 block mb-1">{V.allergenNote}</label>
+              <label className="text-[14px]  block mb-1">{V.allergenNote}</label>
               <textarea value={allergenNote} onChange={(e) => onAllergenNoteChange(e.target.value)} rows={2}
-                className="w-full px-4 py-2 text-[14px] border border-white/40 rounded-lg focus:outline-none transition-colors resize-none bg-transparent text-white placeholder:text-white/30"
+                className="w-full px-4 py-2 text-[14px] border border-white rounded-lg focus:outline-none transition-colors resize-none bg-transparent text-white placeholder:text-white/30"
                 placeholder={V.allergenPlaceholder} />
             </div>
 
-            {hasMinViolation && <p className="text-[12px] text-red-300">{V.minWarning}</p>}
-            {!fulfillmentDate && totalQuantity > 0 && <p className="text-[12px] text-red-300">{V.noDateError}</p>}
             {checkoutError && <p className="text-[12px] text-red-300">{checkoutError}</p>}
-
-            <div className="flex justify-between text-[18px]" style={{ color: 'white' }}>
-              <span>{V.estTotal}</span>
-              <span style={{ fontWeight: 500 }}>{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '\u2014'}</span>
-            </div>
-
-            <button onClick={onCheckout}
-              disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation}
-              data-checkout
-              className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {checkoutLoading ? V.loading : V.checkout}
-            </button>
-            <p className="text-[12px] opacity-40 text-center">{V.taxNote}</p>
           </div>
         </>
       )}
@@ -464,6 +528,24 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = usePersistedState<Map<string, number>>('rhubarbe:volume:cart', new Map(), mapSerializer);
   const [typeSettings, setTypeSettings] = useState<Record<string, CateringTypeConfig>>({});
+
+  // Clean up orphaned cart entries when products load
+  useEffect(() => {
+    if (products.length === 0) return;
+    const validIds = new Set<string>();
+    for (const p of products) {
+      validIds.add(p.id);
+      for (const v of p.variants) validIds.add(v.id);
+    }
+    setCart((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const key of next.keys()) {
+        if (!validIds.has(key)) { next.delete(key); changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, [products]);
 
   const DEFAULT_TYPE_CONFIG: CateringTypeConfig = { orderScope: 'order', orderMinimum: 1, variantMinimum: 0, increment: 1, unitLabel: 'quantity', maxAdvanceDays: null, leadTimeTiers: [] };
   const getTypeConfig = useCallback((product: VolumeProduct): CateringTypeConfig => {
@@ -509,7 +591,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const filteredDinatoireProducts = useMemo(() => {
     let result = dinatoireProducts;
     if (dietaryFilter.length > 0) {
-      result = result.filter((p) => dietaryFilter.every((tag) => p.dietaryTags?.includes(tag)));
+      result = result.filter((p) => dietaryFilter.some((tag) => p.dietaryTags?.includes(tag)));
     }
     if (temperatureFilter) {
       result = result.filter((p) => p.temperatureTags?.includes(temperatureFilter));
@@ -533,12 +615,8 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
 
   const hasGroups = useMemo(() => TYPE_ORDER.some((t) => groupedProducts[t].length > 0), [groupedProducts]);
 
-  useEffect(() => {
-    let total = 0;
-    cart.forEach((qty) => { total += qty; });
-    setVolumeCount(total);
-  }, [cart, setVolumeCount]);
-
+  // Report count — moved after cartGroups declaration
+  
   const [fulfillmentDate, setFulfillmentDate] = useState('');
   const [fulfillmentTime, setFulfillmentTime] = useState('');
   const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery'>('pickup');
@@ -641,7 +719,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       if (variants.length > 0) {
         const config = getTypeConfig(product);
         const translatedName = (locale === 'fr' ? product.translations?.fr?.title : null) || product.title || product.name;
-        groups.push({ productId: product.id, productName: translatedName, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: config.unitLabel ?? 'quantity', cateringType: product.cateringType ?? '', variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
+        groups.push({ productId: product.id, productName: translatedName, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: config.unitLabel ?? 'quantity', cateringType: product.cateringType ?? '', servesPerUnit: product.servesPerUnit, variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
       }
     }
     return groups;
@@ -649,6 +727,12 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
 
   const totalQuantity = useMemo(() => cartGroups.reduce((s, g) => s + g.totalQty, 0), [cartGroups]);
   const subtotal = useMemo(() => cartGroups.reduce((s, g) => s + g.totalPrice, 0), [cartGroups]);
+
+  // Report cart count from valid groups only
+  useEffect(() => {
+    setVolumeCount(totalQuantity);
+    try { localStorage.setItem('rhubarbe:volume:count', String(totalQuantity)); } catch {}
+  }, [totalQuantity, setVolumeCount]);
 
   const servesEstimate = useMemo(() => {
     const items: Array<{ quantity: number; servesPerUnit: number | null }> = [];
@@ -746,84 +830,308 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           )}
           {!loading && !error && products.length > 0 && (
             <>
-              {/* Grouped product list */}
-              {hasGroups ? (
-                TYPE_ORDER.map((type) => {
-                  const items = groupedProducts[type];
-                  if (items.length === 0) return null;
-                  const config = typeSettings[type];
-                  const tiers = config?.leadTimeTiers || [];
-                  const min = config?.orderScope === 'variant' ? config?.variantMinimum : config?.orderMinimum;
-                  const inc = config?.increment || 1;
-                  const unit = config?.unitLabel === 'people' ? (isFr ? 'pers.' : 'people') : '';
-                  return (
-                    <div key={type} className="mb-12">
-                      <div className="mb-4">
-                        <h2 className="text-[40px] leading-none" style={{ color: '#1A3821' }}>
-                          {TYPE_LABELS[type]?.[locale] ?? type}
-                        </h2>
-                        {config && (
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-2">
-                            {min != null && min > 0 && (
-                              <span className="text-[14px]" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                                min {min}{unit ? ` ${unit}` : ''}{inc > 1 ? `, +${inc}` : ''}
-                              </span>
-                            )}
-                            {tiers.slice().sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => (
-                              <span key={i} className="text-[14px]" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                                {tier.minQuantity}+ → {tier.leadTimeDays}{isFr ? 'j' : 'd'}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+              {/* Brunch & Lunch — side by side on desktop */}
+              <div className="md:grid md:grid-cols-2 md:gap-8 mb-12">
+              {['brunch', 'lunch'].map((type) => {
+                const items = groupedProducts[type];
+                if (items.length === 0) return null;
+                const config = typeSettings[type];
+                const min = config?.orderScope === 'variant' ? config?.variantMinimum : config?.orderMinimum;
+                const inc = config?.increment || 1;
+                const unit = config?.unitLabel === 'people' ? (isFr ? 'pers.' : 'people') : '';
+                const smartInc = (cur: number) => {
+                  if (config?.orderScope === 'variant' && cur === 0) return config?.variantMinimum || inc;
+                  return cur + inc;
+                };
+                const smartDec = (cur: number) => {
+                  const n = cur - inc;
+                  if (config?.orderScope === 'variant' && n < (config?.variantMinimum ?? 0)) return 0;
+                  return n < 0 ? 0 : n;
+                };
+                return (
+                  <div key={type}>
+                    <h2 className="text-[40px] leading-none mb-2" style={{ color: '#1A3821' }}>
+                      {TYPE_LABELS[type]?.[locale] ?? type}
+                    </h2>
+                    {config && min != null && min > 0 && (
+                      <p className="text-[14px] mb-2" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                        min {min}{unit ? ` ${unit}` : ''}{inc > 1 ? `, +${inc}` : ''}
+                      </p>
+                    )}
+                    {(() => {
+                      const typeServes = items.reduce((s, p) => {
+                        const qty = getTotalQuantity(p, cart);
+                        return s + qty * (p.servesPerUnit ?? 0);
+                      }, 0);
+                      return typeServes > 0 ? (
+                        <p className="text-[14px] mb-4" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                          {isFr ? `≈ ${typeServes} personnes` : `≈ ${typeServes} people`}
+                        </p>
+                      ) : <div className="mb-4" />;
+                    })()}
+                    {items.map((product) => {
+                      const name = (isFr ? product.translations?.fr?.title : null) || product.title || product.name;
+                      const allergens = (product.allergens ?? []);
+                      const price = product.price;
+                      const hasVariants = product.variants.length > 1;
+                      return (
+                        <div key={product.id}>
+                          {hasVariants ? product.variants.map((v) => {
+                            const qty = cart.get(v.id) ?? 0;
+                            const vLabel = tr(v.label, locale);
+                            return (
+                              <div key={v.id} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-[14px]" style={{ color: '#1A3821' }}>{name}</span>
+                                  <span className="text-[12px] ml-1.5" style={{ color: 'rgba(26,56,33,0.4)' }}>{vLabel}</span>
+                                  {allergens.map((a) => (
+                                    <span key={a} className="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium ml-1.5 border border-gray-200 text-gray-400">{a}</span>
+                                  ))}
+                                </div>
+                                {(v.price ?? price) != null && (v.price ?? price)! > 0 && (
+                                  <span className="text-[13px] shrink-0" style={{ color: 'rgba(26,56,33,0.4)' }}>${((v.price ?? price)! / 100).toFixed(2)}</span>
+                                )}
+                                {qty === 0 ? (
+                                  <button type="button" onClick={() => handleQuantityChange(v.id, smartInc(0))}
+                                    className="w-[76px] h-6 text-[12px] text-center rounded-full border border-gray-300 hover:border-[#1A3821] transition-colors shrink-0" style={{ color: '#1A3821' }}>
+                                    {isFr ? 'ajouter' : 'add'}
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button type="button" onClick={() => handleQuantityChange(v.id, smartDec(qty))}
+                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>
+                                      {smartDec(qty) === 0 ? '×' : '−'}
+                                    </button>
+                                    <span className="text-[13px] font-medium w-4 text-center" style={{ color: '#1A3821' }}>{qty}</span>
+                                    <button type="button" onClick={() => handleQuantityChange(v.id, smartInc(qty))}
+                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>+</button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }) : (() => {
+                            const vid = product.variants.length > 0 ? product.variants[0].id : product.id;
+                            const qty = cart.get(vid) ?? 0;
+                            return (
+                              <div className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-[14px]" style={{ color: '#1A3821' }}>{name}</span>
+                                  {allergens.map((a) => (
+                                    <span key={a} className="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium ml-1.5 border border-gray-200 text-gray-400">{a}</span>
+                                  ))}
+                                </div>
+                                {price != null && price > 0 && (
+                                  <span className="text-[13px] shrink-0" style={{ color: 'rgba(26,56,33,0.4)' }}>${(price / 100).toFixed(2)}</span>
+                                )}
+                                {qty === 0 ? (
+                                  <button type="button" onClick={() => handleQuantityChange(vid, smartInc(0))}
+                                    className="w-[76px] h-6 text-[12px] text-center rounded-full border border-gray-300 hover:border-[#1A3821] transition-colors shrink-0" style={{ color: '#1A3821' }}>
+                                    {isFr ? 'ajouter' : 'add'}
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <button type="button" onClick={() => handleQuantityChange(vid, smartDec(qty))}
+                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>
+                                      {smartDec(qty) === 0 ? '×' : '−'}
+                                    </button>
+                                    <span className="text-[13px] font-medium w-4 text-center" style={{ color: '#1A3821' }}>{qty}</span>
+                                    <button type="button" onClick={() => handleQuantityChange(vid, smartInc(qty))}
+                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>+</button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+              </div>
 
-                      {/* Dietary/temperature filters — only for dinatoire */}
-                      {type === 'dinatoire' && (visibleTemperatureTags.length > 0 || visibleDietaryTags.length > 0) && (
-                        <div className="flex flex-wrap items-baseline mb-6" style={{ gap: '24px' }}>
-                          {visibleTemperatureTags.map((tag) => {
-                            const isActive = temperatureFilter === tag;
-                            return (
-                              <button key={tag} type="button"
-                                onClick={() => setTemperatureFilter((prev) => prev === tag ? '' : tag)}
-                                className="text-[16px] leading-none transition-colors"
-                                style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
-                                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
-                              >{tag}</button>
-                            );
-                          })}
-                          {visibleDietaryTags.map((tag) => {
-                            const isActive = dietaryFilter.includes(tag);
-                            return (
-                              <button key={tag} type="button"
-                                onClick={() => setDietaryFilter((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}
-                                className="text-[16px] leading-none transition-colors"
-                                style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
-                                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
-                              >{tag}</button>
-                            );
-                          })}
-                          {(dietaryFilter.length > 0 || temperatureFilter) && (
-                            <button type="button" onClick={() => { setDietaryFilter([]); setTemperatureFilter(''); }}
-                              className="text-[14px] transition-colors" style={{ color: 'rgba(26,56,33,0.4)' }}>clear</button>
-                          )}
+              {/* Dînatoire — condensed list rows */}
+              {groupedProducts['dinatoire'].length > 0 && (() => {
+                const dinatoireConfig = typeSettings['dinatoire'];
+                const min = dinatoireConfig?.orderMinimum ?? 3;
+                const inc = dinatoireConfig?.increment ?? 1;
+                const items = groupedProducts['dinatoire'];
+
+                // Sub-group by temperature then dietary category
+                const hotItems = items.filter((p) => p.temperatureTags?.includes('hot') || p.temperatureTags?.includes('chaud'));
+                const coldItems = items.filter((p) => p.temperatureTags?.includes('cold') || p.temperatureTags?.includes('froid'));
+                const otherItems = items.filter((p) => !hotItems.includes(p) && !coldItems.includes(p));
+
+                const catOrder = ['vegetarian', 'végétarien', 'fish', 'poisson', 'meat', 'viande'];
+                const groupByDietary = (list: VolumeProduct[]) => {
+                  const groups: { label: string; items: VolumeProduct[] }[] = [];
+                  const used = new Set<string>();
+                  for (const cat of catOrder) {
+                    const matching = list.filter((p) => p.dietaryTags?.some((t) => t.toLowerCase() === cat));
+                    if (matching.length === 0) continue;
+                    const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+                    if (used.has(label.toLowerCase())) continue;
+                    used.add(label.toLowerCase());
+                    groups.push({ label, items: matching });
+                  }
+                  const ungrouped = list.filter((p) => !groups.some((g) => g.items.includes(p)));
+                  if (ungrouped.length > 0) groups.push({ label: isFr ? 'Autre' : 'Other', items: ungrouped });
+                  return groups;
+                };
+
+                const renderRow = (product: VolumeProduct) => {
+                  const name = (isFr ? product.translations?.fr?.title : null) || product.title || product.name;
+                  const allergens = (product.allergens ?? []).filter((a) => !['vegetarian', 'végétarien', 'fish', 'poisson', 'meat', 'viande', 'hot', 'cold', 'chaud', 'froid'].includes(a.toLowerCase()));
+                  const price = product.price;
+                  const vid = product.variants.length > 0 ? product.variants[0].id : product.id;
+                  const qty = cart.get(vid) ?? 0;
+                  const isHot = product.temperatureTags?.some((t) => ['hot', 'chaud'].includes(t.toLowerCase()));
+
+                  return (
+                    <div key={product.id} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${isHot ? 'bg-[#FC260B]' : 'bg-[#0072CA]'}`} />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[14px]" style={{ color: '#1A3821' }}>{name}</span>
+                        {allergens.length > 0 && allergens.map((a) => (
+                          <span key={a} className="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium ml-1.5 border border-gray-200 text-gray-400">{a}</span>
+                        ))}
+                      </div>
+                      {price != null && price > 0 && (
+                        <span className="text-[13px] shrink-0" style={{ color: 'rgba(26,56,33,0.4)' }}>${(price / 100).toFixed(2)}</span>
+                      )}
+                      {qty === 0 ? (
+                        <button type="button"
+                          onClick={() => handleQuantityChange(vid, dinatoireConfig?.variantMinimum || inc)}
+                          className="w-[76px] h-6 text-[12px] text-center rounded-full border border-gray-300 hover:border-[#1A3821] transition-colors" style={{ color: '#1A3821' }}>
+                          {isFr ? 'ajouter' : 'add'}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button type="button"
+                            onClick={() => handleQuantityChange(vid, Math.max(0, qty - inc))}
+                            className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>
+                            {qty <= inc ? '×' : '−'}
+                          </button>
+                          <span className="text-[13px] font-medium w-4 text-center" style={{ color: '#1A3821' }}>{qty}</span>
+                          <button type="button"
+                            onClick={() => handleQuantityChange(vid, qty + inc)}
+                            className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>+</button>
                         </div>
                       )}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-                        {(() => {
-                          const typeTotal = items.reduce((sum, p) => sum + getTotalQuantity(p, cart), 0);
-                          return items.map((product) => (
-                            <VolumeProductCard key={product.id} product={product} locale={locale}
-                              cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} typeConfig={getTypeConfig(product)} typeTotalQty={typeTotal} />
-                          ));
-                        })()}
-                      </div>
                     </div>
                   );
-                })
-              ) : null}
+                };
+
+                const renderSection = (label: string, productList: VolumeProduct[]) => {
+                  if (productList.length === 0) return null;
+                  const subgroups = groupByDietary(productList);
+                  return (
+                    <div className="mb-6">
+                      <div className="text-[11px] font-medium uppercase tracking-wider mb-3 pb-1.5 border-b border-gray-200" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                        {label}
+                      </div>
+                      {subgroups.map((sg) => (
+                        <div key={sg.label} className="mb-3">
+                          <p className="text-[12px] font-medium mb-1" style={{ color: 'rgba(26,56,33,0.5)' }}>{sg.label}</p>
+                          {sg.items.map(renderRow)}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                };
+
+                return (
+                  <div key="dinatoire" className="mb-12">
+                    <h2 className="text-[40px] leading-none mb-2" style={{ color: '#1A3821' }}>
+                      {TYPE_LABELS['dinatoire']?.[locale] ?? 'Dînatoire'}
+                    </h2>
+                    <p className="text-[14px] mb-2" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                      min {min}{inc > 1 ? `, +${inc}` : ''}
+                      {(() => {
+                        const dinatoireTotal = items.reduce((s, p) => s + getTotalQuantity(p, cart), 0);
+                        if (dinatoireTotal > 0 && dinatoireTotal < min) {
+                          return <span className="ml-3 text-[14px]" style={{ color: '#FC260B' }}>
+                            {isFr ? `sélectionnez au moins ${min}` : `select at least ${min}`}
+                          </span>;
+                        }
+                        return null;
+                      })()}
+                    </p>
+                    {(() => {
+                      const typeServes = items.reduce((s, p) => {
+                        const qty = getTotalQuantity(p, cart);
+                        return s + qty * (p.servesPerUnit ?? 0);
+                      }, 0);
+                      return typeServes > 0 ? (
+                        <p className="text-[14px] mb-4" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                          {isFr ? `≈ ${typeServes} personnes` : `≈ ${typeServes} people`}
+                        </p>
+                      ) : <div className="mb-4" />;
+                    })()}
+
+                    {/* Filters — temperature hidden on desktop, dietary only */}
+                    <div className="flex flex-wrap items-baseline gap-8 mb-6">
+                      {/* Temperature filters — hidden on md+ (hot/cold shown side by side instead) */}
+                      <div className="md:hidden flex flex-wrap items-center gap-2">
+                        {visibleTemperatureTags.map((tag) => {
+                          const isActive = temperatureFilter === tag;
+                          return (
+                            <button key={tag} type="button"
+                              onClick={() => setTemperatureFilter((prev) => prev === tag ? '' : tag)}
+                              className={`px-3 py-1 text-[12px] rounded-full border transition-colors ${isActive ? 'bg-[#1A3821] text-white border-[#1A3821]' : 'border-gray-300 text-gray-500 hover:border-[#1A3821]'}`}>
+                              {tag}
+                            </button>
+                          );
+                        })}
+                        {visibleTemperatureTags.length > 0 && visibleDietaryTags.length > 0 && (
+                          <span className="text-gray-300">|</span>
+                        )}
+                      </div>
+                      {visibleDietaryTags.map((tag) => {
+                        const isActive = dietaryFilter.includes(tag);
+                        const count = dinatoireProducts.filter((p) => p.dietaryTags?.includes(tag)).length;
+                        return (
+                          <button key={tag} type="button"
+                            onClick={() => setDietaryFilter((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}
+                            className="text-[36px] leading-none transition-colors"
+                            style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
+                            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                          >
+                            {tag}<sup className="text-[14px] ml-[2px]">{count}</sup>
+                          </button>
+                        );
+                      })}
+                      {(dietaryFilter.length > 0 || temperatureFilter) && (
+                        <button type="button" onClick={() => { setDietaryFilter([]); setTemperatureFilter(''); }}
+                          className="text-[12px] text-gray-400 hover:text-gray-600">clear</button>
+                      )}
+                    </div>
+
+                    {/* Desktop: hot left, cold right */}
+                    <div className="hidden md:grid md:grid-cols-2 md:gap-8">
+                      <div>
+                        {hotItems.length > 0 && renderSection(isFr ? 'Bouchées chaudes' : 'Hot bites', hotItems)}
+                      </div>
+                      <div>
+                        {coldItems.length > 0 && renderSection(isFr ? 'Bouchées froides' : 'Cold bites', coldItems)}
+                      </div>
+                    </div>
+                    {/* Mobile: stacked */}
+                    <div className="md:hidden">
+                      {hotItems.length > 0 && renderSection(isFr ? 'Bouchées chaudes' : 'Hot bites', hotItems)}
+                      {coldItems.length > 0 && renderSection(isFr ? 'Bouchées froides' : 'Cold bites', coldItems)}
+                    </div>
+                    {otherItems.length > 0 && renderSection(
+                      hotItems.length === 0 && coldItems.length === 0
+                        ? (TYPE_LABELS['dinatoire']?.[locale] ?? 'Dînatoire')
+                        : (isFr ? 'Autre' : 'Other'),
+                      otherItems
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Ungrouped products */}
               {groupedProducts['other'].length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
@@ -844,7 +1152,15 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       </div>
 
       {/* Catering cart slide-in panel */}
-      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={totalQuantity}>
+      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={totalQuantity}
+        footer={totalQuantity > 0 ? (
+          <button onClick={() => { setShowMobileCart(false); handleCheckout(); }}
+            disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation} data-checkout
+            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
+            <span>{checkoutLoading ? V.loading : V.checkout}</span>
+            <span>{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : ''}</span>
+          </button>
+        ) : undefined}>
         <VolumeInlineCart groups={cartGroups} totalQuantity={totalQuantity} subtotal={subtotal}
           fulfillmentDate={fulfillmentDate} fulfillmentTime={fulfillmentTime}
           fulfillmentType={fulfillmentType} allergenNote={allergenNote}

@@ -40,6 +40,7 @@ interface VolumeProduct {
   shopifyProductHandle: string | null;
   cateringType: string | null;
   cateringEndDate: string | null;
+  servesPerUnit: number | null;
   allergens: string[] | null;
   dietaryTags: string[] | null;
   temperatureTags: string[] | null;
@@ -101,6 +102,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
   // Catering-specific state
   const [cateringType, setCateringType] = useState('');
+  const [servesPerUnit, setServesPerUnit] = useState<number | null>(null);
   const [allergens, setAllergens] = useState<string[]>([]);
   const [dietaryTags, setDietaryTags] = useState<string[]>([]);
   const [temperatureTags, setTemperatureTags] = useState<string[]>([]);
@@ -155,6 +157,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       );
       // Catering fields
       setCateringType(data.cateringType ?? '');
+      setServesPerUnit(data.servesPerUnit ?? null);
       setAllergens(data.allergens ?? []);
       setDietaryTags(data.dietaryTags ?? []);
       setTemperatureTags(data.temperatureTags ?? []);
@@ -267,6 +270,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       const payload = {
         volumeEnabled,
         cateringType: cateringType || null,
+        servesPerUnit: servesPerUnit,
         cateringEndDate: cateringEndDate || null,
         allergens,
         dietaryTags,
@@ -606,6 +610,13 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               <option value="brunch">Brunch</option><option value="lunch">Lunch</option><option value="dinatoire">Dînatoire</option>
             </select>
             {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required to apply ordering rules from settings</p>}
+          </SectionCard>
+
+          {/* Serves per unit */}
+          <SectionCard title="Serves per unit">
+            <Input type="number" value={servesPerUnit != null ? String(servesPerUnit) : ''} placeholder="e.g. 1"
+              onChange={(val: string) => { setServesPerUnit(val ? parseInt(val) : null); markDirty(); }} />
+            <p className="text-xs text-gray-400 mt-1">How many people does one unit serve? Used for serves estimate on the storefront.</p>
           </SectionCard>
 
           {/* Tax */}

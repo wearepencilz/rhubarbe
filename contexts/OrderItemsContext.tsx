@@ -23,30 +23,27 @@ const OrderItemsContext = createContext<OrderItemsContextType>({
 
 function readOrderCount(): number {
   try {
-    const raw = localStorage.getItem('rhubarbe:order:cart');
-    if (!raw) return 0;
-    const items: any[] = JSON.parse(raw);
-    return items.reduce((s, i) => s + (i.quantity ?? 0), 0);
+    const count = localStorage.getItem('rhubarbe:order:count');
+    if (count !== null) return parseInt(count, 10) || 0;
+    return 0;
   } catch {}
   return 0;
 }
 
 function readVolumeCount(): number {
   try {
-    const raw = localStorage.getItem('rhubarbe:volume:cart');
-    if (!raw) return 0;
-    const entries: [string, number][] = JSON.parse(raw);
-    return entries.reduce((s, [, qty]) => s + qty, 0);
+    const count = localStorage.getItem('rhubarbe:volume:count');
+    if (count !== null) return parseInt(count, 10) || 0;
+    return 0;
   } catch {}
   return 0;
 }
 
 function readCakeCount(): number {
   try {
-    const raw = localStorage.getItem('rhubarbe:cake:cart');
-    if (!raw) return 0;
-    const entries: [string, number][] = JSON.parse(raw);
-    return entries.reduce((s, [, qty]) => s + qty, 0);
+    const count = localStorage.getItem('rhubarbe:cake:count');
+    if (count !== null) return parseInt(count, 10) || 0;
+    return 0;
   } catch {}
   return 0;
 }

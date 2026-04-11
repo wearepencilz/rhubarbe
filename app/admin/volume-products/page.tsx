@@ -48,6 +48,7 @@ export default function VolumeProductsPage() {
   const [products, setProducts] = useState<VolumeProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [search, setSearch] = useState<Record<string, string>>({});
   const shopifyPickerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { fetchData(); }, []);
@@ -111,9 +112,23 @@ export default function VolumeProductsPage() {
   function renderGroup(typeKey: string, items: VolumeProduct[]) {
     if (items.length === 0) return null;
     const label = typeKey === '__unassigned__' ? 'Uncategorized' : (TYPE_LABELS[typeKey] ?? typeKey);
+    const q = (search[typeKey] ?? '').toLowerCase();
+    const filtered = q ? items.filter((p) => p.name.toLowerCase().includes(q)) : items;
     return (
       <TableCard.Root key={typeKey}>
-        <TableCard.Header title={label} badge={items.length} />
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-900">{label}</h3>
+            <span className="text-xs text-gray-400">{filtered.length}{q ? ` / ${items.length}` : ''}</span>
+          </div>
+          <input
+            type="text"
+            value={search[typeKey] ?? ''}
+            onChange={(e) => setSearch((prev) => ({ ...prev, [typeKey]: e.target.value }))}
+            placeholder="Search…"
+            className="w-48 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-transparent"
+          />
+        </div>
         <Table aria-label={`${label} Catering Products`}>
           <Table.Header>
             <Table.Head isRowHeader label="Product" />
@@ -122,7 +137,7 @@ export default function VolumeProductsPage() {
             <Table.Head label="Status" />
             <Table.Head label="" />
           </Table.Header>
-          <Table.Body items={items}>
+          <Table.Body items={filtered}>
             {(product) => (
               <Table.Row key={product.id} id={product.id} onAction={() => router.push(`/admin/volume-products/${product.id}`)}>
                 <Table.Cell>

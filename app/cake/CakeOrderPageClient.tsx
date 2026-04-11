@@ -250,7 +250,7 @@ function FlavourDropdown({
     const atLimit = selectedFlavourHandles.length >= maxFlavours;
     return (
       <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
-        <p className="text-[12px] opacity-40 uppercase tracking-wide">
+        <p className="text-[12px] uppercase tracking-wide">
           {isFr ? `Saveurs (max ${maxFlavours})` : `Flavours (max ${maxFlavours})`}
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -278,7 +278,7 @@ function FlavourDropdown({
           })}
         </div>
         {atLimit && (
-          <p className="text-[12px] opacity-40">
+          <p className="text-[12px]">
             {isFr ? `Maximum ${maxFlavours} atteint` : `Max ${maxFlavours} reached`}
           </p>
         )}
@@ -378,6 +378,8 @@ function CakeProductCard({
     ? product.pricingGrid[0].priceInCents
     : null;
 
+  const [cakeHovered, setCakeHovered] = useState(false);
+
   return (
     <button
       type="button"
@@ -389,47 +391,52 @@ function CakeProductCard({
       }`}
       aria-pressed={isSelected}
       aria-label={`${product.name}${isSelected ? ` (${C.selected})` : ''}`}
+      onMouseEnter={() => setCakeHovered(true)}
+      onMouseLeave={() => setCakeHovered(false)}
     >
-      {product.image ? (
-        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
-          <img src={product.image} alt={product.name}
-            className="w-full h-full object-cover" />
-          {/* Allergen badges */}
-          {product.allergens && product.allergens.length > 0 && (
-            <div className="absolute top-[16px] left-[16px] flex flex-wrap gap-1">
-              {product.allergens.map((a) => (
-                <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">
-                  {a}
-                </span>
-              ))}
-            </div>
-          )}
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-[16px]">
-            <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
-              {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
-            </div>
+      {(() => {
+        const showPink = isSelected || cakeHovered;
+        const allergens = product.allergens ?? [];
+        return product.image ? (
+          <div className="aspect-[4/5] overflow-hidden relative">
+            {!showPink && (
+              <>
+                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                {allergens.length > 0 && (
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
+                    {allergens.map((a) => (
+                      <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            {showPink && (
+              <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-between p-4">
+                <div className="flex flex-wrap gap-1">
+                  {allergens.map((a) => (
+                    <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
+                  ))}
+                </div>
+                <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
+                  {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
+                </div>
+              </div>
+            )}
           </div>
-          {isSelected && (
-            <div className="absolute top-[16px] right-[16px] bg-[#333112] text-white text-[12px] uppercase px-2 py-1 rounded-full">
-              {C.selected}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="aspect-[4/5] relative" style={{ backgroundColor: brandColor }}>
-          <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-[16px]">
-            <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
-              {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
-            </div>
+        ) : (
+          <div className="aspect-[4/5] relative">
+            {!showPink && <div className="w-full h-full" style={{ backgroundColor: brandColor }} />}
+            {showPink && (
+              <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-end p-4">
+                <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
+                  {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
+                </div>
+              </div>
+            )}
           </div>
-          {isSelected && (
-            <div className="absolute top-[16px] right-[16px] bg-[#333112] text-white text-[12px] uppercase px-2 py-1 rounded-full">
-              {C.selected}
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       <div className="flex flex-col gap-1 pt-2.5">
         <h3 className="text-[16px]" style={{ fontWeight: 500 }}>
@@ -674,8 +681,8 @@ function CakeInlineCart({
     <div>
       {!selectedProduct ? (
         <div className="py-8 text-center">
-          <p className="text-[16px] opacity-60">{C.noItems}</p>
-          <p className="text-[14px] opacity-40 mt-1">{C.startHint}</p>
+          <p className="text-[16px]">{C.noItems}</p>
+          <p className="text-[14px] mt-1">{C.startHint}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -684,19 +691,19 @@ function CakeInlineCart({
             <div className="flex items-start justify-between gap-2">
               <p className="text-[16px] font-medium">{selectedProduct.name}</p>
               <button onClick={onRemove}
-                className="text-[14px] opacity-50 hover:opacity-100 shrink-0"
+                className="text-[14px] hover:opacity-100 shrink-0"
                >
                 {isFr ? 'retirer' : 'remove'}
               </button>
             </div>
             {/* Show selected flavour names */}
             {selectedFlavourNames.length > 0 && (
-              <p className="text-[14px] opacity-60 mt-0.5">
+              <p className="text-[14px] mt-0.5">
                 {selectedFlavourNames.join(', ')}
               </p>
             )}
             {selectedFlavourAllergens.length > 0 && (
-              <p className="text-[12px] opacity-40 mt-0.5">
+              <p className="text-[12px] mt-0.5">
                 {isFr ? 'peut contenir' : 'may contain'}: {selectedFlavourAllergens.join(', ')}
               </p>
             )}
@@ -706,7 +713,7 @@ function CakeInlineCart({
           {isLegacyProduct && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-[14px] opacity-60">
+                <label className="text-[14px]">
                   {C.numberOfPeople}
                 </label>
                 <input type="number" min={1}
@@ -722,11 +729,11 @@ function CakeInlineCart({
                     if (numberOfPeople < 1) onNumberOfPeopleChange(1);
                   }}
                   className={`w-full px-3 py-2 text-sm border rounded focus:outline-none transition-colors bg-transparent ${
-                    headcountTouched && belowMin ? 'border-red-300 focus:border-red-500' : 'border-white/40 focus:border-white'
+                    headcountTouched && belowMin ? 'border-red-300 focus:border-red-500' : 'border-white focus:border-white'
                   }`}
                   aria-label={C.numberOfPeople} />
                 {headcountTouched && belowMin && (
-                  <p className="text-[12px] text-red-300 mt-0.5">
+                  <p className="text-[12px] text-[#EBE000] mt-0.5">
                     {isFr ? `Minimum ${minPeople} personnes` : `Minimum ${minPeople} people`}
                   </p>
                 )}
@@ -751,7 +758,7 @@ function CakeInlineCart({
           {isGridProduct && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-[14px] opacity-60">
+                <label className="text-[14px]">
                   {sizeLabel}
                 </label>
                 <input
@@ -765,17 +772,17 @@ function CakeInlineCart({
                     onSizeChange(String(Math.max(0, Math.floor(Number(raw) || 0))));
                   }}
                   className={`w-full px-3 py-2 text-sm border rounded focus:outline-none transition-colors bg-transparent ${
-                    belowMin ? 'border-red-300 focus:border-red-500' : 'border-white/40 focus:border-white'
+                    belowMin ? 'border-red-300 focus:border-red-500' : 'border-white focus:border-white'
                   }`}
                   aria-label={sizeLabel}
                 />
                 {belowMin && (
-                  <p className="text-[12px] text-red-300 mt-0.5">
+                  <p className="text-[12px] text-[#EBE000] mt-0.5">
                     {isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}
                   </p>
                 )}
                 {gridMaxSize && parseInt(selectedSize) > gridMaxSize && (
-                  <p className="text-[12px] text-red-300 mt-0.5">
+                  <p className="text-[12px] text-[#EBE000] mt-0.5">
                     {isFr ? `Maximum ${gridMaxSize}` : `Maximum ${gridMaxSize}`}
                   </p>
                 )}
@@ -794,7 +801,7 @@ function CakeInlineCart({
               {/* Tier detail display */}
               {tierDetail && (
                 <div className="space-y-1">
-                  <p className="text-[14px] opacity-60">
+                  <p className="text-[14px]">
                     {isFr
                       ? `${tierDetail.layers} étage${tierDetail.layers > 1 ? 's' : ''}: ${tierDetail.diameters} pouces`
                       : `${tierDetail.layers} tier${tierDetail.layers > 1 ? 's' : ''}: ${tierDetail.diameters} inches`}
@@ -818,7 +825,7 @@ function CakeInlineCart({
           {/* Add-ons for main cake (non-sheet-cake only) */}
           {isGridProduct && addons.filter((a) => a.cakeProductType !== 'sheet-cake').length > 0 && (
             <>
-              <hr className="border-white/20" />
+              <hr className="border-white" />
               <div className="space-y-2">
                 {addons.filter((a) => a.cakeProductType !== 'sheet-cake').map((addon) => {
                   const isEnabled = enabledAddonIds.includes(addon.id);
@@ -830,9 +837,9 @@ function CakeInlineCart({
                   return (
                     <div key={addon.id} className="flex items-center justify-between gap-2">
                       <p className="text-[14px] flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                      {priceCents > 0 && <span className="text-[14px] opacity-40 shrink-0">+${(priceCents / 100).toFixed(2)}</span>}
+                      {priceCents > 0 && <span className="text-[14px] shrink-0">+${(priceCents / 100).toFixed(2)}</span>}
                       <button type="button" onClick={() => onToggleAddon(addon.id)} disabled={!resolvedSize}
-                        className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${!resolvedSize ? 'opacity-30 cursor-not-allowed border-white/40' : isEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white/40 hover:bg-white/10'}`}
+                        className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${!resolvedSize ? 'opacity-30 cursor-not-allowed border-white' : isEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
                         aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`} aria-pressed={isEnabled}>
                         {isEnabled ? '✓' : '+'}
                       </button>
@@ -871,19 +878,19 @@ function CakeInlineCart({
 
             return (
               <>
-                <hr className="border-white/20" />
+                <hr className="border-white" />
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] opacity-60">
+                      <p className="text-[14px]">
                         {tr(sheetAddon.title, locale)}
                       </p>
                       {tr(sheetAddon.cakeDescription, locale) && (
-                        <p className="text-[14px] opacity-40 leading-relaxed mt-0.5">{tr(sheetAddon.cakeDescription, locale)}</p>
+                        <p className="text-[14px] leading-relaxed mt-0.5">{tr(sheetAddon.cakeDescription, locale)}</p>
                       )}
                     </div>
                     <button type="button" onClick={() => onToggleAddon(sheetAddon.id)}
-                      className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${sheetEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white/40 hover:bg-white/10'}`}
+                      className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${sheetEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
                       aria-label={`${sheetEnabled ? 'Remove' : 'Add'} ${tr(sheetAddon.title, locale)}`} aria-pressed={sheetEnabled}>
                       {sheetEnabled ? '✓' : '+'}
                     </button>
@@ -895,10 +902,10 @@ function CakeInlineCart({
                       {/* Flavour selector — 50/50 */}
                       {sheetFlavours && sheetFlavours.length > 0 && (
                         <div className="grid grid-cols-2 gap-2 items-center">
-                          <span className="text-[14px] opacity-60 uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
+                          <span className="text-[14px] uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
                           <select value={sheetFlavourHandle}
                             onChange={(e) => onSheetCakeFlavourChange(e.target.value)}
-                            className="w-full px-2 py-1.5 text-xs border border-white/40 rounded focus:outline-none focus:border-white bg-transparent">
+                            className="w-full px-2 py-1.5 text-xs border border-white rounded focus:outline-none focus:border-white bg-transparent">
                             <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
                             {sheetFlavours.filter((f) => f.active).map((f) => (
                               <option key={f.handle} value={f.handle}>{tr(f.label, locale)}</option>
@@ -910,23 +917,23 @@ function CakeInlineCart({
                       {/* Guests input — 50/50 */}
                       <div>
                         <div className="grid grid-cols-2 gap-2 items-center">
-                          <span className="text-[14px] opacity-60 uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
+                          <span className="text-[14px] uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
                           <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
                             onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
                             className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent ${
                               (sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople) ||
                               (sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople)
-                                ? 'border-red-300 focus:border-red-500' : 'border-white/40 focus:border-white'
+                                ? 'border-red-300 focus:border-red-500' : 'border-white focus:border-white'
                             }`}
                             aria-label={`${tr(sheetAddon.title, locale)} guests`} />
                         </div>
                         {sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople && (
-                          <p className="text-[12px] text-red-300 mt-0.5 text-right">
+                          <p className="text-[12px] text-[#EBE000] mt-0.5 text-right">
                             {isFr ? `Minimum ${sheetAddon.cakeMinPeople}` : `Minimum ${sheetAddon.cakeMinPeople}`}
                           </p>
                         )}
                         {sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople && (
-                          <p className="text-[12px] text-red-300 mt-0.5 text-right">
+                          <p className="text-[12px] text-[#EBE000] mt-0.5 text-right">
                             {isFr ? `Maximum ${sheetAddon.cakeMaxPeople}` : `Maximum ${sheetAddon.cakeMaxPeople}`}
                           </p>
                         )}
@@ -934,7 +941,7 @@ function CakeInlineCart({
 
                       {/* Sheet cake price */}
                       {sheetPrice && sheetSize && (
-                        <div className="flex justify-between text-[14px] opacity-60">
+                        <div className="flex justify-between text-[14px]">
                           <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
                           <span>${(sheetPrice.priceInCents / 100).toFixed(2)}</span>
                         </div>
@@ -948,10 +955,10 @@ function CakeInlineCart({
                             const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
                             return (
                               <div key={addon.id} className="flex items-center justify-between gap-2">
-                                <p className="text-[14px] opacity-60 flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                                {ap && <span className="text-[12px] opacity-40 shrink-0">+${(ap.priceInCents / 100).toFixed(2)}</span>}
+                                <p className="text-[14px] flex-1 min-w-0">{tr(addon.title, locale)}</p>
+                                {ap && <span className="text-[12px] shrink-0">+${(ap.priceInCents / 100).toFixed(2)}</span>}
                                 <button type="button" onClick={() => onToggleSheetAddon(addon.id)}
-                                  className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${isOn ? 'border-white bg-white text-[#0065B6]' : 'border-white/40 hover:bg-white/10'}`}
+                                  className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${isOn ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
                                   aria-label={`${isOn ? 'Remove' : 'Add'} ${tr(addon.title, locale)} for sheet cake`} aria-pressed={isOn}>
                                   {isOn ? '✓' : '+'}
                                 </button>
@@ -963,7 +970,7 @@ function CakeInlineCart({
 
                       {/* Sheet subtotal */}
                       {sheetSubtotal > 0 && (
-                        <div className="flex justify-between text-xs font-medium text-gray-700 pt-1 border-t border-white/20">
+                        <div className="flex justify-between text-xs font-medium text-gray-700 pt-1 border-t border-white">
                           <span>{tr(sheetAddon.title, locale)}</span>
                           <span>${(sheetSubtotal / 100).toFixed(2)}</span>
                         </div>
@@ -975,17 +982,7 @@ function CakeInlineCart({
             );
           })()}
 
-          {isGridProduct && gridPrice && (
-            <div className="flex justify-between text-[14px] opacity-60">
-              <span>{selectedSize} {sizeLabel.toLowerCase()}</span>
-              <span>${(gridPrice.priceInCents / 100).toFixed(2)}</span>
-            </div>
-          )}
-
           <div>
-            <p className="text-[14px] opacity-60 mb-2">
-              {isFr ? 'Cueillette / Livraison' : 'Fulfillment'}
-            </p>
             <div className="flex gap-2">
               {(['pickup', 'delivery'] as const).map((type) => (
                 <button key={type} type="button"
@@ -994,7 +991,7 @@ function CakeInlineCart({
                   className={`flex-1 py-2 text-[14px] rounded-full border transition-colors ${
                     fulfillmentType === type
                       ? 'border-white bg-white text-[#0065B6]'
-                      : 'border-white/40 text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
+                      : 'border-white text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
                   }`}
                 >
                   {type === 'pickup' ? (isFr ? 'Cueillette' : 'Pickup') : (isFr ? 'Livraison' : 'Delivery')}
@@ -1005,55 +1002,57 @@ function CakeInlineCart({
 
           {fulfillmentType === 'delivery' && (
             <div className="flex flex-col gap-1">
-              <label className="text-[14px] opacity-60">
+              <label className="text-[14px]">
                 {isFr ? 'Adresse de livraison' : 'Delivery address'}
               </label>
               <textarea value={deliveryAddress}
                 onChange={(e) => onDeliveryAddressChange(e.target.value)}
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-white/40 rounded focus:border-white focus:outline-none transition-colors resize-none bg-transparent"
+                className="w-full px-3 py-2 text-sm border border-white rounded focus:border-white focus:outline-none transition-colors resize-none bg-transparent"
                 placeholder={isFr ? 'Entrez l\'adresse de livraison' : 'Enter delivery address'} />
             </div>
           )}
 
-          {/* 4. Event date */}
-          <div>
+          {/* 4. Event date — label left, input right */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[14px]">{C.date}</p>
+                {!pickupDate && (
+                  <span className="text-[12px]" style={{ color: '#EBE000' }}>{C.noDateError}</span>
+                )}
+              </div>
+              {maxLeadTimeDays > 0 && (
+                <p className="text-[11px] mt-1">
+                  {isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}{formatDateHuman(earliestDateStr, locale)}
+                </p>
+              )}
+            </div>
             <DatePickerField
-              label={C.date}
               value={toDateValue(pickupDate)}
               minValue={minDateValue ?? today(getLocalTimeZone())}
               maxValue={maxDateValue ?? undefined}
               isDateUnavailable={isDateUnavailable}
               onChange={(val: DateValue | null) => {
                 if (val) {
-                  const y = val.year;
-                  const m = String(val.month).padStart(2, '0');
-                  const d = String(val.day).padStart(2, '0');
-                  onDateChange(`${y}-${m}-${d}`);
-                } else {
-                  onDateChange('');
-                }
+                  onDateChange(`${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`);
+                } else { onDateChange(''); }
               }}
             />
           </div>
-          {maxLeadTimeDays > 0 && (
-            <p className="text-[14px] opacity-60 -mt-2">
-              {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
-            </p>
-          )}
           {dateWarning && (
-            <p className="text-[12px] text-red-300 -mt-2" role="alert">{dateWarning}</p>
+            <p className="text-[12px]" style={{ color: '#EBE000' }} role="alert">{dateWarning}</p>
           )}
 
           {/* 5. Event type */}
           {((isLegacyProduct && headcountValid) || isGridProduct || isTastingProduct) && (
             <div className="flex flex-col gap-1">
-              <label className="text-[14px] opacity-60">
+              <label className="text-[14px]">
                 {C.eventType}
               </label>
               <select value={eventType}
                 onChange={(e) => onEventTypeChange(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-white/40 rounded focus:border-white focus:outline-none transition-colors bg-transparent"
+                className="w-full px-3 py-2 text-sm border border-white rounded focus:border-white focus:outline-none transition-colors bg-transparent"
                 aria-label={C.eventType}>
                 <option value="">{C.selectEvent}</option>
                 <option value="birthday">{C.eventOptions.birthday}</option>
@@ -1066,48 +1065,19 @@ function CakeInlineCart({
 
           {/* 6. Notes */}
           <div className="flex flex-col gap-1">
-            <label className="text-[14px] opacity-60">
+            <label className="text-[14px]">
               {C.specialInstructions}
             </label>
             <textarea value={specialInstructions}
               onChange={(e) => onSpecialInstructionsChange(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-white/40 rounded focus:border-white focus:outline-none transition-colors resize-none bg-transparent"
+              className="w-full px-3 py-2 text-sm border border-white rounded focus:border-white focus:outline-none transition-colors resize-none bg-transparent"
               placeholder={C.specialInstructionsPlaceholder} />
           </div>
 
-          {/* Errors */}
-          {!pickupDate && (
-            <p className="text-[12px] text-red-300">{C.noDateError}</p>
-          )}
           {checkoutError && (
-            <p className="text-[12px] text-red-300">{checkoutError}</p>
+            <p className="text-[12px] text-[#EBE000]">{checkoutError}</p>
           )}
-
-          {/* Est total */}
-          <div className="flex justify-between text-[18px] pt-4" style={{ color: 'white', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-            <span>{C.estTotal}</span>
-            <span style={{ fontWeight: 500 }}>
-              {(() => {
-                const total = isGridProduct && gridPrice
-                  ? gridPrice.priceInCents + addonTotal
-                  : isTastingProduct && selectedProduct.pricingGrid.length > 0
-                    ? selectedProduct.pricingGrid[0].priceInCents
-                    : calculatedPrice;
-                return total != null && total > 0 ? `$${(total / 100).toFixed(2)}` : '\u2014';
-              })()}
-            </span>
-          </div>
-
-          {/* Checkout */}
-          <button onClick={() => { setHeadcountTouched(true); onCheckout(); }}
-            disabled={checkoutLoading || !canCheckout}
-            data-checkout
-            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {checkoutLoading ? C.loading : C.checkout}
-          </button>
-          <p className="text-[12px] opacity-40 text-center">{C.taxNote}</p>
 
         </div>
       )}
@@ -1165,7 +1135,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
 
   // Report cart count to nav
   useEffect(() => {
-    setCakeCount(selectedProductId ? 1 : 0);
+    const c = selectedProductId ? 1 : 0;
+    setCakeCount(c);
+    try { localStorage.setItem('rhubarbe:cake:count', String(c)); } catch {}
   }, [selectedProductId, setCakeCount]);
 
   // Fetch brand color from settings
@@ -1409,7 +1381,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         if (isGridBased(product) && product.pricingGrid.length > 0) {
           const sizes = getAvailableSizes(product.pricingGrid).map(Number).filter(Boolean);
           const minSize = sizes.length > 0 ? Math.min(...sizes) : 0;
-          setSelectedSize(minSize > 0 ? String(minSize) : '');
+          const displayMin = isCroquembouche(product) ? Math.ceil(minSize / CROQ_CHOUX_PER_GUEST) : minSize;
+          setSelectedSize(displayMin > 0 ? String(displayMin) : '');
         } else {
           setSelectedSize('');
           if (isLegacy(product) && product.pricingTiers.length > 0) {
@@ -1728,7 +1701,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
           {!loading && !error && products.length === 0 && (
             <div className="text-center py-20">
-              <p className="text-[16px] opacity-60">{C.noProducts}</p>
+              <p className="text-[16px]">{C.noProducts}</p>
             </div>
           )}
           {!loading && !error && products.length > 0 && (
@@ -1750,7 +1723,15 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
         </div>
 
       {/* Cake cart slide-in panel */}
-      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={selectedProductId ? 1 : 0}>
+      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={selectedProductId ? 1 : 0}
+        footer={selectedProductId ? (
+          <button onClick={() => { setShowMobileCart(false); handleCheckout(); }}
+            disabled={checkoutLoading || !selectedProductId || !pickupDate} data-checkout
+            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
+            <span>{checkoutLoading ? C.loading : C.checkout}</span>
+            <span>{mobilePrice != null ? `$${(mobilePrice / 100).toFixed(2)}` : ''}</span>
+          </button>
+        ) : undefined}>
         <CakeInlineCart
           {...sidebarProps}
           onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}

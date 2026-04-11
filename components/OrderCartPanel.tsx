@@ -8,9 +8,10 @@ interface OrderCartPanelProps {
   title: string;
   itemCount: number;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
-export default function OrderCartPanel({ open, onClose, title, itemCount, children }: OrderCartPanelProps) {
+export default function OrderCartPanel({ open, onClose, title, itemCount, children, footer }: OrderCartPanelProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -35,9 +36,14 @@ export default function OrderCartPanel({ open, onClose, title, itemCount, childr
           </h2>
           <button onClick={onClose} className="text-[16px] text-white/70 hover:text-white" aria-label="Close">close</button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 cart-panel-content">
+        <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4 cart-panel-content">
           {children}
         </div>
+        {footer && (
+          <div className="px-6 py-4" style={{ backgroundColor: '#0065B6' }}>
+            {footer}
+          </div>
+        )}
       </div>
     </>
   );

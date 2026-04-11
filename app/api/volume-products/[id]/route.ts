@@ -67,7 +67,7 @@ export async function PUT(
       'volumeEnabled', 'volumeDescription', 'volumeInstructions',
       'volumeMinOrderQuantity', 'volumeUnitLabel', 'maxAdvanceDays',
       'cateringType', 'cateringDescription', 'cateringFlavourName',
-      'allergens', 'dietaryTags', 'temperatureTags',
+      'allergens', 'dietaryTags', 'temperatureTags', 'servesPerUnit',
       'orderMinimum', 'orderScope', 'variantMinimum', 'increment',
     ] as const;
 
