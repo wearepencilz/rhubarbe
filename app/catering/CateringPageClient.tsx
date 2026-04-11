@@ -37,7 +37,7 @@ export default function CateringPageClient({
                 ? 'bg-[#333112] text-white'
                 : 'border border-gray-300 text-gray-600 hover:border-[#333112]'
             }`}
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+           
           >
             {tab === 'traiteur'
               ? (isFr ? 'Traiteur' : 'Catering')

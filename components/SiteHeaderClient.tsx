@@ -37,7 +37,6 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
     return () => window.removeEventListener('scroll', onScroll);
   }, [menuOpen]);
 
-  // Keep header visible while menu is open
   useEffect(() => {
     if (menuOpen) setVisible(true);
   }, [menuOpen]);
@@ -47,32 +46,41 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 bg-white transition-transform duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 bg-[#FCFBF6] transition-transform duration-300 ${
           visible ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
         <div className="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-8 h-14 md:h-16">
-          {/* Logo */}
-          <Link href="/" aria-label={`${companyName} home`} onClick={closeMenu}>
-            {logo ? (
-              <img
-                src={logo}
-                alt={companyName}
-                className="h-[32px] md:h-[36px] w-auto object-contain"
-              />
-            ) : (
-              <span
-                className="text-sm tracking-widest uppercase"
-                style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500, color: '#333112' }}
-              >
-                {companyName}
-              </span>
-            )}
-          </Link>
+          {/* Left: Logo + Nav */}
+          <div className="flex items-center gap-6">
+            <Link href="/" aria-label={`${companyName} home`} onClick={closeMenu}>
+              {logo ? (
+                <img
+                  src={logo}
+                  alt={companyName}
+                  className="h-[24px] w-auto object-contain"
+                />
+              ) : (
+                <span
+                  className="text-[16px] lowercase"
+                  style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}
+                >
+                  {companyName}
+                </span>
+              )}
+            </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:block">
-            <SiteNav />
+            {/* Desktop nav */}
+            <div className="hidden md:block">
+              <SiteNav />
+            </div>
+          </div>
+
+          {/* Right: Address + Hours (desktop) */}
+          <div className="hidden md:flex items-center text-[16px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
+            <span>1320 rue charlevoix</span>
+            <span className="mx-2">|</span>
+            <span>9h-12h</span>
           </div>
 
           {/* Mobile hamburger / X */}
@@ -92,14 +100,14 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
             >
               {menuOpen ? (
                 <>
-                  <line x1="4" y1="4" x2="16" y2="16" stroke="#333112" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="16" y1="4" x2="4" y2="16" stroke="#333112" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="4" y1="4" x2="16" y2="16" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="16" y1="4" x2="4" y2="16" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
                 </>
               ) : (
                 <>
-                  <line x1="2" y1="5" x2="18" y2="5" stroke="#333112" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="2" y1="10" x2="18" y2="10" stroke="#333112" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="2" y1="15" x2="18" y2="15" stroke="#333112" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="2" y1="5" x2="18" y2="5" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="2" y1="10" x2="18" y2="10" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="2" y1="15" x2="18" y2="15" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
                 </>
               )}
             </svg>
@@ -107,7 +115,6 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
         </div>
       </header>
 
-      {/* Full-screen mobile menu */}
       <MobileMenu open={menuOpen} onClose={closeMenu} />
     </>
   );

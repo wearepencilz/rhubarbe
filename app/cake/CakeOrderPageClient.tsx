@@ -8,7 +8,7 @@ import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 import { getActivePricingTier, resolvePricingGridPrice, getTierDetailForSize } from '@/lib/utils/order-helpers';
 import type { PricingGridRow, CakeTierDetailEntry } from '@/lib/utils/order-helpers';
-import MobileCartModal from '@/components/ui/MobileCartModal';
+import OrderCartPanel from '@/components/OrderCartPanel';
 import { ProductGridSkeleton } from '@/components/ui/OrderPageSkeleton';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
@@ -250,7 +250,7 @@ function FlavourDropdown({
     const atLimit = selectedFlavourHandles.length >= maxFlavours;
     return (
       <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
-        <p className="text-[10px] text-gray-400 uppercase tracking-wide" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide">
           {isFr ? `Saveurs (max ${maxFlavours})` : `Flavours (max ${maxFlavours})`}
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -270,7 +270,7 @@ function FlavourDropdown({
                     ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                 }`}
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}
+               
               >
                 {tr(flavour.label, locale)}
               </button>
@@ -278,7 +278,7 @@ function FlavourDropdown({
           })}
         </div>
         {atLimit && (
-          <p className="text-[10px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+          <p className="text-[10px] text-gray-400">
             {isFr ? `Maximum ${maxFlavours} atteint` : `Max ${maxFlavours} reached`}
           </p>
         )}
@@ -293,7 +293,7 @@ function FlavourDropdown({
         value={selectedFlavourHandles[0] || ''}
         onChange={(e) => onToggleFlavour(e.target.value)}
         className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#333112] bg-white text-gray-700"
-        style={{ fontFamily: 'var(--font-diatype-mono)' }}
+       
       >
         {availableFlavours.map((flavour) => (
           <option key={flavour.handle} value={flavour.handle}>
@@ -383,47 +383,61 @@ function CakeProductCard({
     <button
       type="button"
       onClick={() => onSelect(product.id)}
-      className={`group flex flex-col text-left transition-all rounded-lg border border-gray-200 ${
+      className={`group flex flex-col text-left transition-all ${
         isSelected
           ? 'ring-2 ring-[#333112] ring-offset-2'
-          : 'hover:ring-1 hover:ring-gray-300 hover:ring-offset-1'
+          : ''
       }`}
       aria-pressed={isSelected}
       aria-label={`${product.name}${isSelected ? ` (${C.selected})` : ''}`}
     >
       {product.image ? (
-        <div className="p-2 pb-0">
-          <div className="aspect-[4/5] overflow-hidden bg-gray-100 rounded-md relative">
-            <img src={product.image} alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-            {isSelected && (
-              <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {C.selected}
-              </div>
-            )}
+        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
+          <img src={product.image} alt={product.name}
+            className="w-full h-full object-cover" />
+          {/* Allergen badges */}
+          {product.allergens && product.allergens.length > 0 && (
+            <div className="absolute top-[16px] left-[16px] flex flex-wrap gap-1">
+              {product.allergens.map((a) => (
+                <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">
+                  {a}
+                </span>
+              ))}
+            </div>
+          )}
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-[16px]">
+            <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
+              {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
+            </div>
           </div>
+          {isSelected && (
+            <div className="absolute top-[16px] right-[16px] bg-[#333112] text-white text-[12px] uppercase px-2 py-1 rounded-full">
+              {C.selected}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="p-2 pb-0">
-          <div className="aspect-[4/5] rounded-md relative" style={{ backgroundColor: brandColor }}>
-            {isSelected && (
-              <div className="absolute top-2 right-2 bg-[#333112] text-white text-[10px] uppercase tracking-widest px-2 py-1 rounded"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {C.selected}
-              </div>
-            )}
+        <div className="aspect-[4/5] relative" style={{ backgroundColor: brandColor }}>
+          <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-[16px]">
+            <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
+              {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
+            </div>
           </div>
+          {isSelected && (
+            <div className="absolute top-[16px] right-[16px] bg-[#333112] text-white text-[12px] uppercase px-2 py-1 rounded-full">
+              {C.selected}
+            </div>
+          )}
         </div>
       )}
 
-      <div className="flex flex-col gap-1 px-2 pt-3 pb-3">
-        <h3 className="text-xs uppercase tracking-widest"
-          style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
+      <div className="flex flex-col gap-1 pt-2.5">
+        <h3 className="text-[16px]" style={{ fontWeight: 500 }}>
           {product.name}
         </h3>
 
-        <div className="flex items-center gap-2 text-[11px] text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+        <div className="flex items-center gap-2 text-[16px] text-gray-400">
           {activeTier && (
             <span>${(activeTier.priceInCents / 100).toFixed(2)}</span>
           )}
@@ -431,35 +445,22 @@ function CakeProductCard({
             <span>${(tastingPrice / 100).toFixed(2)}</span>
           )}
           {product.serves && (
-            <span className="uppercase tracking-wider">
+            <span>
               {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
             </span>
           )}
         </div>
 
         {flavourNotes && (
-          <p className="text-xs text-gray-500 italic">{flavourNotes}</p>
+          <p className="text-[16px] text-gray-500 italic">{flavourNotes}</p>
         )}
 
         {product.shortCardCopy && (
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{product.shortCardCopy}</p>
+          <p className="text-[16px] text-gray-500 leading-relaxed line-clamp-2">{product.shortCardCopy}</p>
         )}
 
         {description && (
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{description}</p>
-        )}
-
-        {/* Allergen badges */}
-        {product.allergens && product.allergens.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {product.allergens.map((a) => (
-              <span key={a}
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                {a}
-              </span>
-            ))}
-          </div>
+          <p className="text-[16px] text-gray-500 leading-relaxed line-clamp-3">{description}</p>
         )}
 
         {/* Flavour dropdown (inside card, only when selected) */}
@@ -671,14 +672,7 @@ function CakeInlineCart({
   }, [selectedProduct, pickupDate, dateWarning, belowMin, aboveMax, sheetCakeInvalid, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="text-xs uppercase tracking-widest text-gray-400"
-          style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-          {C.yourOrder}
-        </h2>
-      </div>
-
+    <div>
       {!selectedProduct ? (
         <div className="px-5 py-8 text-center">
           <p className="text-sm text-gray-400">{C.noItems}</p>
@@ -692,18 +686,18 @@ function CakeInlineCart({
               <p className="text-sm font-medium text-gray-900">{selectedProduct.name}</p>
               <button onClick={onRemove}
                 className="text-[11px] text-gray-400 underline hover:text-red-500 shrink-0"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+               >
                 {isFr ? 'retirer' : 'remove'}
               </button>
             </div>
             {/* Show selected flavour names */}
             {selectedFlavourNames.length > 0 && (
-              <p className="text-[11px] text-gray-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <p className="text-[11px] text-gray-500 mt-0.5">
                 {selectedFlavourNames.join(', ')}
               </p>
             )}
             {selectedFlavourAllergens.length > 0 && (
-              <p className="text-[10px] text-gray-400 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <p className="text-[10px] text-gray-400 mt-0.5">
                 {isFr ? 'peut contenir' : 'may contain'}: {selectedFlavourAllergens.join(', ')}
               </p>
             )}
@@ -733,7 +727,7 @@ function CakeInlineCart({
                   }`}
                   aria-label={C.numberOfPeople} />
                 {headcountTouched && belowMin && (
-                  <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <p className="text-xs text-red-500 mt-0.5">
                     {isFr ? `Minimum ${minPeople} personnes` : `Minimum ${minPeople} people`}
                   </p>
                 )}
@@ -742,7 +736,7 @@ function CakeInlineCart({
               {calculatedPrice != null ? (
                 <div className="flex justify-between text-sm font-semibold">
                   <span>{numberOfPeople} {C.numberOfPeopleShort}</span>
-                  <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <span>
                     ${(calculatedPrice / 100).toFixed(2)}
                   </span>
                 </div>
@@ -777,12 +771,12 @@ function CakeInlineCart({
                   aria-label={sizeLabel}
                 />
                 {belowMin && (
-                  <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <p className="text-xs text-red-500 mt-0.5">
                     {isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}
                   </p>
                 )}
                 {gridMaxSize && parseInt(selectedSize) > gridMaxSize && (
-                  <p className="text-xs text-red-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <p className="text-xs text-red-500 mt-0.5">
                     {isFr ? `Maximum ${gridMaxSize}` : `Maximum ${gridMaxSize}`}
                   </p>
                 )}
@@ -792,7 +786,7 @@ function CakeInlineCart({
               {gridPrice && selectedSize && (isCroq || selectedFlavourHandles.length > 0) && (
                 <div className="flex justify-between text-sm font-semibold">
                   <span>{selectedSize} {sizeLabel.toLowerCase()}</span>
-                  <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <span>
                     ${(gridPrice.priceInCents / 100).toFixed(2)}
                   </span>
                 </div>
@@ -801,7 +795,7 @@ function CakeInlineCart({
               {/* Tier detail display */}
               {tierDetail && (
                 <div className="space-y-1">
-                  <p className="text-[11px] text-gray-600" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <p className="text-[11px] text-gray-600">
                     {isFr
                       ? `${tierDetail.layers} étage${tierDetail.layers > 1 ? 's' : ''}: ${tierDetail.diameters} pouces`
                       : `${tierDetail.layers} tier${tierDetail.layers > 1 ? 's' : ''}: ${tierDetail.diameters} inches`}
@@ -816,7 +810,7 @@ function CakeInlineCart({
           {isTastingProduct && selectedProduct.pricingGrid.length > 0 && (
             <div className="flex justify-between text-sm font-semibold">
               <span>{isFr ? 'Dégustation' : 'Tasting'}</span>
-              <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <span>
                 ${(selectedProduct.pricingGrid[0].priceInCents / 100).toFixed(2)}
               </span>
             </div>
@@ -837,7 +831,7 @@ function CakeInlineCart({
                   return (
                     <div key={addon.id} className="flex items-center justify-between gap-2">
                       <p className="text-xs text-gray-700 flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                      {priceCents > 0 && <span className="text-[11px] text-gray-400 shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(priceCents / 100).toFixed(2)}</span>}
+                      {priceCents > 0 && <span className="text-[11px] text-gray-400 shrink-0">+${(priceCents / 100).toFixed(2)}</span>}
                       <button type="button" onClick={() => onToggleAddon(addon.id)} disabled={!resolvedSize}
                         className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${!resolvedSize ? 'bg-gray-200 cursor-not-allowed' : isEnabled ? 'bg-[#333112]' : 'bg-gray-300'}`}
                         aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`} aria-pressed={isEnabled}>
@@ -928,12 +922,12 @@ function CakeInlineCart({
                             aria-label={`${tr(sheetAddon.title, locale)} guests`} />
                         </div>
                         {sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople && (
-                          <p className="text-[10px] text-red-500 mt-0.5 text-right" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                          <p className="text-[10px] text-red-500 mt-0.5 text-right">
                             {isFr ? `Minimum ${sheetAddon.cakeMinPeople}` : `Minimum ${sheetAddon.cakeMinPeople}`}
                           </p>
                         )}
                         {sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople && (
-                          <p className="text-[10px] text-red-500 mt-0.5 text-right" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                          <p className="text-[10px] text-red-500 mt-0.5 text-right">
                             {isFr ? `Maximum ${sheetAddon.cakeMaxPeople}` : `Maximum ${sheetAddon.cakeMaxPeople}`}
                           </p>
                         )}
@@ -943,7 +937,7 @@ function CakeInlineCart({
                       {sheetPrice && sheetSize && (
                         <div className="flex justify-between text-xs text-gray-600">
                           <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
-                          <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(sheetPrice.priceInCents / 100).toFixed(2)}</span>
+                          <span>${(sheetPrice.priceInCents / 100).toFixed(2)}</span>
                         </div>
                       )}
 
@@ -956,7 +950,7 @@ function CakeInlineCart({
                             return (
                               <div key={addon.id} className="flex items-center justify-between gap-2">
                                 <p className="text-[11px] text-gray-600 flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                                {ap && <span className="text-[10px] text-gray-400 shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>+${(ap.priceInCents / 100).toFixed(2)}</span>}
+                                {ap && <span className="text-[10px] text-gray-400 shrink-0">+${(ap.priceInCents / 100).toFixed(2)}</span>}
                                 <button type="button" onClick={() => onToggleSheetAddon(addon.id)}
                                   className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${isOn ? 'bg-[#333112]' : 'bg-gray-300'}`}
                                   aria-label={`${isOn ? 'Remove' : 'Add'} ${tr(addon.title, locale)} for sheet cake`} aria-pressed={isOn}>
@@ -972,7 +966,7 @@ function CakeInlineCart({
                       {sheetSubtotal > 0 && (
                         <div className="flex justify-between text-xs font-medium text-gray-700 pt-1 border-t border-gray-100">
                           <span>{tr(sheetAddon.title, locale)}</span>
-                          <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(sheetSubtotal / 100).toFixed(2)}</span>
+                          <span>${(sheetSubtotal / 100).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
@@ -986,7 +980,7 @@ function CakeInlineCart({
           {isGridProduct && gridPrice && (
             <div className="flex justify-between text-sm font-semibold border-t border-gray-100 pt-2">
               <span>{C.estTotal}</span>
-              <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <span>
                 ${((gridPrice.priceInCents + addonTotal) / 100).toFixed(2)}
               </span>
             </div>
@@ -1010,7 +1004,7 @@ function CakeInlineCart({
                       : type === 'pickup' && isDeliveryOnly ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                       : 'bg-white text-gray-500 hover:bg-gray-50'
                   }`}
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                 >
                   {type === 'pickup' ? (isFr ? 'Cueillette' : 'Pickup') : (isFr ? 'Livraison' : 'Delivery')}
                 </button>
               ))}
@@ -1052,7 +1046,7 @@ function CakeInlineCart({
           </div>
           {maxLeadTimeDays > 0 && (
             <p className="text-[11px] text-gray-400 -mt-2"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+             >
               {C.earliest}{' '}
               <span className="text-gray-600">{formatDateHuman(earliestDateStr, locale)}</span>
               {' '}({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
@@ -1114,8 +1108,9 @@ function CakeInlineCart({
             onCheckout();
           }}
             disabled={checkoutLoading || !canCheckout}
+            data-checkout
             className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+           >
             {checkoutLoading ? C.loading : C.checkout}
           </button>
         </div>
@@ -1162,6 +1157,13 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
   const [showMobileCart, setShowMobileCart] = useState(false);
+
+  // Listen for blue sidebar tab click
+  useEffect(() => {
+    const handler = () => setShowMobileCart(true);
+    window.addEventListener('open-order-cart', handler);
+    return () => window.removeEventListener('open-order-cart', handler);
+  }, []);
   const [cartRestored, setCartRestored] = useState(false);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
 
@@ -1714,11 +1716,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
 
   return (
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
-      <div className="flex gap-8">
         {/* Left: Products */}
-        <div className="flex-1 min-w-0">
+        <div>
           <h1 className="text-2xl uppercase tracking-widest mb-2"
-            style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
+            style={{ fontWeight: 500 }}>
             {pageTitle}
           </h1>
           <p className="text-sm text-gray-500 mb-10 max-w-xl">
@@ -1752,38 +1753,13 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           )}
         </div>
 
-        {/* Right: Cart sidebar */}
-        <div className="hidden lg:block w-80 shrink-0">
-          <CakeInlineCart
-            {...sidebarProps}
-            onCheckout={handleCheckout}
-          />
-        </div>
-      </div>
-
-      {/* Mobile cart modal */}
-      <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>
+      {/* Cake cart slide-in panel */}
+      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={selectedProductId ? 1 : 0}>
         <CakeInlineCart
           {...sidebarProps}
           onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
         />
-      </MobileCartModal>
-
-      {/* Mobile bottom bar */}
-      {selectedProduct && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {selectedProduct.name}{mobilePrice != null && ` · $${(mobilePrice / 100).toFixed(2)}`}
-            </p>
-            <button onClick={() => setShowMobileCart(true)}
-              className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {isFr ? 'Voir la commande' : 'View order'}
-            </button>
-          </div>
-        </div>
-      )}
+      </OrderCartPanel>
     </main>
   );
 }

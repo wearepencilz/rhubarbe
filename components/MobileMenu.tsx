@@ -2,15 +2,8 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useState } from 'react';
-
-interface NavLabels {
-  en: Record<string, string>;
-  fr: Record<string, string>;
-}
 
 interface MobileMenuProps {
   open: boolean;
@@ -18,106 +11,81 @@ interface MobileMenuProps {
 }
 
 export default function MobileMenu({ open, onClose }: MobileMenuProps) {
-  const { T, locale } = useT();
   const { orderCount, volumeCount, cakeCount } = useOrderItems();
-  const [navLabels, setNavLabels] = useState<NavLabels | null>(null);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.navLabels) setNavLabels(data.navLabels);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Lock body scroll
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const label = (key: string, fallback: string) => {
-    const override = navLabels?.[locale as 'en' | 'fr']?.[key];
-    return override || fallback;
-  };
+  const menuStyle = {
+    fontFamily: 'var(--font-solar-display)',
+    color: '#1A3821',
+  } as const;
 
-  const navFont = {
-    fontFamily: 'var(--font-diatype-mono)',
-    fontWeight: 500 as const,
-    color: '#333112',
-  };
-
-  const menuItems = [
-    { href: '/order', label: label('order', T.nav.order), count: orderCount },
-    { href: '/catering', label: label('volumeOrder', T.nav.volumeOrder), count: volumeCount },
-    { href: '/cake', label: label('cakeOrder', T.nav.cakeOrder), count: cakeCount },
-    { href: '/about', label: label('about', T.nav.about), count: 0 },
+  const items = [
+    { href: '/order', label: 'menu', count: orderCount },
+    { href: '/catering', label: 'catering', count: volumeCount },
+    { href: '/cake', label: 'cakes', count: cakeCount },
+    { href: '/stories', label: 'stories', count: 0 },
   ];
 
   return (
     <div
       className={`md:hidden fixed inset-0 z-40 transition-all duration-300 ease-out ${
-        open
-          ? 'opacity-100 pointer-events-auto'
-          : 'opacity-0 pointer-events-none'
+        open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
       aria-hidden={!open}
     >
-      {/* Background */}
-      <div className="absolute inset-0 bg-white" />
-
-      {/* Content */}
+      <div className="absolute inset-0 bg-[#FCFBF6]" />
       <nav
         className="relative flex flex-col justify-center items-center h-full px-6"
-        style={navFont}
+        style={menuStyle}
         aria-label="Mobile navigation"
       >
         <ul className="flex flex-col items-center gap-8">
-          {menuItems.map((item, i) => (
+          {items.map((item, i) => (
             <li
               key={item.href}
-              className={`transition-all duration-300 ${
-                open
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-4'
-              }`}
+              className={`transition-all duration-300 ${open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               style={{ transitionDelay: open ? `${100 + i * 60}ms` : '0ms' }}
             >
               <Link
                 href={item.href}
                 onClick={onClose}
-                className="text-[18px] tracking-[0.04em] uppercase hover:opacity-50 transition-opacity flex items-center gap-2"
+                className="text-[22px] lowercase hover:opacity-50 transition-opacity"
               >
                 {item.label}
                 {item.count > 0 && (
-                  <span className="text-[13px] opacity-40">({item.count})</span>
+                  <sup className="text-[12px] opacity-50 ml-[1px]">({item.count})</sup>
                 )}
               </Link>
             </li>
           ))}
         </ul>
 
-        {/* Language switcher at bottom */}
+        {/* Address + hours */}
         <div
-          className={`absolute bottom-12 transition-all duration-300 ${
+          className={`absolute bottom-20 text-[14px] lowercase text-center transition-all duration-300 ${
             open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
-          style={{ transitionDelay: open ? '400ms' : '0ms' }}
+          style={{ ...menuStyle, transitionDelay: open ? '360ms' : '0ms' }}
+        >
+          <span>1320 rue charlevoix</span>
+          <span className="mx-2">|</span>
+          <span>9h-12h</span>
+        </div>
+
+        <div
+          className={`absolute bottom-12 transition-all duration-300 ${open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+          style={{ transitionDelay: open ? '420ms' : '0ms' }}
         >
           <LanguageSwitcher />
         </div>

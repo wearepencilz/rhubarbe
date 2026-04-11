@@ -5,8 +5,8 @@ import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState } from '@/lib/hooks/use-persisted-state';
 import { generatePickupDays, isPickupDayDisabled } from '@/lib/utils/order-helpers';
-import MobileCartModal from '@/components/ui/MobileCartModal';
 import { OrderPageSkeleton } from '@/components/ui/OrderPageSkeleton';
+import OrderCartPanel from '@/components/OrderCartPanel';
 
 interface LaunchProduct {
   id: string;
@@ -162,120 +162,146 @@ function ProductCard({
   const displayPrice = activeVariant?.price ?? product.price;
 
   return (
-    <div className={`group border border-gray-200 rounded-lg flex flex-col ${soldOut ? 'opacity-60' : ''}`}>
+    <div className={`group flex flex-col ${soldOut ? 'opacity-60' : ''}`}>
       {product.image && (
-        <div className="p-2 pb-0">
-          <div className="aspect-[4/5] overflow-hidden bg-gray-100 rounded-md relative">
-            <img
-              src={product.image}
-              alt={displayName}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            {soldOut && (
-              <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent rounded-b-md">
-                <p
-                  className="text-center text-white text-xs uppercase tracking-widest font-medium"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
+        <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
+          <img
+            src={product.image}
+            alt={displayName}
+            className="w-full h-full object-cover"
+          />
+          {/* Allergen badges */}
+          {product.allergens && product.allergens.length > 0 && (
+            <div className="absolute top-[16px] left-[16px] flex flex-wrap gap-1">
+              {product.allergens.map((a) => (
+                <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">
+                  {a}
+                </span>
+              ))}
+            </div>
+          )}
+          {/* Hover overlay */}
+          {!soldOut && (
+            <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-[16px]">
+              {/* Serves badge top-left */}
+              {product.serves && (
+                <div className="self-start">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] text-white border border-white">
+                    {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
+                  </span>
+                </div>
+              )}
+              {!product.serves && <div />}
+              {/* Bottom controls */}
+              <div className="flex flex-col gap-2">
+              {/* Variant selector inside overlay */}
+              {hasVariants && availableVariants.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {availableVariants.map((v) => {
+                    const isActive = v.id === (activeVariant?.id);
+                    const label = isFr && v.labelFr ? v.labelFr : v.label;
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={(e) => { e.stopPropagation(); onSelectVariant(v.id); }}
+                        className={`px-3 py-1.5 text-[16px] rounded-full border transition-colors ${
+                          isActive
+                            ? 'border-white bg-white text-[#D49BCB]'
+                            : 'border-white text-white hover:bg-white/20'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {quantity === 0 ? (
+                <button
+                  onClick={onAdd}
+                  disabled={atMax || (hasVariants && !activeVariant)}
+                  className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium transition-colors hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isFr ? 'Épuisé' : 'Sold out'}
-                </p>
-                {product.nextAvailableDate && (
-                  <p className="text-center text-[10px] text-white/80 mt-1">
-                    {isFr ? 'Prochaine disponibilité\u00a0: ' : 'Next available: '}
-                    {formatDate(product.nextAvailableDate, locale)}
-                  </p>
-                )}
+                  {isFr ? '+ Ajouter' : '+ Add'}
+                </button>
+              ) : (
+                <div className="flex items-center justify-between rounded-full border border-white overflow-hidden h-10 w-full">
+                  <button onClick={onRemove} className="px-4 h-full text-white text-lg hover:bg-white/20">−</button>
+                  <span className="text-[16px] text-white font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
+                  <button onClick={onAdd} disabled={atMax} className="px-4 h-full text-white text-lg hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+                </div>
+              )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+          {soldOut && (
+            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+              <p className="text-center text-white text-[16px] font-medium">
+                {isFr ? 'Épuisé' : 'Sold out'}
+              </p>
+              {product.nextAvailableDate && (
+                <p className="text-center text-[10px] text-white/80 mt-1">
+                  {isFr ? 'Prochaine disponibilité\u00a0: ' : 'Next available: '}
+                  {formatDate(product.nextAvailableDate, locale)}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
-      <div className="flex flex-col flex-1 p-2.5 gap-1">
-        <h3
-          className="text-xs uppercase tracking-widest leading-tight"
-          style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
-        >
+      <div className="flex flex-col flex-1 pt-2.5 gap-1">
+        <h3 className="text-[16px] leading-tight" style={{ fontWeight: 500 }}>
           {displayName}
         </h3>
-        <div className="flex items-center justify-between text-[11px]" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+        <div className="flex items-center justify-between text-[16px]">
           {displayPrice != null && displayPrice > 0 && (
             <span className="text-gray-900 font-medium">${(displayPrice / 100).toFixed(2)}</span>
           )}
-          {product.serves && (
-            <span className="text-gray-400 uppercase tracking-wider">
-              {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
-            </span>
-          )}
         </div>
         {shortCopy && (
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{shortCopy}</p>
+          <p className="text-[16px] text-gray-500 leading-relaxed line-clamp-2">{shortCopy}</p>
         )}
 
-        {/* Allergen badges */}
-        {product.allergens && product.allergens.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            {product.allergens.map((a) => (
-              <span
-                key={a}
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}
-              >
-                {a}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Variant selector */}
-        {hasVariants && availableVariants.length > 1 && (
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {availableVariants.map((v) => {
-              const isActive = v.id === (activeVariant?.id);
-              const label = isFr && v.labelFr ? v.labelFr : v.label;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => onSelectVariant(v.id)}
-                  className={`px-2.5 py-1 text-[11px] uppercase tracking-wider rounded-full border transition-colors ${
-                    isActive
-                      ? 'border-[#333112] bg-[#333112] text-white'
-                      : 'border-gray-300 text-gray-500 hover:border-gray-400'
-                  }`}
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Spacer to push add/qty to bottom */}
-        <div className="flex-1" />
-
-        {/* Quick-add — pinned to card bottom */}
-        <div className="mt-2">
+        {/* Mobile-only controls */}
+        <div className="md:hidden mt-2 space-y-2">
+          {hasVariants && availableVariants.length > 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              {availableVariants.map((v) => {
+                const isActive = v.id === (activeVariant?.id);
+                const label = isFr && v.labelFr ? v.labelFr : v.label;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => onSelectVariant(v.id)}
+                    className={`px-3 py-1.5 text-[16px] rounded-full border transition-colors ${
+                      isActive
+                        ? 'border-[#333112] bg-[#333112] text-white'
+                        : 'border-gray-300 text-gray-500 hover:border-gray-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {soldOut ? (
-            <p
-              className="w-full h-10 flex items-center justify-center text-xs uppercase tracking-widest font-medium text-gray-400"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
-            >
+            <p className="w-full h-10 flex items-center justify-center text-[16px] font-medium text-gray-400">
               {isFr ? 'Épuisé' : 'Sold out'}
             </p>
           ) : quantity === 0 ? (
             <button
               onClick={onAdd}
               disabled={atMax || (hasVariants && !activeVariant)}
-              className="w-full h-10 border border-gray-300 text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+              className="w-full h-10 rounded-full border border-gray-300 text-[16px] font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isFr ? '+ Ajouter' : '+ Add'}
             </button>
           ) : (
-            <div className="flex items-center justify-between border border-gray-300 rounded overflow-hidden h-10">
-              <button onClick={onRemove} className="px-3 h-full hover:bg-gray-50 text-lg">−</button>
-              <span className="text-sm font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
-              <button onClick={onAdd} disabled={atMax} className="px-3 h-full hover:bg-gray-50 text-lg disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+            <div className="flex items-center justify-between rounded-full border border-gray-300 overflow-hidden h-10">
+              <button onClick={onRemove} className="px-4 h-full hover:bg-gray-50 text-lg">−</button>
+              <span className="text-[16px] font-medium">{quantity}{maxQuantity != null ? ` / ${maxQuantity}` : ''}</span>
+              <button onClick={onAdd} disabled={atMax} className="px-4 h-full hover:bg-gray-50 text-lg disabled:opacity-30 disabled:cursor-not-allowed">+</button>
             </div>
           )}
         </div>
@@ -306,7 +332,7 @@ function MenuSwitchModal({
       <div className="relative bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6">
         <h3
           className="text-sm uppercase tracking-widest mb-3"
-          style={{ fontFamily: 'var(--font-diatype-mono)' }}
+         
         >
           {isFr ? 'Changer de menu?' : 'Switch menu?'}
         </h3>
@@ -319,303 +345,19 @@ function MenuSwitchModal({
           <button
             onClick={onCancel}
             className="flex-1 py-2.5 border border-gray-300 text-xs uppercase tracking-widest font-medium rounded hover:bg-gray-50 transition-colors"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+           
           >
             {isFr ? 'Annuler' : 'Cancel'}
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+           
           >
             {isFr ? 'Vider et changer' : 'Clear & switch'}
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function InlineCart({
-  items,
-  onUpdateQty,
-  onRemove,
-  locale,
-  getMax,
-  pickupSlots,
-  selectedSlotId,
-  onSelectSlot,
-  pickupDays,
-  selectedPickupDay,
-  onSelectPickupDay,
-  onCheckout,
-  checkoutLoading,
-  checkoutError,
-  pickupDate,
-  pickupWindowStart,
-  pickupWindowEnd,
-  orderCloses,
-}: {
-  items: CartItem[];
-  onUpdateQty: (productId: string, qty: number) => void;
-  onRemove: (productId: string) => void;
-  locale: string;
-  getMax: (productId: string) => number | null;
-  pickupSlots: Array<{ id: string; startTime: string; endTime: string }>;
-  selectedSlotId: string | null;
-  onSelectSlot: (id: string) => void;
-  pickupDays: string[];
-  selectedPickupDay: string | null;
-  onSelectPickupDay: (day: string) => void;
-  onCheckout: () => void;
-  checkoutLoading: boolean;
-  checkoutError: string | null;
-  pickupDate?: string | null;
-  pickupWindowStart?: string | null;
-  pickupWindowEnd?: string | null;
-  orderCloses?: string | null;
-}) {
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const isFr = locale === 'fr';
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h2
-          className="text-xs uppercase tracking-widest text-gray-400"
-          style={{ fontFamily: 'var(--font-diatype-mono)' }}
-        >
-          {isFr ? 'Votre commande' : 'Your order'}
-        </h2>
-      </div>
-
-      {/* Pickup date and cut-off reminder */}
-      {(pickupDate || orderCloses) && (
-        <div className="px-5 py-3 border-b border-gray-100 space-y-1">
-          {pickupDate && (
-            <p className="text-xs text-gray-600 font-medium">
-              {isFr ? 'Cueillette\u00a0: ' : 'Pickup: '}
-              {selectedPickupDay
-                ? formatDate(selectedPickupDay, locale)
-                : pickupWindowStart && pickupWindowEnd
-                  ? (() => {
-                      const loc = locale === 'fr' ? 'fr-CA' : 'en-CA';
-                      const s = toLocalDate(pickupWindowStart);
-                      const e = toLocalDate(pickupWindowEnd);
-                      if (s.getTime() === e.getTime()) return formatDate(pickupWindowStart, locale);
-                      const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
-                      if (sameMonth) {
-                        return `${s.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { weekday: 'short', day: 'numeric' })}`;
-                      }
-                      return `${s.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { weekday: 'short', month: 'short', day: 'numeric' })}`;
-                    })()
-                  : formatDate(pickupDate, locale)}
-            </p>
-          )}
-          {orderCloses && (
-            <p
-              className="text-[10px] uppercase tracking-wider text-gray-400"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
-            >
-              {isFr ? 'Commander avant ' : 'Order by '}{formatDatetime(orderCloses, locale)}
-            </p>
-          )}
-          {selectedSlotId && pickupDate && (
-            <p className="text-xs text-gray-600 font-medium">
-              {isFr ? 'Créneau confirmé' : 'Slot confirmed'} ✓
-            </p>
-          )}
-        </div>
-      )}
-
-      {items.length === 0 ? (
-        <div className="px-5 py-8 text-center">
-          <p className="text-sm text-gray-400">{isFr ? 'Aucun article' : 'No items yet'}</p>
-          <p className="text-xs text-gray-300 mt-1">{isFr ? 'Cliquez sur un produit pour l\'ajouter' : 'Click a product to add it'}</p>
-        </div>
-      ) : (
-        <>
-          <div className="divide-y divide-gray-100 max-h-[40vh] overflow-y-auto">
-            {items.map((item) => (
-              <div key={item.productId} className="px-5 py-3 flex items-center gap-3">
-                {item.image && (
-                  <div className="w-10 h-10 rounded bg-gray-100 overflow-hidden shrink-0">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {item.variantLabel && item.name.includes(' — ') ? item.name.split(' — ')[0] : item.name}
-                  </p>
-                  {item.variantLabel && (
-                    <p className="text-[11px] uppercase tracking-wider text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                      {item.variantLabel}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    ${(item.price / 100).toFixed(2)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => item.quantity <= 1 ? onRemove(item.productId) : onUpdateQty(item.productId, item.quantity - 1)}
-                    className="w-7 h-7 border border-gray-200 rounded flex items-center justify-center text-sm hover:bg-gray-50"
-                  >
-                    {item.quantity <= 1 ? '×' : '−'}
-                  </button>
-                  <span className="w-6 text-center text-sm">{item.quantity}</span>
-                  {(() => {
-                    const max = getMax(item.productId);
-                    const atMax = max != null && item.quantity >= max;
-                    return (
-                      <button
-                        onClick={() => onUpdateQty(item.productId, item.quantity + 1)}
-                        disabled={atMax}
-                        className="w-7 h-7 border border-gray-200 rounded flex items-center justify-center text-sm hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        +
-                      </button>
-                    );
-                  })()}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="px-5 py-4 border-t border-gray-200 space-y-4">
-            {/* Allergen summary */}
-            {(() => {
-              const allAllergens = Array.from(new Set(items.flatMap((i) => i.allergens || [])));
-              if (allAllergens.length === 0) return null;
-              return (
-                <div className="rounded-md bg-amber-50 ring-1 ring-amber-200/60 px-3 py-2.5">
-                  <p
-                    className="text-[10px] uppercase tracking-widest text-amber-600 mb-1.5"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                  >
-                    {isFr ? 'Contient' : 'Contains'}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {allAllergens.map((a) => (
-                      <span
-                        key={a}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-white text-amber-700 ring-1 ring-amber-200/60"
-                        style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                      >
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm font-semibold">
-                <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
-                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                  ${(subtotal / 100).toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>{isFr ? 'Articles' : 'Items'}</span>
-                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>{items.reduce((s, i) => s + i.quantity, 0)}</span>
-              </div>
-              {pickupDate && (
-                <div className="flex justify-between text-xs text-gray-400">
-                  <span>{isFr ? 'Cueillette' : 'Pickup'}</span>
-                  <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {selectedPickupDay
-                      ? formatDate(selectedPickupDay, locale)
-                      : pickupWindowStart && pickupWindowEnd
-                        ? (() => {
-                            const loc = locale === 'fr' ? 'fr-CA' : 'en-CA';
-                            const s = toLocalDate(pickupWindowStart);
-                            const e = toLocalDate(pickupWindowEnd);
-                            if (s.getTime() === e.getTime()) return formatDate(pickupWindowStart, locale);
-                            const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
-                            if (sameMonth) {
-                              return `${s.toLocaleDateString(loc, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { day: 'numeric' })}`;
-                            }
-                            return `${s.toLocaleDateString(loc, { month: 'short', day: 'numeric' })} – ${e.toLocaleDateString(loc, { month: 'short', day: 'numeric' })}`;
-                          })()
-                        : formatDate(pickupDate, locale)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Pickup slot — day + time selectors under one label */}
-            {(pickupDays.length > 1 || pickupSlots.length > 0) && (
-              <>
-                <hr className="border-gray-200" />
-                <div className="space-y-2">
-                  <label
-                    className="block text-xs uppercase tracking-widest text-gray-400"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                  >
-                    {isFr ? 'Créneau de cueillette' : 'Pickup slot'}
-                  </label>
-                  {pickupDays.length > 1 && (
-                    <select
-                      value={selectedPickupDay || ''}
-                      onChange={(e) => onSelectPickupDay(e.target.value)}
-                      className="w-full appearance-none border border-gray-300 rounded pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
-                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-                    >
-                      <option value="">{isFr ? 'Choisir un jour…' : 'Choose a day…'}</option>
-                      {pickupDays.map((day) => (
-                        <option key={day} value={day}>
-                          {formatDate(day, locale)}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {pickupSlots.length > 0 && (
-                    <select
-                      value={selectedSlotId || ''}
-                      onChange={(e) => onSelectSlot(e.target.value)}
-                      className="w-full appearance-none border border-gray-300 rounded pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#333112]"
-                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-                    >
-                      <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
-                      {pickupSlots.map((slot) => (
-                        <option key={slot.id} value={slot.id}>
-                          {slot.startTime} – {slot.endTime}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {(pickupDays.length > 1 && !selectedPickupDay) || (pickupSlots.length > 0 && !selectedSlotId) ? (
-                    <p className="text-xs text-amber-600">
-                      {isFr ? 'Veuillez sélectionner un créneau' : 'Please select a pickup slot'}
-                    </p>
-                  ) : null}
-                </div>
-              </>
-            )}
-
-            <p className="text-[11px] text-gray-400">
-              {isFr ? 'Taxes calculées à la caisse' : 'Taxes calculated at checkout'}
-            </p>
-
-            {checkoutError && (
-              <p className="text-xs text-red-600">{checkoutError}</p>
-            )}
-
-            <button
-              onClick={onCheckout}
-              disabled={checkoutLoading || (pickupSlots.length > 0 && !selectedSlotId) || (pickupDays.length > 1 && !selectedPickupDay)}
-              className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
-            >
-              {checkoutLoading
-                ? (isFr ? 'Chargement…' : 'Loading…')
-                : (isFr ? 'Passer à la caisse' : 'Checkout')}
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }
@@ -640,7 +382,14 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [shopifyStock, setShopifyStock] = useState<Record<string, number | null>>({});
-  const [showMobileCart, setShowMobileCart] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  // Listen for blue sidebar tab click
+  useEffect(() => {
+    const handler = () => setCartOpen(true);
+    window.addEventListener('open-order-cart', handler);
+    return () => window.removeEventListener('open-order-cart', handler);
+  }, []);
   // Report cart count to nav
   useEffect(() => {
     const total = cart.reduce((s, i) => s + i.quantity, 0);
@@ -993,14 +742,14 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
         <button
           onClick={() => setShowConfirmation(false)}
           className="text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 mb-8 flex items-center gap-1"
-          style={{ fontFamily: 'var(--font-diatype-mono)' }}
+         
         >
           ← {isFr ? 'Retour au menu' : 'Back to menu'}
         </button>
 
         <h1
           className="text-2xl uppercase tracking-widest mb-8"
-          style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
+          style={{ fontWeight: 500 }}
         >
           {isFr ? 'Confirmer votre commande' : 'Confirm your order'}
         </h1>
@@ -1010,20 +759,20 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
           <div className="bg-gray-50 rounded-lg p-6 space-y-4">
             <h2
               className="text-xs uppercase tracking-widest text-gray-400 mb-4"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+             
             >
               {isFr ? 'Détails de cueillette' : 'Pickup details'}
             </h2>
 
             <div>
-              <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <p className="text-xs uppercase tracking-widest text-gray-400">
                 Menu
               </p>
               <p className="text-sm text-gray-900 mt-0.5">{isFr ? launch.title?.fr : launch.title?.en}</p>
             </div>
 
             <div>
-              <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <p className="text-xs uppercase tracking-widest text-gray-400">
                 {isFr ? 'Date' : 'Date'}
               </p>
               <p className="text-sm text-gray-900 mt-0.5">
@@ -1033,7 +782,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
             {selectedSlot && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                <p className="text-xs uppercase tracking-widest text-gray-400">
                   {isFr ? 'Créneau' : 'Time slot'}
                 </p>
                 <p className="text-sm text-gray-900 mt-0.5">{selectedSlot.startTime} – {selectedSlot.endTime}</p>
@@ -1042,7 +791,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
             {launch.pickupLocation && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                <p className="text-xs uppercase tracking-widest text-gray-400">
                   {isFr ? 'Lieu' : 'Location'}
                 </p>
                 <p className="text-sm text-gray-900 mt-0.5">{locationName}</p>
@@ -1055,7 +804,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
           <div className="space-y-4">
             <h2
               className="text-xs uppercase tracking-widest text-gray-400 mb-4"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
+             
             >
               {isFr ? 'Articles' : 'Items'}
             </h2>
@@ -1073,15 +822,15 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                       {item.variantLabel && item.name.includes(' — ') ? item.name.split(' — ')[0] : item.name}
                     </p>
                     {item.variantLabel && (
-                      <p className="text-[11px] uppercase tracking-wider text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                      <p className="text-[11px] uppercase tracking-wider text-gray-400">
                         {item.variantLabel}
                       </p>
                     )}
-                    <p className="text-xs text-gray-500" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                    <p className="text-xs text-gray-500">
                       {item.quantity} × ${(item.price / 100).toFixed(2)}
                     </p>
                   </div>
-                  <p className="text-sm font-medium shrink-0" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                  <p className="text-sm font-medium shrink-0">
                     ${((item.price * item.quantity) / 100).toFixed(2)}
                   </p>
                 </div>
@@ -1090,7 +839,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
             <div className="border-t border-gray-200 pt-3 flex justify-between">
               <span className="text-sm text-gray-500">{isFr ? 'Sous-total' : 'Subtotal'}</span>
-              <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              <span className="text-sm font-medium">
                 ${(subtotal / 100).toFixed(2)}
               </span>
             </div>
@@ -1122,7 +871,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
               } catch {}
             }}
             className="inline-block px-10 py-3.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+           
           >
             {isFr ? 'Procéder au paiement' : 'Proceed to payment'}
           </a>
@@ -1147,7 +896,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
         <div className="text-center py-24">
           <p
             className="text-xs uppercase tracking-widest text-gray-400 mb-4"
-            style={{ fontFamily: 'var(--font-diatype-mono)' }}
+           
           >
             {isFr ? 'Aucun menu disponible' : 'No menus available'}
           </p>
@@ -1166,51 +915,39 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
   return (
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
-      <div className="flex gap-8">
-        {/* Left: Menu content (3/4) */}
-        <div className="flex-1 min-w-0">
           {/* Menu selector (if multiple) */}
           {launches.length > 1 && (
-            <div className="flex gap-2 mb-8 flex-wrap">
-              {launches.map((l, i) => (
-                <button
-                  key={l.id}
-                  onClick={() => handleMenuSwitch(i)}
-                  className={`px-4 py-2 text-xs uppercase tracking-widest rounded transition-colors ${
-                    i === activeLaunchIdx
-                      ? 'bg-[#333112] text-white'
-                      : 'border border-gray-300 text-gray-600 hover:border-[#333112]'
-                  }`}
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                >
-                  {isFr ? l.title?.fr : l.title?.en}
-                </button>
-              ))}
+            <div className="flex items-baseline mb-8" style={{ gap: '32px' }}>
+              {launches.map((l, i) => {
+                const isActive = i === activeLaunchIdx;
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => handleMenuSwitch(i)}
+                    className="text-[48px] leading-none transition-colors"
+                    style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
+                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                  >
+                    {isFr ? l.title?.fr : l.title?.en}
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {launch && (
             <>
-              {/* Menu header */}
-              <div className="mb-10">
-                <p
-                  className="text-xs uppercase tracking-widest text-gray-400 mb-2"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}
-                >
-                  {isFr ? 'Précommande' : 'Preorder'}
-                </p>
-                <h1
-                  className="text-2xl md:text-3xl uppercase tracking-widest mb-4"
-                  style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}
-                >
+              {/* Menu title (single launch) */}
+              {launches.length <= 1 && (
+                <h1 className="text-[48px] leading-none mb-8" style={{ color: '#1A3821' }}>
                   {isFr ? launch.title?.fr : launch.title?.en}
                 </h1>
-                <p className="text-sm text-gray-500 max-w-lg leading-relaxed mb-6">
-                  {isFr ? launch.introCopy?.fr : launch.introCopy?.en}
-                </p>
+              )}
 
-                {/* Menu details bar */}
-                <div className="flex flex-wrap gap-x-8 gap-y-2 text-xs text-gray-500 border-t border-b border-gray-200 py-3" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+              {/* Menu details bar */}
+              <div className="mb-10">
+                <div className="flex flex-wrap gap-x-8 gap-y-2 text-xs text-gray-500 py-3">
                   <div>
                     <span className="uppercase tracking-widest text-gray-400">{isFr ? 'Commander avant' : 'Order by'}</span>
                     <p className="text-gray-700 mt-0.5">{formatDatetime(launch.orderCloses, locale)}</p>
@@ -1243,7 +980,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-4 mb-8">
                   <p
                     className="text-xs uppercase tracking-widest text-amber-700 mb-1"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                   
                   >
                     {isFr ? 'Commandes bientôt disponibles' : 'Ordering opens soon'}
                   </p>
@@ -1257,32 +994,29 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
               {/* Category filter */}
               {categories.length > 1 && (
-                <div className="flex gap-2 mb-8 flex-wrap">
+                <div className="flex items-baseline mb-8" style={{ gap: '32px' }}>
                   <button
                     onClick={() => setCategoryFilter('all')}
-                    className={`px-3 py-1.5 text-xs uppercase tracking-widest rounded-full transition-colors ${
-                      categoryFilter === 'all'
-                        ? 'bg-[#333112] text-white'
-                        : 'border border-gray-300 text-gray-500 hover:border-[#333112]'
-                    }`}
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                    className="text-[48px] leading-none transition-colors"
+                    style={{ color: categoryFilter === 'all' ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                    onMouseEnter={(e) => { if (categoryFilter !== 'all') e.currentTarget.style.color = '#D49BCB'; }}
+                    onMouseLeave={(e) => { if (categoryFilter !== 'all') e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
                   >
-                    {isFr ? 'Tout' : 'All'} ({(launch.products || []).length})
+                    {isFr ? 'Tout' : 'All'}<sup className="text-[16px] ml-[2px]">{(launch.products || []).length}</sup>
                   </button>
                   {categories.map(([slug, label]) => {
                     const count = (launch.products || []).filter((p) => p.category === slug).length;
+                    const isActive = categoryFilter === slug;
                     return (
                       <button
                         key={slug}
                         onClick={() => setCategoryFilter(slug)}
-                        className={`px-3 py-1.5 text-xs uppercase tracking-widest rounded-full transition-colors ${
-                          categoryFilter === slug
-                            ? 'bg-[#333112] text-white'
-                            : 'border border-gray-300 text-gray-500 hover:border-[#333112]'
-                        }`}
-                        style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                        className="text-[48px] leading-none transition-colors"
+                        style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
+                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
                       >
-                        {label} ({count})
+                        {label}<sup className="text-[16px] ml-[2px]">{count}</sup>
                       </button>
                     );
                   })}
@@ -1297,12 +1031,12 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                     {(categoryFilter === 'all' && categories.length > 0) && (
                       <h2
                         className="text-xs uppercase tracking-widest text-gray-400 mb-5 pb-2 border-b border-gray-100"
-                        style={{ fontFamily: 'var(--font-diatype-mono)' }}
+                       
                       >
                         {group.label}
                       </h2>
                     )}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
                       {group.products.map((product) => (
                         <ProductCard
                           key={product.id}
@@ -1335,79 +1069,6 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
               </div>
             </>
           )}
-        </div>
-
-        {/* Right: Inline cart (1/4) — hidden on mobile */}
-        <div className="hidden lg:block w-80 shrink-0">
-          <InlineCart
-            items={cart}
-            onUpdateQty={updateCartQty}
-            onRemove={removeFromCart}
-            locale={locale}
-            getMax={getMaxForProduct}
-            pickupSlots={launch?.pickupSlots || []}
-            selectedSlotId={selectedSlotId}
-            onSelectSlot={setSelectedSlotId}
-            pickupDays={availablePickupDays}
-            selectedPickupDay={selectedPickupDay}
-            onSelectPickupDay={setSelectedPickupDay}
-            onCheckout={handleCheckout}
-            checkoutLoading={checkoutLoading}
-            checkoutError={checkoutError}
-            pickupDate={launch?.pickupDate || null}
-            pickupWindowStart={launch?.pickupWindowStart || null}
-            pickupWindowEnd={launch?.pickupWindowEnd || null}
-            orderCloses={launch?.orderCloses || null}
-          />
-        </div>
-      </div>
-
-      {/* Mobile cart modal */}
-      <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>
-        <InlineCart
-          items={cart}
-          onUpdateQty={updateCartQty}
-          onRemove={removeFromCart}
-          locale={locale}
-          getMax={getMaxForProduct}
-          pickupSlots={launch?.pickupSlots || []}
-          selectedSlotId={selectedSlotId}
-          onSelectSlot={setSelectedSlotId}
-          pickupDays={availablePickupDays}
-          selectedPickupDay={selectedPickupDay}
-          onSelectPickupDay={setSelectedPickupDay}
-          onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
-          checkoutLoading={checkoutLoading}
-          checkoutError={checkoutError}
-          pickupDate={launch?.pickupDate || null}
-          pickupWindowStart={launch?.pickupWindowStart || null}
-          pickupWindowEnd={launch?.pickupWindowEnd || null}
-          orderCloses={launch?.orderCloses || null}
-        />
-      </MobileCartModal>
-
-      {/* Mobile cart summary (fixed bottom bar) */}
-      {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm font-medium">
-                {cart.reduce((s, i) => s + i.quantity, 0)} {isFr ? 'articles' : 'items'}
-              </span>
-              <span className="text-sm text-gray-500 ml-2" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                ${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}
-              </span>
-            </div>
-            <button
-              onClick={() => setShowMobileCart(true)}
-              className="px-5 py-2.5 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}
-            >
-              {isFr ? 'Voir la commande' : 'View order'}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Menu switch confirmation modal */}
       <MenuSwitchModal
@@ -1421,6 +1082,82 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
         }
         locale={locale}
       />
+
+      {/* Order cart slide-in panel */}
+      <OrderCartPanel open={cartOpen} onClose={() => setCartOpen(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={cart.reduce((s, i) => s + i.quantity, 0)}>
+        {cart.length === 0 ? (
+          <p className="text-white/60 text-[16px] text-center py-12">{isFr ? 'Aucun article' : 'No items yet'}</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="divide-y divide-white/20">
+              {cart.map((item) => (
+                <div key={item.productId} className="flex items-center gap-3 py-3">
+                  {item.image && (
+                    <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-white/10">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[16px] text-white font-medium truncate">{item.name}</p>
+                    {item.variantLabel && <p className="text-[14px] text-white/60">{item.variantLabel}</p>}
+                    <p className="text-[14px] text-white/80">${(item.price / 100).toFixed(2)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => item.quantity <= 1 ? removeFromCart(item.productId) : updateCartQty(item.productId, item.quantity - 1)}
+                      className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">
+                      {item.quantity <= 1 ? '×' : '−'}
+                    </button>
+                    <span className="text-white text-[14px] w-6 text-center">{item.quantity}</span>
+                    <button onClick={() => updateCartQty(item.productId, item.quantity + 1)}
+                      className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pickup slot selectors */}
+            {launch && (availablePickupDays.length > 1 || (launch.pickupSlots || []).length > 0) && (
+              <div className="space-y-2 border-t border-white/20 pt-4">
+                <p className="text-[14px] text-white/60">{isFr ? 'Créneau de cueillette' : 'Pickup slot'}</p>
+                {availablePickupDays.length > 1 && (
+                  <select value={selectedPickupDay || ''} onChange={(e) => setSelectedPickupDay(e.target.value)}
+                    className="w-full appearance-none rounded-full border border-white/40 bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
+                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
+                    <option value="">{isFr ? 'Choisir un jour…' : 'Choose a day…'}</option>
+                    {availablePickupDays.map((day) => <option key={day} value={day}>{formatDate(day, locale)}</option>)}
+                  </select>
+                )}
+                {(launch.pickupSlots || []).length > 0 && (
+                  <select value={selectedSlotId || ''} onChange={(e) => setSelectedSlotId(e.target.value)}
+                    className="w-full appearance-none rounded-full border border-white/40 bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
+                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
+                    <option value="">{isFr ? 'Choisir un créneau…' : 'Choose a slot…'}</option>
+                    {launch.pickupSlots.map((s) => <option key={s.id} value={s.id}>{s.startTime} – {s.endTime}</option>)}
+                  </select>
+                )}
+              </div>
+            )}
+
+            {/* Total + checkout */}
+            <div className="border-t border-white/20 pt-4 space-y-3">
+              <div className="flex justify-between text-[18px] text-white font-medium">
+                <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
+                <span>${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}</span>
+              </div>
+              {checkoutError && <p className="text-[14px] text-red-300">{checkoutError}</p>}
+              <button
+                onClick={() => { setCartOpen(false); handleCheckout(); }}
+                disabled={checkoutLoading}
+                data-checkout
+                className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50"
+              >
+                {checkoutLoading ? (isFr ? 'Chargement…' : 'Loading…') : (isFr ? 'Passer à la caisse' : 'Checkout')}
+              </button>
+              <p className="text-[12px] text-white/50 text-center">{isFr ? 'Taxes calculées à la caisse' : 'Taxes calculated at checkout'}</p>
+            </div>
+          </div>
+        )}
+      </OrderCartPanel>
     </main>
   );
 }

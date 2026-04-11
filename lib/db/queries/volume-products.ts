@@ -96,6 +96,10 @@ export async function updateVolumeConfig(
     allergens?: string[] | null;
     dietaryTags?: string[] | null;
     temperatureTags?: string[] | null;
+    orderMinimum?: number | null;
+    orderScope?: string | null;
+    variantMinimum?: number | null;
+    increment?: number | null;
   },
 ) {
   const [updated] = await db

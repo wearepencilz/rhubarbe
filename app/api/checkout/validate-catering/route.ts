@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateCateringOrder, type CateringOrderingRules, DEFAULT_RULES } from '@/lib/catering/ordering-rules';
+import { validateVariantQuantity, validateOrderTotal, DEFAULTS_BY_TYPE, type OrderingRules } from '@/lib/catering/ordering-rules';
 import { getEarliestCateringDate, DEFAULT_LEAD_TIME_DAYS } from '@/lib/catering/lead-time';
 import * as settingsQueries from '@/lib/db/queries/settings';
+import { db } from '@/lib/db/client';
+import { products } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,15 +16,34 @@ export async function POST(request: NextRequest) {
     }
 
     const allSettings = await settingsQueries.getAll();
-    const rules = (allSettings.cateringOrderingRules as CateringOrderingRules) ?? DEFAULT_RULES;
+    const typeSettings = (allSettings.cateringTypeSettings ?? {}) as Record<string, Partial<OrderingRules>>;
     const leadTimeDays = (allSettings.cateringLeadTimeDays as number) ?? DEFAULT_LEAD_TIME_DAYS;
 
     const errors: string[] = [];
 
-    // Validate quantities
-    const orderResult = validateCateringOrder(items, rules);
-    if (!orderResult.valid) {
-      for (const e of orderResult.errors) errors.push(e.message);
+    for (const item of items) {
+      const [product] = await db
+        .select({ cateringType: products.cateringType })
+        .from(products)
+        .where(eq(products.id, item.productId));
+
+      const cateringType = product?.cateringType ?? '';
+      const saved = typeSettings[cateringType];
+      const defaults = DEFAULTS_BY_TYPE[cateringType];
+      const rules: OrderingRules = {
+        orderMinimum: saved?.orderMinimum ?? defaults?.orderMinimum ?? 1,
+        orderScope: saved?.orderScope ?? defaults?.orderScope ?? 'order',
+        variantMinimum: saved?.variantMinimum ?? defaults?.variantMinimum ?? 0,
+        increment: saved?.increment ?? defaults?.increment ?? 1,
+      };
+
+      if (rules.orderScope === 'variant') {
+        const result = validateVariantQuantity(item.quantity, rules);
+        if (!result.valid) errors.push(`${item.productName}: ${result.error}`);
+      } else {
+        const result = validateOrderTotal(item.quantity, rules);
+        if (!result.valid) errors.push(`${item.productName}: ${result.error}`);
+      }
     }
 
     // Validate lead time

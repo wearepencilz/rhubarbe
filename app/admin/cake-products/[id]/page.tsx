@@ -936,6 +936,20 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
     router.push('/admin/cake-products');
   }
 
+  async function handleDelete() {
+    try {
+      const res = await fetch(`/api/products/${params.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/admin/cake-products');
+      } else {
+        const err = await res.json();
+        setError(err.error || 'Failed to delete');
+      }
+    } catch {
+      setError('Failed to delete product');
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -969,6 +983,7 @@ export default function EditCakeProductPage({ params }: { params: { id: string }
       backHref="/admin/cake-products"
       backLabel="Back to Cake Products"
       onSave={handleSave}
+      onDelete={handleDelete}
       onCancel={handleCancel}
       saving={saving}
       error={error}

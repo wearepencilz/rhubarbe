@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { products, volumeLeadTimeTiers } from '@/lib/db/schema';
-import { eq, asc, sql, and } from 'drizzle-orm';
+import { products } from '@/lib/db/schema';
+import { eq, asc } from 'drizzle-orm';
 import { shopifyFetch } from '@/lib/shopify/client';
 import { isTaxOption } from '@/lib/tax/constants';
+import * as settingsQueries from '@/lib/db/queries/settings';
 
 /**
  * GET /api/storefront/volume-products
@@ -15,10 +16,15 @@ import { isTaxOption } from '@/lib/tax/constants';
  */
 export async function GET() {
   try {
+    const allSettings = await settingsQueries.getAll();
+    const cateringTypeSettings = allSettings.cateringTypeSettings ?? {};
+
     const volumeProducts = await db
       .select({
         id: products.id,
         name: products.name,
+        title: products.title,
+        translations: products.translations,
         slug: products.slug,
         image: products.image,
         price: products.price,
@@ -38,36 +44,16 @@ export async function GET() {
         cateringEndDate: products.cateringEndDate,
         dietaryTags: products.dietaryTags,
         temperatureTags: products.temperatureTags,
+        orderMinimum: products.orderMinimum,
+        orderScope: products.orderScope,
+        variantMinimum: products.variantMinimum,
+        increment: products.increment,
       })
       .from(products)
       .where(
-        and(
-          eq(products.volumeEnabled, true),
-          sql`(SELECT count(*) FROM volume_lead_time_tiers WHERE volume_lead_time_tiers.product_id = ${products.id}) > 0`,
-        ),
+        eq(products.volumeEnabled, true),
       )
       .orderBy(asc(products.name));
-
-    const productIds = volumeProducts.map((p) => p.id);
-
-    const allTiers = productIds.length > 0
-      ? await db
-          .select({
-            productId: volumeLeadTimeTiers.productId,
-            minQuantity: volumeLeadTimeTiers.minQuantity,
-            leadTimeDays: volumeLeadTimeTiers.leadTimeDays,
-          })
-          .from(volumeLeadTimeTiers)
-          .where(sql`${volumeLeadTimeTiers.productId} IN ${productIds}`)
-          .orderBy(asc(volumeLeadTimeTiers.minQuantity))
-      : [];
-
-    const tiersByProduct = new Map<string, Array<{ minQuantity: number; leadTimeDays: number }>>();
-    for (const tier of allTiers) {
-      const list = tiersByProduct.get(tier.productId) ?? [];
-      list.push({ minQuantity: tier.minQuantity, leadTimeDays: tier.leadTimeDays });
-      tiersByProduct.set(tier.productId, list);
-    }
 
     // Fetch Shopify variants — Shopify is the source of truth for catering variants
     const shopifyIds = volumeProducts
@@ -195,6 +181,8 @@ export async function GET() {
       return {
         id: p.id,
         name: p.name,
+        title: p.title ?? p.name,
+        translations: p.translations ?? null,
         slug: p.slug,
         image: p.image ?? null,
         price: resolvedPrice,
@@ -213,12 +201,15 @@ export async function GET() {
         cateringEndDate: p.cateringEndDate ?? null,
         dietaryTags: p.dietaryTags ?? [],
         temperatureTags: p.temperatureTags ?? [],
-        leadTimeTiers: tiersByProduct.get(p.id) ?? [],
+        orderMinimum: p.orderMinimum ?? null,
+        orderScope: p.orderScope ?? null,
+        variantMinimum: p.variantMinimum ?? null,
+        increment: p.increment ?? null,
         variants: productVariants,
       };
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ products: result, cateringTypeSettings });
   } catch (error) {
     console.error('Error fetching storefront volume products:', error);
     return NextResponse.json(

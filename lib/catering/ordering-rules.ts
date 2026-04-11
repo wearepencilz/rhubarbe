@@ -1,70 +1,57 @@
-export interface CateringOrderingRule {
-  minQuantity: number;
-  quantityStep: number;
-  label: { en: string; fr: string };
+export interface OrderingRules {
+  orderMinimum: number;
+  orderScope: 'variant' | 'order';
+  variantMinimum: number;
+  increment: number;
 }
-
-export type CateringOrderingRules = Record<string, CateringOrderingRule>;
 
 export interface QuantityValidation {
   valid: boolean;
   error?: string;
 }
 
-export interface OrderLineItem {
-  productId: string;
-  productName: string;
-  cateringType: string;
-  quantity: number;
-}
+/**
+ * Defaults per catering type.
+ */
+export const DEFAULTS_BY_TYPE: Record<string, OrderingRules> = {
+  brunch:     { orderMinimum: 12, orderScope: 'variant', variantMinimum: 12, increment: 6 },
+  lunch:      { orderMinimum: 6,  orderScope: 'order',   variantMinimum: 0,  increment: 1 },
+  dinatoire:  { orderMinimum: 3,  orderScope: 'order',   variantMinimum: 0,  increment: 1 },
+};
 
-export interface OrderValidation {
-  valid: boolean;
-  errors: Array<{
-    productId: string;
-    productName: string;
-    cateringType: string;
-    quantity: number;
-    rule: CateringOrderingRule;
-    message: string;
-  }>;
-}
-
-export function validateCateringQuantity(
-  quantity: number,
-  cateringType: string,
-  rules: CateringOrderingRules,
+/**
+ * scope = "variant": validate a single variant's quantity.
+ * qty must be 0 (not ordered) or >= variantMinimum and (qty - variantMinimum) % increment === 0.
+ */
+export function validateVariantQuantity(
+  qty: number,
+  rules: OrderingRules,
 ): QuantityValidation {
-  const rule = rules[cateringType];
-  if (!rule) return { valid: false, error: `No ordering rules configured for type "${cateringType}".` };
-  if (quantity < rule.minQuantity) return { valid: false, error: `Minimum quantity is ${rule.minQuantity} (got ${quantity}).` };
-  if ((quantity - rule.minQuantity) % rule.quantityStep !== 0) {
-    return { valid: false, error: `Quantity must be ${rule.minQuantity} then increments of ${rule.quantityStep} (got ${quantity}).` };
+  if (qty === 0) return { valid: true };
+  if (rules.orderScope !== 'variant') return { valid: true };
+  if (qty < rules.variantMinimum) {
+    return { valid: false, error: `Minimum ${rules.variantMinimum} per variant (got ${qty}).` };
+  }
+  if (rules.increment > 0 && (qty - rules.variantMinimum) % rules.increment !== 0) {
+    return { valid: false, error: `Must be ${rules.variantMinimum} then increments of ${rules.increment}.` };
   }
   return { valid: true };
 }
 
-export function validateCateringOrder(
-  items: OrderLineItem[],
-  rules: CateringOrderingRules,
-): OrderValidation {
-  const errors: OrderValidation['errors'] = [];
-  for (const item of items) {
-    const rule = rules[item.cateringType];
-    if (!rule) {
-      errors.push({ ...item, rule: { minQuantity: 0, quantityStep: 0, label: { en: '', fr: '' } }, message: `No ordering rules configured for type "${item.cateringType}".` });
-      continue;
-    }
-    const result = validateCateringQuantity(item.quantity, item.cateringType, rules);
-    if (!result.valid) {
-      errors.push({ ...item, rule, message: result.error! });
-    }
+/**
+ * scope = "order": validate the basket total.
+ * total must be >= orderMinimum and (total - orderMinimum) % increment === 0.
+ */
+export function validateOrderTotal(
+  total: number,
+  rules: OrderingRules,
+): QuantityValidation {
+  if (rules.orderScope !== 'order') return { valid: true };
+  if (total < rules.orderMinimum) {
+    return { valid: false, error: `Minimum order quantity is ${rules.orderMinimum} (got ${total}).` };
   }
-  return { valid: errors.length === 0, errors };
+  if (rules.increment > 0 && (total - rules.orderMinimum) % rules.increment !== 0) {
+    return { valid: false, error: `Must be ${rules.orderMinimum} then increments of ${rules.increment}.` };
+  }
+  return { valid: true };
 }
-
-export const DEFAULT_RULES: CateringOrderingRules = {
-  brunch: { minQuantity: 12, quantityStep: 6, label: { en: 'Brunch', fr: 'Brunch' } },
-  lunch: { minQuantity: 6, quantityStep: 1, label: { en: 'Lunch', fr: 'Lunch' } },
-  dinatoire: { minQuantity: 3, quantityStep: 1, label: { en: 'Dînatoire', fr: 'Dînatoire' } },
-};

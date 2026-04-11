@@ -1,8 +1,9 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/app/admin/components/ui/button';
+import ConfirmModal from '@/app/admin/components/ConfirmModal';
 
 interface EditPageLayoutProps {
   title: string;
@@ -38,6 +39,8 @@ export default function EditPageLayout({
   maxWidth = '3xl',
   isDirty = false,
 }: EditPageLayoutProps) {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
   const maxWidthClass = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -92,22 +95,7 @@ export default function EditPageLayout({
           {backLabel}
         </Link>
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-          {onDelete && (
-            <button
-              type="button"
-              onClick={() => {
-                if (!deleteDisabled && onDelete) onDelete();
-              }}
-              disabled={deleting || deleteDisabled}
-              title={deleteDisabled ? deleteDisabledReason : 'Delete'}
-              className="text-sm text-red-500 hover:text-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {deleting ? 'Deleting…' : 'Delete'}
-            </button>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
       </div>
 
       {/* Error */}
@@ -151,6 +139,43 @@ export default function EditPageLayout({
           Save Changes
         </Button>
       </div>
+
+      {/* Delete zone */}
+      {onDelete && (
+        <div className="mt-8 pt-6 border-t border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-red-600">Delete this item</p>
+              <p className="text-xs text-gray-500 mt-0.5">This action cannot be undone.</p>
+            </div>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => setDeleteConfirmOpen(true)}
+              isLoading={deleting}
+              isDisabled={deleting || deleteDisabled}
+              title={deleteDisabled ? deleteDisabledReason : undefined}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {onDelete && (
+        <ConfirmModal
+          isOpen={deleteConfirmOpen}
+          variant="danger"
+          title="Delete permanently?"
+          message="This will permanently delete this item. This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          onConfirm={() => { setDeleteConfirmOpen(false); onDelete(); }}
+          onCancel={() => setDeleteConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

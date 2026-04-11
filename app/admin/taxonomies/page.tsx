@@ -34,12 +34,15 @@ const TAXONOMY_CATEGORIES: TaxonomyCategory[] = [
   // Products
   { key: 'productCategories', label: 'Categories', description: 'Product categories for menu grouping (e.g. Gelato, Sorbet, Pastry)', group: 'Products' },
   { key: 'tastingNotes', label: 'Tasting Notes', description: 'Common tasting note descriptors', group: 'Products' },
+  // Catering
+  { key: 'cateringTemperature', label: 'Temperature', description: 'Serving temperature filters (e.g. Hot, Cold)', group: 'Catering' },
+  { key: 'cateringDietary', label: 'Dietary', description: 'Dietary filters for catering products (e.g. Vegetarian, Vegan, Meat, Fish)', group: 'Catering' },
   // Stories
   { key: 'storyCategories', label: 'Categories', description: 'Story sections — The Lab, Flavour Notes, Core Idea, etc.', group: 'Stories' },
   { key: 'storyTags', label: 'Tags', description: 'Ingredient, place, theme, and season tags for stories', group: 'Stories' },
 ];
 
-const GROUPS = ['Ingredients', 'Products', 'Stories'];
+const GROUPS = ['Ingredients', 'Products', 'Catering', 'Stories'];
 
 export default function TaxonomiesPage() {
   const searchParams = useSearchParams();

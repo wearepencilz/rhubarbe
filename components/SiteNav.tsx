@@ -1,62 +1,37 @@
 'use client';
 
 import Link from 'next/link';
-import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useState, useEffect } from 'react';
-
-interface NavLabels {
-  en: Record<string, string>;
-  fr: Record<string, string>;
-}
+import { useCart } from '@/contexts/CartContext';
 
 export default function SiteNav() {
-  const { T, locale } = useT();
   const { orderCount, volumeCount, cakeCount } = useOrderItems();
-  const [navLabels, setNavLabels] = useState<NavLabels | null>(null);
+  const { cart } = useCart();
+  const cartCount = cart?.lines.edges.reduce((sum, e) => sum + e.node.quantity, 0) ?? 0;
 
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.navLabels) setNavLabels(data.navLabels);
-      })
-      .catch(() => {});
-  }, []);
+  const menuStyle = {
+    fontFamily: 'var(--font-solar-display)',
+    color: '#1A3821',
+    fontSize: '16px',
+  } as const;
 
-  const label = (key: string, fallback: string) => {
-    const override = navLabels?.[locale as 'en' | 'fr']?.[key];
-    return override || fallback;
-  };
+  const items = [
+    { href: '/order', label: 'menu', count: orderCount },
+    { href: '/catering', label: 'catering', count: volumeCount },
+    { href: '/cake', label: 'cakes', count: cakeCount },
+    { href: '/stories', label: 'stories', count: 0 },
+  ];
 
   return (
-    <nav
-      className="flex items-center gap-6 text-[13px] tracking-[0.28px] uppercase leading-none"
-      style={{ fontFamily: 'var(--font-diatype-mono)', fontWeight: 500, color: '#333112' }}
-    >
-      <Link href="/order" className="hover:opacity-60 transition-opacity flex items-center gap-1">
-        {label('order', T.nav.order)}
-        {orderCount > 0 && (
-          <span className="text-[10px] opacity-50">({orderCount})</span>
-        )}
-      </Link>
-      <Link href="/catering" className="hover:opacity-60 transition-opacity flex items-center gap-1">
-        {label('volumeOrder', T.nav.volumeOrder)}
-        {volumeCount > 0 && (
-          <span className="text-[10px] opacity-50">({volumeCount})</span>
-        )}
-      </Link>
-      <Link href="/cake" className="hover:opacity-60 transition-opacity flex items-center gap-1">
-        {label('cakeOrder', T.nav.cakeOrder)}
-        {cakeCount > 0 && (
-          <span className="text-[10px] opacity-50">({cakeCount})</span>
-        )}
-      </Link>
-      <Link href="/about" className="hover:opacity-60 transition-opacity">
-        {label('about', T.nav.about)}
-      </Link>
-      <LanguageSwitcher />
+    <nav className="flex items-center gap-6 lowercase leading-none" style={menuStyle}>
+      {items.map((item) => (
+        <Link key={item.href} href={item.href} className="hover:opacity-60 transition-opacity relative">
+          {item.label}
+          {item.count > 0 && (
+            <sup className="text-[10px] opacity-50 ml-[1px]">({item.count})</sup>
+          )}
+        </Link>
+      ))}
     </nav>
   );
 }

@@ -14,12 +14,12 @@ interface VolumeProduct {
   id: string;
   name: string;
   image: string | null;
-  volumeMinOrderQuantity: number | null;
   volumeEnabled: boolean;
   status: string | null;
-  tierCount: number;
   cateringType: string | null;
   cateringEndDate: string | null;
+  dietaryTags: string[] | null;
+  temperatureTags: string[] | null;
 }
 
 const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning' | 'error'> = {
@@ -117,8 +117,8 @@ export default function VolumeProductsPage() {
         <Table aria-label={`${label} Catering Products`}>
           <Table.Header>
             <Table.Head isRowHeader label="Product" />
-            <Table.Head label="Min Qty" />
-            <Table.Head label="Tiers" />
+            <Table.Head label="Dietary" />
+            <Table.Head label="Temperature" />
             <Table.Head label="Status" />
             <Table.Head label="" />
           </Table.Header>
@@ -141,10 +141,21 @@ export default function VolumeProductsPage() {
                     </div>
                   </div>
                 </Table.Cell>
-                <Table.Cell><span className="text-sm text-primary">{product.volumeMinOrderQuantity ?? '—'}</span></Table.Cell>
                 <Table.Cell>
-                  <span className="text-sm text-primary">{Number(product.tierCount) || 0}</span>
-                  {Number(product.tierCount) === 0 && <span className="ml-2 text-xs text-warning-600">No tiers</span>}
+                  <div className="flex flex-wrap gap-1">
+                    {(product.dietaryTags ?? []).map((t) => (
+                      <span key={t} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700">{t}</span>
+                    ))}
+                    {!(product.dietaryTags ?? []).length && <span className="text-xs text-gray-300">—</span>}
+                  </div>
+                </Table.Cell>
+                <Table.Cell>
+                  <div className="flex flex-wrap gap-1">
+                    {(product.temperatureTags ?? []).map((t) => (
+                      <span key={t} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700">{t}</span>
+                    ))}
+                    {!(product.temperatureTags ?? []).length && <span className="text-xs text-gray-300">—</span>}
+                  </div>
                 </Table.Cell>
                 <Table.Cell><Badge color={STATUS_COLOR[product.status ?? ''] ?? 'gray'}>{product.status ?? 'unknown'}</Badge></Table.Cell>
                 <Table.Cell>

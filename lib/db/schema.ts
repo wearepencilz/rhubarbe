@@ -98,6 +98,12 @@ export const products = pgTable('products', {
   dietaryTags: customJsonb<string[]>('dietary_tags'),
   temperatureTags: customJsonb<string[]>('temperature_tags'),
 
+  // Catering ordering rules (per-product)
+  orderMinimum: integer('order_minimum'),        // minimum total qty (scope=order) or ignored (scope=variant)
+  orderScope: text('order_scope'),               // 'variant' | 'order'
+  variantMinimum: integer('variant_minimum'),     // minimum per variant (scope=variant only)
+  increment: integer('increment'),               // step size after minimum
+
   // Cake sales fields
   cakeEnabled: boolean('cake_enabled').notNull().default(false),
   cakeDescription: customJsonb<{ en: string; fr: string }>('cake_description'),

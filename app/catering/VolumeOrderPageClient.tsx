@@ -8,8 +8,8 @@ import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import dynamic from 'next/dynamic';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
-import MobileCartModal from '@/components/ui/MobileCartModal';
 import { CateringCardSkeleton } from '@/components/ui/OrderPageSkeleton';
+import OrderCartPanel from '@/components/OrderCartPanel';
 
 const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
@@ -26,24 +26,32 @@ interface VolumeVariant {
 
 interface LeadTimeTier { minQuantity: number; leadTimeDays: number; }
 
+interface CateringTypeConfig {
+  orderScope: 'variant' | 'order';
+  orderMinimum: number;
+  variantMinimum: number;
+  increment: number;
+  unitLabel: 'quantity' | 'people';
+  maxAdvanceDays: number | null;
+  leadTimeTiers: LeadTimeTier[];
+}
+
 interface VolumeProduct {
   id: string;
   name: string;
+  title: string | null;
+  translations: Record<string, Record<string, string>> | null;
   slug: string;
   image: string | null;
   price: number | null;
   shopifyProductId: string | null;
   volumeDescription: TranslationObject;
   volumeInstructions: TranslationObject;
-  volumeMinOrderQuantity: number;
   shortCardCopy: string | null;
   allergens: string[];
-  leadTimeTiers: LeadTimeTier[];
   variants: VolumeVariant[];
   pickupOnly: boolean;
   servesPerUnit: number | null;
-  volumeUnitLabel: 'quantity' | 'people';
-  maxAdvanceDays: number | null;
   cateringType: string | null;
   cateringDescription: TranslationObject | null;
   cateringEndDate: string | null;
@@ -105,7 +113,7 @@ interface CartGroup {
 }
 
 function VolumeProductCard({
-  product, locale, cart, onQuantityChange, brandColor, V,
+  product, locale, cart, onQuantityChange, brandColor, V, typeConfig, typeTotalQty,
 }: {
   product: VolumeProduct;
   locale: string;
@@ -113,157 +121,140 @@ function VolumeProductCard({
   onQuantityChange: (variantId: string, quantity: number) => void;
   brandColor: string;
   V: Record<string, string>;
+  typeConfig: CateringTypeConfig;
+  typeTotalQty: number;
 }) {
   const isFr = locale === 'fr';
-  const description = tr(product.cateringDescription, locale) || tr(product.volumeDescription, locale);
+  const displayName = (isFr ? product.translations?.fr?.title : null) || product.title || product.name;
   const totalQty = getTotalQuantity(product, cart);
-  const minQty = product.leadTimeTiers.length > 0
-    ? product.leadTimeTiers[0].minQuantity
-    : product.volumeMinOrderQuantity;
-  const belowMin = totalQty > 0 && totalQty < minQty;
-  const currentLeadDays = getLeadTimeDays(product.leadTimeTiers, totalQty);
+  const increment = typeConfig.increment || 1;
+
+  const isVariantScope = typeConfig.orderScope === 'variant';
+  const minForScope = isVariantScope ? typeConfig.variantMinimum : 0;
+  function smartIncrement(current: number): number {
+    if (isVariantScope && current === 0) return typeConfig.variantMinimum || increment;
+    return current + increment;
+  }
+  function smartDecrement(current: number): number {
+    const next = current - increment;
+    if (isVariantScope && next < typeConfig.variantMinimum) return 0;
+    return next < 0 ? 0 : next;
+  }
+
+  const belowMin = isVariantScope
+    ? product.variants.some((v) => { const q = cart.get(v.id) ?? 0; return q > 0 && q < typeConfig.variantMinimum; })
+    : typeTotalQty > 0 && typeTotalQty < typeConfig.orderMinimum;
+  const incrementViolation = isVariantScope
+    ? product.variants.some((v) => { const q = cart.get(v.id) ?? 0; return q > 0 && (q - typeConfig.variantMinimum) % increment !== 0; })
+    : typeTotalQty > 0 && (typeTotalQty - typeConfig.orderMinimum) % increment !== 0;
 
   const [focusedVariantId, setFocusedVariantId] = useState<string | null>(null);
-
-  // Show the focused variant's image, or fall back to product image
   const focusedVariant = product.variants.find((v) => v.id === focusedVariantId);
-  const displayImage = (focusedVariant?.image) || product.image;
+  const displayImage = focusedVariant?.image || product.image;
 
   const handleVariantQtyChange = (variantId: string, qty: number) => {
     setFocusedVariantId(variantId);
     onQuantityChange(variantId, qty);
   };
 
-  const metaPills: string[] = [];
-  if (product.servesPerUnit) {
-    metaPills.push(isFr ? `${product.servesPerUnit} portions/u` : `serves ${product.servesPerUnit}`);
-  }
-  const unitLabel = product.volumeUnitLabel === 'people'
-    ? (isFr ? 'pers.' : 'people')
-    : '';
-  if (minQty > 1) metaPills.push(`min ${minQty}${unitLabel ? ` ${unitLabel}` : ''}`);
-  if (product.pickupOnly) metaPills.push(isFr ? 'cueillette seul.' : 'pickup only');
+  const hasItems = totalQty > 0;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3 md:flex md:gap-4">
-      <div className="flex gap-3 md:w-1/3 md:shrink-0">
+    <div className="group flex flex-col">
+      {/* Image — 4:5 vertical */}
+      <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
         {displayImage ? (
-          <div className="shrink-0 rounded overflow-hidden bg-gray-100 w-[112px] h-[140px] md:w-[96px] md:h-[120px] relative">
-            <img src={displayImage} alt={product.name} className="absolute inset-0 w-full h-full object-cover object-center" />
-          </div>
+          <img src={displayImage} alt={displayName}
+            className="w-full h-full object-cover" />
         ) : (
-          <div className="shrink-0 rounded w-[112px] h-[140px] md:w-[96px] md:h-[120px]" style={{ backgroundColor: brandColor }} />
+          <div className="w-full h-full" style={{ backgroundColor: brandColor }} />
         )}
-        <div className="flex-1 min-w-0">
-          <h3 className="text-xs uppercase tracking-widest leading-tight"
-            style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>
-            {product.name}
-          </h3>
-          {description && (
-            <p className="text-xs text-gray-500 leading-relaxed mt-0.5 line-clamp-2">{description}</p>
-          )}
-          {metaPills.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1">
-              {metaPills.map((pill, i) => (
-                <span key={i} className="text-[10px] text-gray-400 tracking-wide"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>{i > 0 && '• '}{pill}</span>
-              ))}
+        {/* Allergen badges */}
+        {(product.allergens ?? []).length > 0 && (
+          <div className="absolute top-[16px] left-[16px] flex flex-wrap gap-1">
+            {(product.allergens ?? []).map((a) => (
+              <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>
+            ))}
+          </div>
+        )}
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-[#D49BCB] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-[16px] gap-2">
+          {!hasItems && product.variants.length === 0 ? (
+            <button type="button"
+              onClick={() => onQuantityChange(product.id, smartIncrement(0))}
+              className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium transition-colors hover:bg-white/20">
+              {isFr ? '+ Ajouter' : '+ Add'}
+            </button>
+          ) : !hasItems && product.variants.length > 0 ? (
+            <button type="button"
+              onClick={() => handleVariantQtyChange(product.variants[0].id, smartIncrement(0))}
+              className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium transition-colors hover:bg-white/20">
+              {isFr ? '+ Ajouter' : '+ Add'}
+            </button>
+          ) : (
+            <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium text-center flex items-center justify-center">
+              {totalQty} {isFr ? 'ajouté' : 'added'}
             </div>
-          )}
-          {product.allergens && product.allergens.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {product.allergens.map((a) => (
-                <span key={a}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200/60"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>{a}</span>
-              ))}
-            </div>
-          )}
-          {product.leadTimeTiers.length > 0 && (
-            <div className="mt-1">
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                {product.leadTimeTiers.slice().sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => (
-                  <span key={i}
-                    className={`text-[10px] tracking-wide ${totalQty >= tier.minQuantity ? 'text-gray-600 font-medium' : 'text-gray-300'}`}
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                    {tier.minQuantity}+ {'\u2192'} {tier.leadTimeDays}{isFr ? 'j' : 'd'}
-                  </span>
-                ))}
-              </div>
-              {totalQty >= minQty && totalQty > 0 && (
-                <p className="text-[10px] text-gray-500 mt-0.5" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                  {isFr
-                    ? `Votre d\u00e9lai actuel : ${currentLeadDays} jour${currentLeadDays > 1 ? 's' : ''}`
-                    : `Your current lead time: ${currentLeadDays} day${currentLeadDays > 1 ? 's' : ''}`}
-                </p>
-              )}
-            </div>
-          )}
-          {belowMin && (
-            <p className="text-[11px] text-red-500 mt-1" role="alert">
-              {product.volumeUnitLabel === 'people'
-                ? (isFr ? `Minimum: ${minQty} pers. (actuel : ${totalQty})` : `Minimum: ${minQty} people (current: ${totalQty})`)
-                : (isFr ? `Minimum: ${minQty} (actuel : ${totalQty})` : `Minimum: ${minQty} (current: ${totalQty})`)}
-            </p>
           )}
         </div>
       </div>
-      <div className="mt-3 md:mt-0 md:flex-1 md:min-w-0 flex flex-col gap-1.5 md:justify-center">
-        {product.variants.length > 0 ? (
-          product.variants.map((v) => {
-            const variantPrice = v.price ?? product.price;
-            const qty = cart.get(v.id) ?? 0;
-            return (
-              <div key={v.id} className="flex items-center gap-2">
-                <label htmlFor={`qty-${v.id}`} className="text-xs text-gray-600 min-w-0 flex-1"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>{tr(v.label, locale)}</label>
-                {variantPrice != null && variantPrice > 0 && (
-                  <span className="text-xs text-gray-400 shrink-0 tabular-nums"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(variantPrice / 100).toFixed(2)}</span>
-                )}
-                <div className="flex items-center">
-                  <button type="button"
-                    onClick={() => handleVariantQtyChange(v.id, Math.max(0, qty - 1))}
-                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-sm leading-none"
-                    aria-label={`Decrease ${tr(v.label, locale)} ${product.volumeUnitLabel === 'people' ? 'people' : 'quantity'}`}>&minus;</button>
-                  <input id={`qty-${v.id}`} type="number" min={0} inputMode="numeric"
-                    value={qty || ''} placeholder="0"
-                    onChange={(e) => handleVariantQtyChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                    className="w-10 h-7 text-xs text-center border-y border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    aria-label={`${tr(v.label, locale)} ${product.volumeUnitLabel === 'people' ? 'people' : 'quantity'}`} />
-                  <button type="button"
-                    onClick={() => handleVariantQtyChange(v.id, qty + 1)}
-                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-sm leading-none"
-                    aria-label={`Increase ${tr(v.label, locale)} ${product.volumeUnitLabel === 'people' ? 'people' : 'quantity'}`}>+</button>
-                </div>
-              </div>
-            );
-          })
+
+      <div className="flex flex-col pt-2.5 gap-0.5">
+        <h3 className="text-[16px] leading-tight" style={{ fontWeight: 500 }}>
+          {displayName}
+        </h3>
+        {product.price != null && product.price > 0 && (
+          <span className="text-[16px] text-gray-500">
+            ${(product.price / 100).toFixed(2)}
+          </span>
+        )}
+      </div>
+
+      {/* Mobile-only quantity controls */}
+      <div className="md:hidden mt-2">
+        {!hasItems && product.variants.length === 0 ? (
+          <button type="button"
+            onClick={() => onQuantityChange(product.id, smartIncrement(0))}
+            className="w-full h-8 border border-gray-300 text-[16px] font-medium hover:bg-gray-50 transition-colors">
+            {isFr ? '+ Ajouter' : '+ Add'}
+          </button>
+        ) : !hasItems && product.variants.length > 0 ? (
+          <button type="button"
+            onClick={() => handleVariantQtyChange(product.variants[0].id, smartIncrement(0))}
+            className="w-full h-8 border border-gray-300 text-[16px] font-medium hover:bg-gray-50 transition-colors">
+            {isFr ? '+ Ajouter' : '+ Add'}
+          </button>
         ) : (
-          <div className="flex items-center gap-2">
-            <label htmlFor={`qty-${product.id}`} className="text-xs text-gray-600 flex-1"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>{product.volumeUnitLabel === 'people' ? (isFr ? 'Personnes' : 'People') : V.quantity}</label>
-            {product.price != null && product.price > 0 && (
-              <span className="text-xs text-gray-400 shrink-0 tabular-nums"
-                style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(product.price / 100).toFixed(2)}</span>
+          <div className="space-y-1.5">
+            {product.variants.length > 0 ? (
+              product.variants.map((v) => {
+                const qty = cart.get(v.id) ?? 0;
+                return (
+                  <div key={v.id} className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-gray-600 min-w-0 flex-1 truncate">{tr(v.label, locale)}</span>
+                    <div className="flex items-center shrink-0">
+                      <button type="button" onClick={() => handleVariantQtyChange(v.id, smartDecrement(qty))}
+                        className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-xs leading-none">&minus;</button>
+                      <input type="number" min={0} inputMode="numeric" value={qty || ''} placeholder="0"
+                        onChange={(e) => handleVariantQtyChange(v.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                        className="w-8 h-6 text-[10px] text-center border-y border-gray-300 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                      <button type="button" onClick={() => handleVariantQtyChange(v.id, smartIncrement(qty))}
+                        className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-xs leading-none">+</button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              (() => { const qty = cart.get(product.id) ?? 0; return (
+                <div className="flex items-center justify-between border border-gray-300 overflow-hidden h-8">
+                  <button type="button" onClick={() => onQuantityChange(product.id, smartDecrement(qty))}
+                    className="px-3 h-full hover:bg-gray-50 text-sm leading-none">&minus;</button>
+                  <span className="text-[16px] font-medium">{qty}</span>
+                  <button type="button" onClick={() => onQuantityChange(product.id, smartIncrement(qty))}
+                    className="px-3 h-full hover:bg-gray-50 text-sm leading-none">+</button>
+                </div>
+              ); })()
             )}
-            {(() => { const qty = cart.get(product.id) ?? 0; return (
-              <div className="flex items-center">
-                <button type="button"
-                  onClick={() => onQuantityChange(product.id, Math.max(0, qty - 1))}
-                  className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-l text-gray-500 hover:bg-gray-50 text-sm leading-none"
-                  aria-label={`Decrease ${product.name} quantity`}>&minus;</button>
-                <input id={`qty-${product.id}`} type="number" min={0} inputMode="numeric"
-                  value={qty || ''} placeholder="0"
-                  onChange={(e) => onQuantityChange(product.id, Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                  className="w-10 h-7 text-xs text-center border-y border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  aria-label={`${product.name} quantity`} />
-                <button type="button"
-                  onClick={() => onQuantityChange(product.id, qty + 1)}
-                  className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded-r text-gray-500 hover:bg-gray-50 text-sm leading-none"
-                  aria-label={`Increase ${product.name} quantity`}>+</button>
-              </div>
-            ); })()}
           </div>
         )}
       </div>
@@ -297,19 +288,15 @@ function VolumeInlineCart({
   const maxDateValue = latestDateStr ? toDateValue(latestDateStr) : undefined;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg sticky top-20">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="text-xs uppercase tracking-widest text-gray-400"
-          style={{ fontFamily: 'var(--font-diatype-mono)' }}>{V.yourOrder}</h2>
-      </div>
-      {/* Earliest date summary — mirrors regular order pickup info */}
+    <div>
+      {/* Earliest date summary */}
       {maxLeadTimeDays > 0 && (
-        <div className="px-5 py-3 border-b border-gray-100 space-y-1">
+        <div className="py-3 border-b border-white/20 space-y-1">
           <p className="text-xs text-gray-600 font-medium">
             {V.earliest}{' '}
             <span>{formatDateHuman(earliestDateStr, locale)}</span>
             {' '}
-            <span className="text-gray-400" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+            <span className="text-gray-400">
               ({maxLeadTimeDays}{isFr ? 'j délai' : 'd lead'})
             </span>
           </p>
@@ -337,7 +324,7 @@ function VolumeInlineCart({
                   <p className="text-sm font-medium text-gray-900">{group.productName}</p>
                   {group.totalPrice > 0 && (
                     <span className="text-sm text-gray-900 font-medium shrink-0"
-                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>${(group.totalPrice / 100).toFixed(2)}</span>
+                     >${(group.totalPrice / 100).toFixed(2)}</span>
                   )}
                 </div>
                 {group.variants.length > 1 ? (
@@ -345,9 +332,9 @@ function VolumeInlineCart({
                     {group.variants.map((v) => (
                       <div key={v.variantId} className="flex items-start justify-between gap-2">
                         <span className="text-[11px] text-gray-400 break-words min-w-0"
-                          style={{ fontFamily: 'var(--font-diatype-mono)' }}>{v.variantLabel}</span>
+                         >{v.variantLabel}</span>
                         <span className="text-[11px] text-gray-500 whitespace-nowrap shrink-0"
-                          style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                         >
                           {v.quantity} {group.volumeUnitLabel === 'people' ? (isFr ? 'pers.' : 'ppl') : '\u00d7'} ${(v.price / 100).toFixed(2)}
                         </span>
                       </div>
@@ -356,19 +343,19 @@ function VolumeInlineCart({
                 ) : (
                   <div className="flex items-start justify-between gap-2 mt-0.5">
                     <span className="text-xs text-gray-400 min-w-0"
-                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                     >
                       {group.variants[0]?.variantLabel || group.productName}
                       {group.variants[0]?.price > 0 && ` @ $${(group.variants[0].price / 100).toFixed(2)}`}
                     </span>
                     <span className="text-xs text-gray-500 whitespace-nowrap shrink-0"
-                      style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                     >
                       {group.volumeUnitLabel === 'people' ? `${group.totalQty} ${isFr ? 'pers.' : 'ppl'}` : `\u00d7${group.totalQty}`}
                     </span>
                   </div>
                 )}
                 <button type="button" onClick={() => onRemoveProduct(group.productId)}
                   className="text-[11px] text-gray-400 underline hover:text-red-500 mt-1"
-                  style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                 >
                   {isFr ? 'retirer' : 'remove'}
                 </button>
               </div>
@@ -381,12 +368,12 @@ function VolumeInlineCart({
               return (
                 <div className="rounded-md bg-amber-50 ring-1 ring-amber-200/60 px-3 py-2.5">
                   <p className="text-[10px] uppercase tracking-widest text-amber-600 mb-1.5"
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{isFr ? 'Contient' : 'Contains'}</p>
+                   >{isFr ? 'Contient' : 'Contains'}</p>
                   <div className="flex flex-wrap gap-1">
                     {allAllergens.map((a) => (
                       <span key={a}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-white text-amber-700 ring-1 ring-amber-200/60"
-                        style={{ fontFamily: 'var(--font-diatype-mono)' }}>{a}</span>
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium text-amber-700 ring-1 ring-amber-200/60"
+                       >{a}</span>
                     ))}
                   </div>
                 </div>
@@ -395,13 +382,13 @@ function VolumeInlineCart({
             <div className="space-y-1">
               <div className="flex justify-between text-sm font-semibold">
                 <span>{V.estTotal}</span>
-                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                <span>
                   {subtotal > 0 ? `${(subtotal / 100).toFixed(2)}` : '\u2014'}
                 </span>
               </div>
               <div className="flex justify-between text-xs text-gray-400">
                 <span>{V.items}</span>
-                <span style={{ fontFamily: 'var(--font-diatype-mono)' }}>{totalQuantity}</span>
+                <span>{totalQuantity}</span>
               </div>
               {servesEstimate > 0 && (
                 <p className="text-xs text-gray-500">
@@ -423,7 +410,7 @@ function VolumeInlineCart({
                         : type === 'delivery' && deliveryDisabled ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                         : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+                   >
                     {type === 'pickup' ? V.pickup : V.delivery}
                   </button>
                 ))}
@@ -456,8 +443,9 @@ function VolumeInlineCart({
             {checkoutError && <p className="text-xs text-red-600">{checkoutError}</p>}
             <button onClick={onCheckout}
               disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation}
+              data-checkout
               className="w-full py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded hover:bg-[#333112]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
+             >
               {checkoutLoading ? V.loading : V.checkout}
             </button>
           </div>
@@ -482,13 +470,31 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = usePersistedState<Map<string, number>>('rhubarbe:volume:cart', new Map(), mapSerializer);
+  const [typeSettings, setTypeSettings] = useState<Record<string, CateringTypeConfig>>({});
 
-  // Filters
+  const DEFAULT_TYPE_CONFIG: CateringTypeConfig = { orderScope: 'order', orderMinimum: 1, variantMinimum: 0, increment: 1, unitLabel: 'quantity', maxAdvanceDays: null, leadTimeTiers: [] };
+  const getTypeConfig = useCallback((product: VolumeProduct): CateringTypeConfig => {
+    return typeSettings[product.cateringType ?? ''] ?? DEFAULT_TYPE_CONFIG;
+  }, [typeSettings]);
+
+  // Filters — from taxonomy API
   const [dietaryFilter, setDietaryFilter] = useState<string[]>([]);
   const [temperatureFilter, setTemperatureFilter] = useState<string>('');
+  const [availableDietaryTags, setAvailableDietaryTags] = useState<string[]>([]);
+  const [availableTemperatureTags, setAvailableTemperatureTags] = useState<string[]>([]);
 
-  const DIETARY_FILTER_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
-  const TEMP_FILTER_OPTIONS = ['hot', 'cold'];
+  useEffect(() => {
+    fetch('/api/settings/taxonomies/cateringDietary')
+      .then((r) => r.ok ? r.json() : { values: [] })
+      .then((data: { values?: Array<{ value: string; archived?: boolean }> }) => {
+        setAvailableDietaryTags((data.values ?? []).filter((d) => !d.archived).map((d) => d.value));
+      }).catch(() => {});
+    fetch('/api/settings/taxonomies/cateringTemperature')
+      .then((r) => r.ok ? r.json() : { values: [] })
+      .then((data: { values?: Array<{ value: string; archived?: boolean }> }) => {
+        setAvailableTemperatureTags((data.values ?? []).filter((d) => !d.archived).map((d) => d.value));
+      }).catch(() => {});
+  }, []);
 
   const TYPE_LABELS: Record<string, Record<string, string>> = {
     brunch: { en: 'Brunch', fr: 'Brunch' },
@@ -497,9 +503,18 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   };
   const TYPE_ORDER = ['brunch', 'lunch', 'dinatoire'];
 
-  // Filter and exclude expired products
+  // Filter — dietary/temperature only applies to dinatoire
   const filteredProducts = useMemo(() => {
-    let result = products.filter((p) => !p.cateringEndDate || new Date(p.cateringEndDate) > new Date());
+    return products.filter((p) => !p.cateringEndDate || new Date(p.cateringEndDate) > new Date());
+  }, [products]);
+
+  // Only show filter tags that exist on at least one dinatoire product
+  const dinatoireProducts = useMemo(() => filteredProducts.filter((p) => p.cateringType === 'dinatoire'), [filteredProducts]);
+  const visibleDietaryTags = useMemo(() => availableDietaryTags.filter((tag) => dinatoireProducts.some((p) => p.dietaryTags?.includes(tag))), [availableDietaryTags, dinatoireProducts]);
+  const visibleTemperatureTags = useMemo(() => availableTemperatureTags.filter((tag) => dinatoireProducts.some((p) => p.temperatureTags?.includes(tag))), [availableTemperatureTags, dinatoireProducts]);
+
+  const filteredDinatoireProducts = useMemo(() => {
+    let result = dinatoireProducts;
     if (dietaryFilter.length > 0) {
       result = result.filter((p) => dietaryFilter.every((tag) => p.dietaryTags?.includes(tag)));
     }
@@ -507,7 +522,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       result = result.filter((p) => p.temperatureTags?.includes(temperatureFilter));
     }
     return result;
-  }, [products, dietaryFilter, temperatureFilter]);
+  }, [dinatoireProducts, dietaryFilter, temperatureFilter]);
 
   // Group by catering type
   const groupedProducts = useMemo(() => {
@@ -516,10 +531,12 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
     groups['other'] = [];
     for (const p of filteredProducts) {
       const key = p.cateringType && TYPE_ORDER.includes(p.cateringType) ? p.cateringType : 'other';
+      if (key === 'dinatoire') continue; // handled separately
       groups[key].push(p);
     }
+    groups['dinatoire'] = filteredDinatoireProducts;
     return groups;
-  }, [filteredProducts]);
+  }, [filteredProducts, filteredDinatoireProducts]);
 
   const hasGroups = useMemo(() => TYPE_ORDER.some((t) => groupedProducts[t].length > 0), [groupedProducts]);
 
@@ -538,38 +555,45 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
   const [showMobileCart, setShowMobileCart] = useState(false);
-  const [cateringLeadTimeDays, setCateringLeadTimeDays] = useState(28);
-  const [cateringOrderingRules, setCateringOrderingRules] = useState<Record<string, { minQuantity: number; quantityStep: number }>>({});
+
+  // Listen for blue sidebar tab click
+  useEffect(() => {
+    const handler = () => setShowMobileCart(true);
+    window.addEventListener('open-order-cart', handler);
+    return () => window.removeEventListener('open-order-cart', handler);
+  }, []);
 
   useEffect(() => {
     fetch('/api/settings').then((r) => r.json())
       .then((data) => {
         if (data.brandColor) setBrandColor(data.brandColor);
-        if (data.cateringLeadTimeDays != null) setCateringLeadTimeDays(data.cateringLeadTimeDays);
-        if (data.cateringOrderingRules) setCateringOrderingRules(data.cateringOrderingRules);
       }).catch(() => {});
   }, []);
 
   const { maxLeadTimeDays, earliestDateStr } = useMemo(() => {
-    let maxDays = cateringLeadTimeDays; // Global lead time as floor
+    let maxDays = 0;
     for (const product of products) {
       const totalQty = getTotalQuantity(product, cart);
       if (totalQty > 0) {
-        const days = getLeadTimeDays(product.leadTimeTiers, totalQty);
+        const config = getTypeConfig(product);
+        const days = getLeadTimeDays(config.leadTimeTiers || [], totalQty);
         if (days > maxDays) maxDays = days;
       }
     }
     return { maxLeadTimeDays: maxDays, earliestDateStr: toDateString(getEarliestDate(maxDays)) };
-  }, [products, cart, cateringLeadTimeDays]);
+  }, [products, cart, getTypeConfig]);
 
-  // Max advance date — use the smallest maxAdvanceDays across products in cart
+  // Max advance date — use the smallest maxAdvanceDays across types in cart
   const latestDateStr = useMemo(() => {
     let minAdvance: number | null = null;
     for (const product of products) {
       const totalQty = getTotalQuantity(product, cart);
-      if (totalQty > 0 && product.maxAdvanceDays) {
-        if (minAdvance === null || product.maxAdvanceDays < minAdvance) {
-          minAdvance = product.maxAdvanceDays;
+      if (totalQty > 0) {
+        const config = getTypeConfig(product);
+        if (config.maxAdvanceDays) {
+          if (minAdvance === null || config.maxAdvanceDays < minAdvance) {
+            minAdvance = config.maxAdvanceDays;
+          }
         }
       }
     }
@@ -578,7 +602,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + minAdvance);
     return toDateString(d);
-  }, [products, cart]);
+  }, [products, cart, getTypeConfig]);
 
   useEffect(() => {
     if (!fulfillmentDate) { setDateWarning(null); return; }
@@ -622,7 +646,9 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
         if (qty > 0) variants.push({ variantId: product.id, variantLabel: '', quantity: qty, shopifyVariantId: '', price: product.price ?? 0 });
       }
       if (variants.length > 0) {
-        groups.push({ productId: product.id, productName: product.name, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: product.volumeUnitLabel ?? 'quantity', variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
+        const config = getTypeConfig(product);
+        const translatedName = (locale === 'fr' ? product.translations?.fr?.title : null) || product.title || product.name;
+        groups.push({ productId: product.id, productName: translatedName, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: config.unitLabel ?? 'quantity', variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
       }
     }
     return groups;
@@ -644,18 +670,24 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
     return products.some((p) => {
       const qty = getTotalQuantity(p, cart);
       if (qty === 0) return false;
-      // Check per-product lead time tier min
-      const tierMin = p.leadTimeTiers.length > 0 ? p.leadTimeTiers[0].minQuantity : 1;
-      if (qty < tierMin) return true;
-      // Check per-type ordering rules
-      if (p.cateringType && cateringOrderingRules[p.cateringType]) {
-        const rule = cateringOrderingRules[p.cateringType];
-        if (qty < rule.minQuantity) return true;
-        if ((qty - rule.minQuantity) % rule.quantityStep !== 0) return true;
+      const config = getTypeConfig(p);
+      if (config.orderScope === 'variant') {
+        // Each variant must meet variantMinimum and increment
+        return p.variants.some((v) => {
+          const q = cart.get(v.id) ?? 0;
+          if (q === 0) return false;
+          if (q < config.variantMinimum) return true;
+          if (config.increment > 0 && (q - config.variantMinimum) % config.increment !== 0) return true;
+          return false;
+        });
+      } else {
+        // Order total must meet orderMinimum and increment
+        if (qty < config.orderMinimum) return true;
+        if (config.increment > 0 && (qty - config.orderMinimum) % config.increment !== 0) return true;
+        return false;
       }
-      return false;
     });
-  }, [products, cart, cateringOrderingRules]);
+  }, [products, cart, getTypeConfig]);
 
   const deliveryDisabled = useMemo(() => {
     return products.some((p) => { const qty = getTotalQuantity(p, cart); return qty > 0 && p.pickupOnly; });
@@ -692,18 +724,18 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   useEffect(() => {
     fetch('/api/storefront/volume-products')
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((data: VolumeProduct[]) => setProducts(data))
+      .then((data: { products: VolumeProduct[]; cateringTypeSettings?: Record<string, CateringTypeConfig> }) => {
+        setProducts(data.products ?? data as unknown as VolumeProduct[]);
+        if (data.cateringTypeSettings) setTypeSettings(data.cateringTypeSettings);
+      })
       .catch(() => setError(V.loadError))
       .finally(() => setLoading(false));
   }, [isFr]);
 
   return (
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
-      <div className="flex gap-8">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl uppercase tracking-widest mb-2"
-            style={{ fontFamily: 'var(--font-neue-montreal)', fontWeight: 500 }}>{pageTitle}</h1>
-          <p className="text-sm text-gray-500 mb-10 max-w-xl">{pageSubtitle}</p>
+      <div>
+        <div>
           {loading && (
             <CateringCardSkeleton />
           )}
@@ -713,43 +745,79 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           )}
           {!loading && !error && products.length > 0 && (
             <>
-              {/* Filters */}
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                {DIETARY_FILTER_OPTIONS.map((tag) => (
-                  <button key={tag} type="button"
-                    onClick={() => setDietaryFilter((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}
-                    className={`px-3 py-1 rounded-full text-xs border transition-colors ${dietaryFilter.includes(tag) ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{tag}</button>
-                ))}
-                <span className="text-gray-300">|</span>
-                {TEMP_FILTER_OPTIONS.map((tag) => (
-                  <button key={tag} type="button"
-                    onClick={() => setTemperatureFilter((prev) => prev === tag ? '' : tag)}
-                    className={`px-3 py-1 rounded-full text-xs border transition-colors ${temperatureFilter === tag ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
-                    style={{ fontFamily: 'var(--font-diatype-mono)' }}>{tag}</button>
-                ))}
-                {(dietaryFilter.length > 0 || temperatureFilter) && (
-                  <button type="button" onClick={() => { setDietaryFilter([]); setTemperatureFilter(''); }}
-                    className="text-xs text-gray-400 underline hover:text-gray-600 ml-1">clear</button>
-                )}
-              </div>
-
               {/* Grouped product list */}
               {hasGroups ? (
                 TYPE_ORDER.map((type) => {
                   const items = groupedProducts[type];
                   if (items.length === 0) return null;
+                  const config = typeSettings[type];
+                  const tiers = config?.leadTimeTiers || [];
+                  const min = config?.orderScope === 'variant' ? config?.variantMinimum : config?.orderMinimum;
+                  const inc = config?.increment || 1;
+                  const unit = config?.unitLabel === 'people' ? (isFr ? 'pers.' : 'people') : '';
                   return (
-                    <div key={type} className="mb-8">
-                      <h2 className="text-xs uppercase tracking-widest text-gray-400 mb-3"
-                        style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-                        {TYPE_LABELS[type]?.[locale] ?? type}
-                      </h2>
-                      <div className="flex flex-col gap-3">
-                        {items.map((product) => (
-                          <VolumeProductCard key={product.id} product={product} locale={locale}
-                            cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
-                        ))}
+                    <div key={type} className="mb-12">
+                      <div className="mb-4">
+                        <h2 className="text-[40px] leading-none" style={{ color: '#1A3821' }}>
+                          {TYPE_LABELS[type]?.[locale] ?? type}
+                        </h2>
+                        {config && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-2">
+                            {min != null && min > 0 && (
+                              <span className="text-[14px]" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                                min {min}{unit ? ` ${unit}` : ''}{inc > 1 ? `, +${inc}` : ''}
+                              </span>
+                            )}
+                            {tiers.slice().sort((a, b) => a.minQuantity - b.minQuantity).map((tier, i) => (
+                              <span key={i} className="text-[14px]" style={{ color: 'rgba(26,56,33,0.4)' }}>
+                                {tier.minQuantity}+ → {tier.leadTimeDays}{isFr ? 'j' : 'd'}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Dietary/temperature filters — only for dinatoire */}
+                      {type === 'dinatoire' && (visibleTemperatureTags.length > 0 || visibleDietaryTags.length > 0) && (
+                        <div className="flex flex-wrap items-baseline mb-6" style={{ gap: '24px' }}>
+                          {visibleTemperatureTags.map((tag) => {
+                            const isActive = temperatureFilter === tag;
+                            return (
+                              <button key={tag} type="button"
+                                onClick={() => setTemperatureFilter((prev) => prev === tag ? '' : tag)}
+                                className="text-[16px] leading-none transition-colors"
+                                style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
+                                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                              >{tag}</button>
+                            );
+                          })}
+                          {visibleDietaryTags.map((tag) => {
+                            const isActive = dietaryFilter.includes(tag);
+                            return (
+                              <button key={tag} type="button"
+                                onClick={() => setDietaryFilter((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}
+                                className="text-[16px] leading-none transition-colors"
+                                style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
+                                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                              >{tag}</button>
+                            );
+                          })}
+                          {(dietaryFilter.length > 0 || temperatureFilter) && (
+                            <button type="button" onClick={() => { setDietaryFilter([]); setTemperatureFilter(''); }}
+                              className="text-[14px] transition-colors" style={{ color: 'rgba(26,56,33,0.4)' }}>clear</button>
+                          )}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+                        {(() => {
+                          const typeTotal = items.reduce((sum, p) => sum + getTotalQuantity(p, cart), 0);
+                          return items.map((product) => (
+                            <VolumeProductCard key={product.id} product={product} locale={locale}
+                              cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} typeConfig={getTypeConfig(product)} typeTotalQty={typeTotal} />
+                          ));
+                        })()}
                       </div>
                     </div>
                   );
@@ -757,10 +825,10 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
               ) : null}
               {/* Ungrouped products */}
               {groupedProducts['other'].length > 0 && (
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
                   {groupedProducts['other'].map((product) => (
                     <VolumeProductCard key={product.id} product={product} locale={locale}
-                      cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} />
+                      cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} typeConfig={getTypeConfig(product)} typeTotalQty={getTotalQuantity(product, cart)} />
                   ))}
                 </div>
               )}
@@ -772,22 +840,10 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
             </>
           )}
         </div>
-        <div className="hidden lg:block w-80 shrink-0">
-          <VolumeInlineCart groups={cartGroups} totalQuantity={totalQuantity} subtotal={subtotal}
-            fulfillmentDate={fulfillmentDate} fulfillmentTime={fulfillmentTime}
-            fulfillmentType={fulfillmentType} allergenNote={allergenNote}
-            dateWarning={dateWarning} earliestDateStr={earliestDateStr}
-            maxLeadTimeDays={maxLeadTimeDays} servesEstimate={servesEstimate}
-            onDateChange={setFulfillmentDate} onTimeChange={setFulfillmentTime}
-            onFulfillmentTypeChange={setFulfillmentType} onAllergenNoteChange={setAllergenNote}
-            onCheckout={handleCheckout} onRemoveProduct={handleRemoveProduct}
-            checkoutLoading={checkoutLoading} checkoutError={checkoutError}
-            locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr} />
-        </div>
       </div>
 
-      {/* Mobile cart modal */}
-      <MobileCartModal open={showMobileCart} onClose={() => setShowMobileCart(false)}>
+      {/* Catering cart slide-in panel */}
+      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={totalQuantity}>
         <VolumeInlineCart groups={cartGroups} totalQuantity={totalQuantity} subtotal={subtotal}
           fulfillmentDate={fulfillmentDate} fulfillmentTime={fulfillmentTime}
           fulfillmentType={fulfillmentType} allergenNote={allergenNote}
@@ -799,23 +855,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           onRemoveProduct={handleRemoveProduct}
           checkoutLoading={checkoutLoading} checkoutError={checkoutError}
           locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr} />
-      </MobileCartModal>
-
-      {/* Mobile bottom bar */}
-      {totalQuantity > 0 && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {totalQuantity} {V.items}{subtotal > 0 && ` · $${(subtotal / 100).toFixed(2)}`}
-            </p>
-            <button onClick={() => setShowMobileCart(true)}
-              className="px-6 py-3 bg-[#333112] text-white text-xs uppercase tracking-widest font-medium rounded"
-              style={{ fontFamily: 'var(--font-diatype-mono)' }}>
-              {isFr ? 'Voir la commande' : 'View order'}
-            </button>
-          </div>
-        </div>
-      )}
+      </OrderCartPanel>
     </main>
   );
 }

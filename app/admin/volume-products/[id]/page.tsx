@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import EditPageLayout from '@/app/admin/components/EditPageLayout';
-import TranslationFields from '@/app/admin/components/TranslationFields';
 import AdminLocaleSwitcher from '@/app/admin/components/AdminLocaleSwitcher';
 import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import { Input } from '@/app/admin/components/ui/input';
@@ -12,18 +11,15 @@ import { Badge } from '@/app/admin/components/ui/nav/badges';
 import { Button } from '@/app/admin/components/ui/button';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
+import { useTaxonomyOptions } from '@/app/admin/hooks/useTaxonomyOptions';
 import ShopifyProductPicker from '@/app/admin/components/ShopifyProductPicker';
 import ShopifyVariantsDisplay from '@/app/admin/components/ShopifyVariantsDisplay';
 import ImageUploader from '@/app/admin/components/ImageUploader';
 import AiTranslateButton from '@/app/admin/components/AiTranslateButton';
 import TaxShippingSection from '@/app/admin/components/TaxShippingSection';
-import { Plus, Trash01 } from '@untitledui/icons';
-import type { ContentTranslations } from '@/types';
-
-interface LeadTimeTier {
-  minQuantity: number;
-  leadTimeDays: number;
-}
+import { DatePicker } from '@/app/admin/components/ui/date-picker/date-picker';
+import { parseDate } from '@internationalized/date';
+import { Plus } from '@untitledui/icons';
 
 interface VolumeProduct {
   id: string;
@@ -40,21 +36,13 @@ interface VolumeProduct {
   taxThreshold: number;
   taxUnitCount: number;
   volumeEnabled: boolean;
-  volumeDescription: { en: string; fr: string } | null;
-  volumeInstructions: { en: string; fr: string } | null;
-  volumeMinOrderQuantity: number | null;
-  volumeUnitLabel: 'quantity' | 'people';
-  maxAdvanceDays: number | null;
   shopifyProductId: string | null;
   shopifyProductHandle: string | null;
   cateringType: string | null;
-  cateringDescription: { en: string; fr: string } | null;
-  cateringFlavourName: { en: string; fr: string } | null;
   cateringEndDate: string | null;
   allergens: string[] | null;
   dietaryTags: string[] | null;
   temperatureTags: string[] | null;
-  leadTimeTiers: LeadTimeTier[];
   volumeVariants: Array<{
     id?: string;
     label: { en: string; fr: string };
@@ -103,14 +91,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
   // Form state
   const [volumeEnabled, setVolumeEnabled] = useState(false);
-  const [descriptionEn, setDescriptionEn] = useState('');
-  const [descriptionFr, setDescriptionFr] = useState('');
-  const [instructionsEn, setInstructionsEn] = useState('');
-  const [instructionsFr, setInstructionsFr] = useState('');
-  const [tiers, setTiers] = useState<LeadTimeTier[]>([]);
-  const [tierErrors, setTierErrors] = useState<string | null>(null);
-  const [volumeUnitLabel, setVolumeUnitLabel] = useState<'quantity' | 'people'>('quantity');
-  const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
   const [volumeVariants, setVolumeVariantsState] = useState<Array<{
     label: { en: string; fr: string };
     shopifyVariantId?: string | null;
@@ -125,14 +105,10 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   const [dietaryTags, setDietaryTags] = useState<string[]>([]);
   const [temperatureTags, setTemperatureTags] = useState<string[]>([]);
   const [cateringEndDate, setCateringEndDate] = useState('');
-  const [cateringDescEn, setCateringDescEn] = useState('');
-  const [cateringDescFr, setCateringDescFr] = useState('');
-  const [flavourNameEn, setFlavourNameEn] = useState('');
-  const [flavourNameFr, setFlavourNameFr] = useState('');
 
   const allergenOptions = useAllergenOptions();
-  const DIETARY_OPTIONS = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
-  const TEMPERATURE_OPTIONS = ['hot', 'cold'];
+  const temperatureOptions = useTaxonomyOptions('cateringTemperature');
+  const dietaryOptions = useTaxonomyOptions('cateringDietary');
 
   // Core product fields
   const [productName, setProductName] = useState('');
@@ -168,13 +144,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       const data: VolumeProduct = await res.json();
       setProduct(data);
       setVolumeEnabled(data.volumeEnabled);
-      setDescriptionEn(data.volumeDescription?.en ?? '');
-      setDescriptionFr(data.volumeDescription?.fr ?? '');
-      setInstructionsEn(data.volumeInstructions?.en ?? '');
-      setInstructionsFr(data.volumeInstructions?.fr ?? '');
-      setTiers(data.leadTimeTiers.map((t) => ({ minQuantity: t.minQuantity, leadTimeDays: t.leadTimeDays })));
-      setVolumeUnitLabel(data.volumeUnitLabel ?? 'quantity');
-      setMaxAdvanceDays(data.maxAdvanceDays ?? null);
       setVolumeVariantsState(
         (data.volumeVariants || []).map((v) => ({
           label: v.label || { en: '', fr: '' },
@@ -190,10 +159,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       setDietaryTags(data.dietaryTags ?? []);
       setTemperatureTags(data.temperatureTags ?? []);
       setCateringEndDate(data.cateringEndDate ? data.cateringEndDate.split('T')[0] : '');
-      setCateringDescEn(data.cateringDescription?.en ?? '');
-      setCateringDescFr(data.cateringDescription?.fr ?? '');
-      setFlavourNameEn(data.cateringFlavourName?.en ?? '');
-      setFlavourNameFr(data.cateringFlavourName?.fr ?? '');
 
       // Core product fields
       setProductName(data.name ?? '');
@@ -250,44 +215,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
     markDirty();
   }
 
-  // --- Translation fields helpers ---
-  const descriptionTranslations: ContentTranslations = { fr: { description: descriptionFr || undefined } };
-  const instructionsTranslations: ContentTranslations = { fr: { instructions: instructionsFr || undefined } };
-
-  // --- Lead time tiers ---
-  function addTier() {
-    const lastMin = tiers.length > 0 ? tiers[tiers.length - 1].minQuantity : 0;
-    setTiers([...tiers, { minQuantity: lastMin + 1, leadTimeDays: 1 }]);
-    setTierErrors(null);
-    markDirty();
-  }
-
-  function updateTier(index: number, field: keyof LeadTimeTier, value: string) {
-    const num = parseInt(value) || 0;
-    setTiers((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: num } : t)));
-    setTierErrors(null);
-    markDirty();
-  }
-
-  function removeTier(index: number) {
-    setTiers((prev) => prev.filter((_, i) => i !== index));
-    setTierErrors(null);
-    markDirty();
-  }
-
-  function validateTiers(tiersToValidate: LeadTimeTier[]): string | null {
-    for (let i = 1; i < tiersToValidate.length; i++) {
-      if (tiersToValidate[i].minQuantity <= tiersToValidate[i - 1].minQuantity) {
-        return `Tier ${i + 1} minQuantity (${tiersToValidate[i].minQuantity}) must be greater than tier ${i} (${tiersToValidate[i - 1].minQuantity}).`;
-      }
-    }
-    for (const t of tiersToValidate) {
-      if (t.minQuantity < 1) return 'Min quantity must be at least 1.';
-      if (t.leadTimeDays < 0) return 'Lead time days cannot be negative.';
-    }
-    return null;
-  }
-
   // --- Variants ---
   function addVariant() {
     setVolumeVariantsState((prev) => [
@@ -319,15 +246,6 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
   // --- Save ---
   async function handleSave() {
     setError(undefined);
-
-    // Validate tiers
-    const tierError = validateTiers(tiers);
-    if (tierError) {
-      setTierErrors(tierError);
-      toast.error('Validation error', tierError);
-      return;
-    }
-
     setSaving(true);
     try {
       // Save core product fields
@@ -348,23 +266,11 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       // Save catering-specific fields
       const payload = {
         volumeEnabled,
-        volumeDescription: descriptionEn || descriptionFr
-          ? { en: descriptionEn, fr: descriptionFr }
-          : null,
-        volumeInstructions: instructionsEn || instructionsFr
-          ? { en: instructionsEn, fr: instructionsFr }
-          : null,
-        volumeMinOrderQuantity: tiers.length > 0 ? tiers[0].minQuantity : null,
-        volumeUnitLabel,
-        maxAdvanceDays: maxAdvanceDays && maxAdvanceDays > 0 ? maxAdvanceDays : null,
         cateringType: cateringType || null,
-        cateringDescription: (cateringDescEn || cateringDescFr) ? { en: cateringDescEn, fr: cateringDescFr } : null,
-        cateringFlavourName: (flavourNameEn || flavourNameFr) ? { en: flavourNameEn, fr: flavourNameFr } : null,
         cateringEndDate: cateringEndDate || null,
         allergens,
         dietaryTags,
         temperatureTags,
-        leadTimeTiers: tiers,
         volumeVariants: volumeVariants.map((v, idx) => ({
           label: v.label,
           shopifyVariantId: v.shopifyVariantId ?? null,
@@ -403,6 +309,20 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
     router.push('/admin/volume-products');
   }
 
+  async function handleDelete() {
+    try {
+      const res = await fetch(`/api/products/${params.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/admin/volume-products');
+      } else {
+        const err = await res.json();
+        setError(err.error || 'Failed to delete');
+      }
+    } catch {
+      setError('Failed to delete product');
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -436,6 +356,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
       backHref="/admin/volume-products"
       backLabel="Back to Catering Products"
       onSave={handleSave}
+      onDelete={handleDelete}
       onCancel={handleCancel}
       saving={saving}
       error={error}
@@ -517,19 +438,18 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
 
         {/* Catering Display */}
         <SectionCard title="Catering Display">
-          <Input label="End Date" value={cateringEndDate} onChange={(v) => { setCateringEndDate(v); markDirty(); }} placeholder="YYYY-MM-DD" />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Flavour Name (EN)" value={flavourNameEn} onChange={(v) => { setFlavourNameEn(v); markDirty(); }} placeholder="Leave blank to use product name" />
-            <Input label="Flavour Name (FR)" value={flavourNameFr} onChange={(v) => { setFlavourNameFr(v); markDirty(); }} placeholder="Laisser vide pour utiliser le nom" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Description (EN)" value={cateringDescEn} onChange={(v) => { setCateringDescEn(v); markDirty(); }} placeholder="Description for customers" />
-            <Input label="Description (FR)" value={cateringDescFr} onChange={(v) => { setCateringDescFr(v); markDirty(); }} placeholder="Description pour les clients" />
+          <div>
+            <DatePicker
+              aria-label="End Date"
+              value={cateringEndDate ? parseDate(cateringEndDate) : null}
+              onChange={(date) => { setCateringEndDate(date ? date.toString() : ''); markDirty(); }}
+            />
+            <p className="text-xs text-gray-400 mt-1">Leave empty if this product has no end date.</p>
           </div>
         </SectionCard>
 
-        {/* Allergens & Tags */}
-        <SectionCard title="Allergens & Dietary">
+        {/* Allergens */}
+        <SectionCard title="Allergens">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Allergens</label>
             <div className="flex flex-wrap gap-2">
@@ -541,21 +461,14 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               ))}
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Tags</label>
-            <div className="flex flex-wrap gap-2">
-              {DIETARY_OPTIONS.map((d) => (
-                <button key={d} type="button" onClick={() => { setDietaryTags(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]); markDirty(); }}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${dietaryTags.includes(d) ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
+        </SectionCard>
+
+        {/* Filters */}
+        <SectionCard title="Filters" description="Temperature and dietary filters for the catering menu.">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Temperature</label>
             <div className="flex flex-wrap gap-2">
-              {TEMPERATURE_OPTIONS.map((t) => (
+              {temperatureOptions.map((t) => (
                 <button key={t} type="button" onClick={() => { setTemperatureTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]); markDirty(); }}
                   className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${temperatureTags.includes(t) ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                   {t}
@@ -563,110 +476,17 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               ))}
             </div>
           </div>
-        </SectionCard>
-
-        {/* Order rules: min quantity + lead time tiers */}
-        <SectionCard
-          title="Order Rules"
-          description="Lead time tiers determine both the minimum order quantity and the required notice period."
-        >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-700">Lead Time Tiers</label>
-              <Button variant="secondary" size="sm" onClick={addTier} iconLeading={Plus}>
-                Add Tier
-              </Button>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Dietary</label>
+            <div className="flex flex-wrap gap-2">
+              {dietaryOptions.map((d) => (
+                <button key={d} type="button" onClick={() => { setDietaryTags(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]); markDirty(); }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${dietaryTags.includes(d) ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {d}
+                </button>
+              ))}
             </div>
-            {tiers.length === 0 ? (
-              <p className="text-sm text-gray-500">No tiers configured. Add at least one tier for catering ordering to work.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {tiers.map((tier, index) => (
-                  <div key={index} className="flex items-center gap-3 py-1.5 px-3 bg-gray-50 rounded-lg text-sm">
-                    <span className="text-xs text-gray-400 w-4">{index + 1}</span>
-                    <span className="text-xs text-gray-500">Min qty</span>
-                    <input
-                      type="number"
-                      value={tier.minQuantity.toString()}
-                      onChange={(e) => updateTier(index, 'minQuantity', e.target.value)}
-                      className="w-20 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
-                      aria-label={`Tier ${index + 1} minimum quantity`}
-                    />
-                    <span className="text-xs text-gray-500">Lead time</span>
-                    <input
-                      type="number"
-                      value={tier.leadTimeDays.toString()}
-                      onChange={(e) => updateTier(index, 'leadTimeDays', e.target.value)}
-                      className="w-20 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
-                      aria-label={`Tier ${index + 1} lead time days`}
-                    />
-                    <span className="text-xs text-gray-500">days</span>
-                    <button
-                      type="button"
-                      onClick={() => removeTier(index)}
-                      className="ml-auto text-gray-400 hover:text-red-500 text-xs"
-                      aria-label={`Remove tier ${index + 1}`}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {tierErrors && (
-              <p className="text-sm text-red-600 mt-2">{tierErrors}</p>
-            )}
           </div>
-
-          {/* Max advance booking */}
-          <div>
-            <label htmlFor="maxAdvanceDays" className="block text-sm font-medium text-gray-700 mb-1">Max advance booking (days)</label>
-            <input
-              id="maxAdvanceDays"
-              type="number"
-              min={0}
-              max={365}
-              value={maxAdvanceDays ?? ''}
-              onChange={(e) => { setMaxAdvanceDays(e.target.value ? parseInt(e.target.value) || null : null); markDirty(); }}
-              placeholder="No limit"
-              className="w-40 px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            <p className="text-xs text-gray-400 mt-1">How far in advance customers can book. Leave empty for no limit.</p>
-          </div>
-        </SectionCard>
-
-        {/* Description & instructions */}
-        <SectionCard title="Description & Instructions" description="Customer-facing content for catering orders.">
-          <TranslationFields
-            base={{ description: descriptionEn }}
-            translations={descriptionTranslations}
-            onBaseChange={(_field, value) => {
-              setDescriptionEn(value);
-              markDirty();
-            }}
-            onChange={(t) => {
-              setDescriptionFr(t?.fr?.description ?? '');
-              markDirty();
-            }}
-            fields={[
-              { key: 'description', label: 'Catering Description', type: 'textarea', rows: 3, placeholder: 'Describe this product for catering orders...' },
-            ]}
-          />
-          <TranslationFields
-            base={{ instructions: instructionsEn }}
-            translations={instructionsTranslations}
-            onBaseChange={(_field, value) => {
-              setInstructionsEn(value);
-              markDirty();
-            }}
-            onChange={(t) => {
-              setInstructionsFr(t?.fr?.instructions ?? '');
-              markDirty();
-            }}
-            fields={[
-              { key: 'instructions', label: 'Ordering Instructions', type: 'textarea', rows: 3, placeholder: 'e.g., Minimum 48h notice for orders over 20 units...' },
-            ]}
-          />
         </SectionCard>
 
         {/* Variants */}
@@ -785,19 +605,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
               <option value="">Select type…</option>
               <option value="brunch">Brunch</option><option value="lunch">Lunch</option><option value="dinatoire">Dînatoire</option>
             </select>
-            {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required for ordering rules</p>}
-          </SectionCard>
-
-          {/* Unit label */}
-          <SectionCard title="Unit Label" description="How quantities are displayed to customers.">
-            <div className="flex gap-2">
-              {(['quantity', 'people'] as const).map((opt) => (
-                <button key={opt} type="button" onClick={() => { setVolumeUnitLabel(opt); markDirty(); }}
-                  className={`flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-colors ${volumeUnitLabel === opt ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}>
-                  {opt === 'quantity' ? 'Quantity' : 'People'}
-                </button>
-              ))}
-            </div>
+            {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required to apply ordering rules from settings</p>}
           </SectionCard>
 
           {/* Tax */}

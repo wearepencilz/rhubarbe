@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import { Button } from '@/app/admin/components/ui/button';
+import { Plus } from '@untitledui/icons';
 
 interface PickupLocation {
   id: string;
@@ -11,7 +12,31 @@ interface PickupLocation {
   active: boolean;
 }
 
+interface LeadTimeTier {
+  minQuantity: number;
+  leadTimeDays: number;
+}
+
+interface CateringTypeConfig {
+  label: { en: string; fr: string };
+  orderScope: 'variant' | 'order';
+  orderMinimum: number;
+  variantMinimum: number;
+  increment: number;
+  unitLabel: 'quantity' | 'people';
+  maxAdvanceDays: number | null;
+  leadTimeTiers: LeadTimeTier[];
+}
+
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const CATERING_TYPES = ['brunch', 'lunch', 'dinatoire'] as const;
+
+const DEFAULT_CONFIGS: Record<string, CateringTypeConfig> = {
+  brunch: { label: { en: 'Brunch', fr: 'Brunch' }, orderScope: 'variant', orderMinimum: 12, variantMinimum: 12, increment: 6, unitLabel: 'quantity', maxAdvanceDays: null, leadTimeTiers: [] },
+  lunch: { label: { en: 'Lunch', fr: 'Lunch' }, orderScope: 'order', orderMinimum: 6, variantMinimum: 0, increment: 1, unitLabel: 'people', maxAdvanceDays: null, leadTimeTiers: [] },
+  dinatoire: { label: { en: 'Dînatoire', fr: 'Dînatoire' }, orderScope: 'order', orderMinimum: 3, variantMinimum: 0, increment: 1, unitLabel: 'people', maxAdvanceDays: null, leadTimeTiers: [] },
+};
 
 export default function CateringSettingsPage() {
   const toast = useToast();
@@ -19,10 +44,7 @@ export default function CateringSettingsPage() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Ordering rules state
-  const [orderingRules, setOrderingRules] = useState<Record<string, { minQuantity: number; quantityStep: number; label: { en: string; fr: string } }>>({});
-  const [leadTimeDays, setLeadTimeDays] = useState<number>(28);
+  const [typeConfigs, setTypeConfigs] = useState<Record<string, CateringTypeConfig>>({});
 
   useEffect(() => {
     Promise.all([
@@ -32,8 +54,13 @@ export default function CateringSettingsPage() {
       .then(([locs, settings]) => {
         setLocations(locs);
         setSelectedLocationId(settings.cateringPickupLocationId || '');
-        if (settings.cateringOrderingRules) setOrderingRules(settings.cateringOrderingRules);
-        if (settings.cateringLeadTimeDays != null) setLeadTimeDays(settings.cateringLeadTimeDays);
+        // Merge saved configs with defaults
+        const saved = (settings.cateringTypeSettings ?? {}) as Record<string, Partial<CateringTypeConfig>>;
+        const merged: Record<string, CateringTypeConfig> = {};
+        for (const type of CATERING_TYPES) {
+          merged[type] = { ...DEFAULT_CONFIGS[type], ...saved[type] };
+        }
+        setTypeConfigs(merged);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -52,8 +79,7 @@ export default function CateringSettingsPage() {
         body: JSON.stringify({
           ...current,
           cateringPickupLocationId: selectedLocationId || null,
-          cateringOrderingRules: orderingRules,
-          cateringLeadTimeDays: leadTimeDays,
+          cateringTypeSettings: typeConfigs,
         }),
       });
       if (res.ok) toast.success('Settings saved');
@@ -65,11 +91,24 @@ export default function CateringSettingsPage() {
     }
   };
 
-  function updateRule(type: string, field: 'minQuantity' | 'quantityStep', value: number) {
-    setOrderingRules((prev) => ({
-      ...prev,
-      [type]: { ...prev[type], [field]: value },
-    }));
+  function updateConfig(type: string, patch: Partial<CateringTypeConfig>) {
+    setTypeConfigs((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
+  }
+
+  function addTier(type: string) {
+    const tiers = typeConfigs[type].leadTimeTiers;
+    const lastMin = tiers.length > 0 ? tiers[tiers.length - 1].minQuantity : 0;
+    updateConfig(type, { leadTimeTiers: [...tiers, { minQuantity: lastMin + 1, leadTimeDays: 1 }] });
+  }
+
+  function updateTier(type: string, index: number, field: keyof LeadTimeTier, value: string) {
+    const tiers = [...typeConfigs[type].leadTimeTiers];
+    tiers[index] = { ...tiers[index], [field]: parseInt(value) || 0 };
+    updateConfig(type, { leadTimeTiers: tiers });
+  }
+
+  function removeTier(type: string, index: number) {
+    updateConfig(type, { leadTimeTiers: typeConfigs[type].leadTimeTiers.filter((_, i) => i !== index) });
   }
 
   if (loading) {
@@ -81,16 +120,24 @@ export default function CateringSettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Catering Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure pickup location and availability for catering orders.</p>
+    <div className="max-w-3xl">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Catering Settings</h1>
+          <p className="text-sm text-gray-500 mt-1">Ordering rules, lead times, and pickup configuration per catering type.</p>
+        </div>
+        <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>
+          Save Settings
+        </Button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-        {/* Pickup Location */}
+      {/* Pickup Location */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+          <h2 className="text-sm font-semibold text-gray-900">Pickup Location</h2>
+          <p className="text-xs text-gray-500 mt-1">Used for all catering orders.</p>
+        </div>
+        <div>
           <select
             value={selectedLocationId}
             onChange={(e) => setSelectedLocationId(e.target.value)}
@@ -102,84 +149,144 @@ export default function CateringSettingsPage() {
               <option key={loc.id} value={loc.id}>{loc.internalName}</option>
             ))}
           </select>
-          <p className="text-xs text-gray-400 mt-1">
-            This location will be used for all catering orders. Disabled pickup days are configured on the location itself.
-          </p>
         </div>
-
-        {/* Show disabled days from selected location (read-only) */}
-        {selectedLocation && (
+        {selectedLocation && disabledDays.length > 0 && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Disabled Pickup Days</label>
-            {disabledDays.length === 0 ? (
-              <p className="text-sm text-gray-400">No days disabled at this location.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {disabledDays.map((d) => (
-                  <span key={d} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                    {DAY_LABELS[d]}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {disabledDays.map((d) => (
+                <span key={d} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                  {DAY_LABELS[d]}
+                </span>
+              ))}
+            </div>
             <p className="text-xs text-gray-400 mt-2">
-              To change disabled days, edit the <a href={`/admin/pickup-locations/${selectedLocationId}`} className="text-brand-600 underline">pickup location</a>.
+              Edit disabled days on the <a href={`/admin/pickup-locations/${selectedLocationId}`} className="text-brand-600 underline">pickup location</a>.
             </p>
           </div>
         )}
-
-        <div className="pt-2">
-          <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>
-            Save Settings
-          </Button>
-        </div>
       </div>
 
-      {/* Ordering Rules */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 mt-6">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900">Ordering Rules</h2>
-          <p className="text-xs text-gray-500 mt-1">Minimum quantity and increment step per catering type.</p>
-        </div>
-
-        {Object.entries(orderingRules).map(([type, rule]) => (
-          <div key={type} className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0">
-            <span className="text-sm font-medium text-gray-700 w-24">{rule.label?.en || type}</span>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500">Min</label>
-              <input type="number" min={1} value={rule.minQuantity} onChange={(e) => updateRule(type, 'minQuantity', parseInt(e.target.value) || 1)}
-                className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+      {/* Per-type settings */}
+      {CATERING_TYPES.map((type) => {
+        const config = typeConfigs[type];
+        if (!config) return null;
+        return (
+          <div key={type} className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <h2 className="text-sm font-semibold text-gray-900">{config.label.en}</h2>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500">Step</label>
-              <input type="number" min={1} value={rule.quantityStep} onChange={(e) => updateRule(type, 'quantityStep', parseInt(e.target.value) || 1)}
-                className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <div className="px-6 py-5 space-y-6">
+
+              {/* Ordering Rules */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ordering Rules</h3>
+
+                {/* Scope */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Scope</label>
+                  <div className="flex gap-2">
+                    {(['variant', 'order'] as const).map((s) => (
+                      <button key={s} type="button" onClick={() => updateConfig(type, { orderScope: s })}
+                        className={`flex-1 py-1.5 text-xs uppercase tracking-widest rounded border transition-colors ${config.orderScope === s ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}>
+                        {s === 'variant' ? 'Per Variant' : 'Per Order'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {config.orderScope === 'order' ? 'Order Minimum' : 'Order Min (unused)'}
+                    </label>
+                    <input type="number" min={0} value={config.orderMinimum} onChange={(e) => updateConfig(type, { orderMinimum: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
+                      disabled={config.orderScope === 'variant'} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      {config.orderScope === 'variant' ? 'Variant Minimum' : 'Variant Min (unused)'}
+                    </label>
+                    <input type="number" min={0} value={config.variantMinimum} onChange={(e) => updateConfig(type, { variantMinimum: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
+                      disabled={config.orderScope === 'order'} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Increment</label>
+                    <input type="number" min={1} value={config.increment} onChange={(e) => updateConfig(type, { increment: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Unit Label */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit Label</h3>
+                <div className="flex gap-2">
+                  {(['quantity', 'people'] as const).map((opt) => (
+                    <button key={opt} type="button" onClick={() => updateConfig(type, { unitLabel: opt })}
+                      className={`flex-1 py-1.5 text-xs uppercase tracking-widest rounded border transition-colors ${config.unitLabel === opt ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}>
+                      {opt === 'quantity' ? 'Quantity' : 'People'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lead Time Tiers */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Lead Time Tiers</h3>
+                  <Button variant="secondary" size="sm" onClick={() => addTier(type)} iconLeading={Plus}>
+                    Add Tier
+                  </Button>
+                </div>
+                {config.leadTimeTiers.length === 0 ? (
+                  <p className="text-sm text-gray-400">No tiers configured.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {config.leadTimeTiers.map((tier, index) => (
+                      <div key={index} className="flex items-center gap-3 py-1.5 px-3 bg-gray-50 rounded-lg text-sm">
+                        <span className="text-xs text-gray-400 w-4">{index + 1}</span>
+                        <span className="text-xs text-gray-500">Min qty</span>
+                        <input type="number" value={tier.minQuantity.toString()} onChange={(e) => updateTier(type, index, 'minQuantity', e.target.value)}
+                          className="w-20 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                          aria-label={`Tier ${index + 1} minimum quantity`} />
+                        <span className="text-xs text-gray-500">Lead time</span>
+                        <input type="number" value={tier.leadTimeDays.toString()} onChange={(e) => updateTier(type, index, 'leadTimeDays', e.target.value)}
+                          className="w-20 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                          aria-label={`Tier ${index + 1} lead time days`} />
+                        <span className="text-xs text-gray-500">days</span>
+                        <button type="button" onClick={() => removeTier(type, index)}
+                          className="ml-auto text-gray-400 hover:text-red-500 text-xs" aria-label={`Remove tier ${index + 1}`}>
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Max advance booking */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Max Advance Booking</h3>
+                <div className="flex items-center gap-3">
+                  <input type="number" min={0} max={365} value={config.maxAdvanceDays ?? ''} onChange={(e) => updateConfig(type, { maxAdvanceDays: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="No limit"
+                    className="w-32 px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  <span className="text-sm text-gray-500">days</span>
+                </div>
+              </div>
+
             </div>
           </div>
-        ))}
+        );
+      })}
 
-        {Object.keys(orderingRules).length === 0 && (
-          <p className="text-sm text-gray-400">No ordering rules configured. Run the data migration to seed defaults.</p>
-        )}
-      </div>
-
-      {/* Lead Time */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4 mt-6">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900">Lead Time</h2>
-          <p className="text-xs text-gray-500 mt-1">Minimum days in advance for catering orders.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <input type="number" min={1} max={365} value={leadTimeDays} onChange={(e) => setLeadTimeDays(parseInt(e.target.value) || 28)}
-            className="w-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          <span className="text-sm text-gray-500">days</span>
-        </div>
-
-        <div className="pt-2">
-          <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>
-            Save Settings
-          </Button>
-        </div>
+      <div className="flex justify-end">
+        <Button variant="primary" onClick={handleSave} isLoading={saving} isDisabled={saving}>
+          Save Settings
+        </Button>
       </div>
     </div>
   );

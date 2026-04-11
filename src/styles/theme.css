@@ -1,8 +1,8 @@
 /* Untitled UI Theme - Based on official Next.js integration */
 @theme {
     /* FONT FAMILY */
-    --font-body: var(--font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --font-display: var(--font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-body: "Solar Display", var(--font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-display: "Solar Display", var(--font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 
     /* JANINE BRAND FONTS */
     --font-neue-montreal: "PP Neue Montreal", "Helvetica Neue", Arial, sans-serif;

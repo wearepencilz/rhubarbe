@@ -68,6 +68,7 @@ export async function PUT(
       'volumeMinOrderQuantity', 'volumeUnitLabel', 'maxAdvanceDays',
       'cateringType', 'cateringDescription', 'cateringFlavourName',
       'allergens', 'dietaryTags', 'temperatureTags',
+      'orderMinimum', 'orderScope', 'variantMinimum', 'increment',
     ] as const;
 
     for (const key of passthrough) {

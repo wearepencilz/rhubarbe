@@ -46,6 +46,8 @@
 html,
 body {
     font-family: var(--font-body);
+    letter-spacing: 0.02em;
+    background-color: #FCFBF6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-variant-ligatures: contextual;
@@ -81,4 +83,75 @@ input[type="search"]::-webkit-search-cancel-button {
 .recharts-surface g,
 .recharts-surface path {
     outline: none;
+}
+
+/* Cart panel overrides — restyle inline cart components inside the blue slide-in */
+.cart-panel-content {
+  color: white;
+}
+.cart-panel-content * {
+  border-color: rgba(255,255,255,0.2) !important;
+}
+/* Remove white bg/border/rounded from the root cart wrapper */
+.cart-panel-content > div {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  position: static !important;
+}
+/* Inputs, selects, textareas */
+.cart-panel-content input,
+.cart-panel-content select,
+.cart-panel-content textarea {
+  background: transparent !important;
+  color: white !important;
+  border-color: rgba(255,255,255,0.4) !important;
+  width: 100% !important;
+}
+.cart-panel-content select {
+  border-radius: 9999px !important;
+}
+.cart-panel-content textarea {
+  border-radius: 0.5rem !important;
+}
+.cart-panel-content select option {
+  background: #0065B6 !important;
+  color: white !important;
+}
+/* Checkout button — white pill with blue text */
+.cart-panel-content [data-checkout] {
+  background: white !important;
+  border-radius: 9999px !important;
+}
+/* Fulfillment toggle — keep as-is, handled by Tailwind */
+/* Allergen badges */
+.cart-panel-content [class*="bg-amber-50"] {
+  background: rgba(255,255,255,0.1) !important;
+  ring: none !important;
+}
+.cart-panel-content [class*="text-amber-"] {
+  color: rgba(255,255,255,0.8) !important;
+}
+.cart-panel-content [class*="text-red-"] {
+  color: #fca5a5 !important;
+}
+/* Gray text overrides */
+.cart-panel-content [class*="text-gray-"] {
+  color: rgba(255,255,255,0.6) !important;
+}
+.cart-panel-content [class*="text-gray-900"],
+.cart-panel-content [class*="font-semibold"],
+.cart-panel-content [class*="font-medium"] {
+  color: white !important;
+}
+/* Remove underline from remove buttons */
+.cart-panel-content button.underline {
+  color: rgba(255,255,255,0.5) !important;
+}
+.cart-panel-content button.underline:hover {
+  color: #fca5a5 !important;
+}
+/* Checkout button text — must come after font-medium override */
+.cart-panel-content [data-checkout] {
+  color: #0065B6 !important;
 }
