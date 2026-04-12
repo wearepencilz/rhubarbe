@@ -849,7 +849,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                       }, 0);
                       return typeServes > 0 ? (
                         <p className="text-[14px] mb-4" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                          {isFr ? `≈ ${typeServes} personnes` : `≈ ${typeServes} people`}
+                          {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
                         </p>
                       ) : <div className="mb-4" />;
                     })()}
@@ -1049,7 +1049,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                       }, 0);
                       return typeServes > 0 ? (
                         <p className="text-[14px] mb-4" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                          {isFr ? `≈ ${typeServes} personnes` : `≈ ${typeServes} people`}
+                          {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
                         </p>
                       ) : <div className="mb-4" />;
                     })()}
