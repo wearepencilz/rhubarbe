@@ -175,7 +175,7 @@ function VolumeProductCard({
         {!showOverlay && (
           <>
             {displayImage ? (
-              <img src={displayImage} alt={displayName} className="w-full h-full object-cover" />
+              <img src={displayImage} alt={displayName} loading="lazy" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full" style={{ backgroundColor: brandColor }} />
             )}

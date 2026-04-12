@@ -10,7 +10,8 @@ export async function GET() {
     return NextResponse.json(
       Object.keys(data).length > 0
         ? data
-        : { logo: '', email: '', companyName: '' }
+        : { logo: '', email: '', companyName: '' },
+      { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' } }
     );
   } catch (error) {
     return NextResponse.json({ logo: '', email: '', companyName: '' });

@@ -174,7 +174,7 @@ function ProductCard({
         <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
           {!showOverlay && (
             <>
-              <img src={product.image} alt={displayName} className="w-full h-full object-cover" />
+              <img src={product.image} alt={displayName} className="w-full h-full object-cover" loading="lazy" />
               {allergens.length > 0 && (
                 <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
                   {allergens.map((a) => (

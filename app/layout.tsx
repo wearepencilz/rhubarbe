@@ -43,6 +43,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className={inter.variable}>
+      <head>
+        <link rel="preconnect" href="https://cdn.shopify.com" />
+        <link rel="dns-prefetch" href="https://cdn.shopify.com" />
+        <link rel="preload" href="/fonts/Solar.woff" as="font" type="font/woff" crossOrigin="anonymous" />
+      </head>
       <body>
         <Providers>
           <CartProvider>

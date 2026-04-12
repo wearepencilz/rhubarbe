@@ -401,7 +401,7 @@ function CakeProductCard({
           <div className="aspect-[4/5] overflow-hidden relative">
             {!showPink && (
               <>
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover" />
                 {allergens.length > 0 && (
                   <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
                     {allergens.map((a) => (

@@ -317,7 +317,9 @@ export async function GET() {
       })
       .filter((p) => p.pricingTiers.length > 0 || p.pricingGrid.length > 0);
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
+    });
   } catch (error) {
     console.error('Error fetching storefront cake products:', error);
     return NextResponse.json(

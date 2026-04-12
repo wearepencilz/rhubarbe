@@ -65,6 +65,15 @@ export function OrderItemsProvider({ children }: { children: React.ReactNode }) 
     hydrate();
   }, [pathname, hydrate]);
 
+  // Cross-tab sync via storage event
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key?.includes('rhubarbe:') && e.key?.includes(':count')) hydrate();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [hydrate]);
+
   return (
     <OrderItemsContext.Provider value={{ orderCount, volumeCount, cakeCount, setOrderCount, setVolumeCount, setCakeCount }}>
       {children}

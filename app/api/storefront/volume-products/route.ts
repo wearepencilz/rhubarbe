@@ -209,7 +209,10 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ products: result, cateringTypeSettings });
+    return NextResponse.json(
+      { products: result, cateringTypeSettings },
+      { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
+    );
   } catch (error) {
     console.error('Error fetching storefront volume products:', error);
     return NextResponse.json(

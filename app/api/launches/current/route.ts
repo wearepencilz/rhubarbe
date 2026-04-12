@@ -215,7 +215,9 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(results);
+    return NextResponse.json(results, {
+      headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30' }
+    });
   } catch (error) {
     console.error('Error fetching current launches:', error);
     return NextResponse.json({ error: 'Failed to fetch current launches' }, { status: 500 });
