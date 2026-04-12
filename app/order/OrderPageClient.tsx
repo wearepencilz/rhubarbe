@@ -1114,9 +1114,14 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
             {/* Pickup date + slot selectors */}
             {launch && (
               <div className="border-t border-white pt-6 mt-6 space-y-3">
+                {/* Est total */}
+                <div className="flex items-center justify-between text-[16px] text-white">
+                  <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
+                  <span className="font-medium">${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}</span>
+                </div>
                 {/* Pickup date row */}
                 <div className="flex items-center justify-between">
-                  <p className="text-[14px] text-white">{isFr ? 'Date de cueillette' : 'Pickup date'}</p>
+                  <p className="text-[14px] text-white">Date</p>
                   {availablePickupDays.length > 1 ? (
                     <select value={selectedPickupDay || ''} onChange={(e) => setSelectedPickupDay(e.target.value)}
                       className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"

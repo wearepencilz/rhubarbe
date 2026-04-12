@@ -12,7 +12,7 @@ import { useAllergenOptions } from '@/app/admin/hooks/useAllergenOptions';
 import { useTaxonomyOptions } from '@/app/admin/hooks/useTaxonomyOptions';
 
 const CATERING_TYPE_OPTIONS = [
-  { id: 'brunch', label: 'Brunch' },
+  { id: 'brunch', label: 'Buffet' },
   { id: 'lunch', label: 'Lunch' },
   { id: 'dinatoire', label: 'Dînatoire' },
 ];

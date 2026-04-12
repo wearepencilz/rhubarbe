@@ -34,7 +34,7 @@ export default function OrderCartPanel({ open, onClose, title, itemCount, childr
           <h2 className="text-[24px] text-white font-medium">
             {title}<sup className="text-[14px] ml-[2px]">({itemCount})</sup>
           </h2>
-          <button onClick={onClose} className="text-[16px] text-white/70 hover:text-white" aria-label="Close">close</button>
+          <button onClick={onClose} className="text-[16px] text-white hover:text-white/70" aria-label="Close">close</button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4 cart-panel-content">
           {children}

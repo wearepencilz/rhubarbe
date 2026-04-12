@@ -6,12 +6,13 @@ import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-state';
 import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
-import dynamic from 'next/dynamic';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
 import { CateringCardSkeleton } from '@/components/ui/OrderPageSkeleton';
-import OrderCartPanel from '@/components/OrderCartPanel';
 
-const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
+const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import OrderCartPanel from '@/components/OrderCartPanel';
+import CartFulfillmentSection from '@/components/CartFulfillmentSection';
+
 
 interface TranslationObject { en: string; fr: string; }
 
@@ -320,6 +321,7 @@ function VolumeInlineCart({
   servesEstimate, onDateChange, onTimeChange, onFulfillmentTypeChange, onAllergenNoteChange,
   onCheckout, onRemoveProduct, onQuantityChange, getTypeConfig, checkoutLoading, checkoutError,
   locale, hasMinViolation, deliveryDisabled, V, latestDateStr,
+  deliveryMinForAnyday, closedPickupDays,
 }: {
   groups: CartGroup[]; totalQuantity: number; subtotal: number;
   fulfillmentDate: string; fulfillmentTime: string;
@@ -336,6 +338,8 @@ function VolumeInlineCart({
   locale: string; hasMinViolation: boolean; deliveryDisabled: boolean;
   V: Record<string, string>;
   latestDateStr: string | null;
+  deliveryMinForAnyday: number;
+  closedPickupDays: number[];
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
@@ -343,26 +347,6 @@ function VolumeInlineCart({
 
   return (
     <div>
-      {/* Earliest date + allergens — above the line */}
-      {maxLeadTimeDays > 0 && (
-        <p className="text-[14px] mb-2">
-          {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
-        </p>
-      )}
-      {totalQuantity > 0 && (() => {
-        const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
-        if (allAllergens.length === 0) return null;
-        return (
-          <div className="flex items-center gap-3 mb-2">
-            <p className="text-[14px] shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
-            <div className="flex flex-wrap gap-1">
-              {allAllergens.map((a) => (
-                <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white">{a}</span>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
       {totalQuantity === 0 ? (
         <div className="py-8 text-center">
           <p className="text-[16px] ">{V.noItems}</p>
@@ -373,7 +357,7 @@ function VolumeInlineCart({
           <div>
             {(() => {
               const TYPE_LABELS: Record<string, Record<string, string>> = {
-                brunch: { en: 'Brunch', fr: 'Brunch' },
+                brunch: { en: 'Buffet', fr: 'Buffet' },
                 lunch: { en: 'Lunch', fr: 'Lunch' },
                 dinatoire: { en: 'Dînatoire', fr: 'Dînatoire' },
               };
@@ -442,69 +426,62 @@ function VolumeInlineCart({
             })()}
           </div>
           <div className="space-y-4 pt-6 mt-6 border-t border-white">
-            {/* Totals */}
-            <div className="space-y-1">
-              {servesEstimate > 0 && (
-                <p className="text-[14px] ">
-                  {isFr ? `Pour environ ${servesEstimate} personnes` : `Serves approx. ${servesEstimate} people`}
-                </p>
-              )}
+            {/* Est total */}
+            <div className="flex items-center justify-between text-[16px]">
+              <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
+              <span className="font-medium">{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '\u2014'}</span>
             </div>
-
-            {/* Fulfillment toggle */}
-            <div>
-              <div className="flex gap-2">
-                {(['pickup', 'delivery'] as const).map((type) => (
-                  <button key={type} type="button"
-                    onClick={() => onFulfillmentTypeChange(type)}
-                    disabled={type === 'delivery' && deliveryDisabled}
-                    className={`flex-1 py-2 text-[14px] rounded-full border transition-colors ${
-                      fulfillmentType === type
-                        ? 'border-white bg-white text-[#0065B6]'
-                        : 'border-white text-white hover:bg-white/10 disabled: disabled:cursor-not-allowed'
-                    }`}
-                  >
-                    {type === 'pickup' ? V.pickup : V.delivery}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Date — label left, input right */}
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-[14px]">{isFr ? 'Date de cueillette' : 'Pickup date'}</p>
-                  {!fulfillmentDate && totalQuantity > 0 && (
-                    <span className="text-[12px]" style={{ color: '#EBE000' }}>{V.noDateError}</span>
-                  )}
+            {/* Earliest pickup */}
+            {maxLeadTimeDays > 0 && (
+              <p className="text-[14px]">
+                {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
+              </p>
+            )}
+            {/* Contains */}
+            {(() => {
+              const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
+              if (allAllergens.length === 0) return null;
+              return (
+                <div className="flex items-center gap-3">
+                  <p className="text-[14px] shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {allAllergens.map((a) => (
+                      <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white">{a}</span>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-[11px] mt-1">
-                  {isFr ? "Pas de cueillette le dimanche" : "No pickup on Sundays"}
-                </p>
-              </div>
-              <DatePickerField
-                value={toDateValue(fulfillmentDate)}
-                minValue={minDateValue ?? today(getLocalTimeZone())}
-                maxValue={maxDateValue ?? undefined}
-                isDateUnavailable={(date: DateValue) => isSundayUnavailable(date.toDate(getLocalTimeZone()))}
-                onChange={(val: DateValue | null) => {
-                  if (val) {
-                    onDateChange(`${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`);
-                  } else { onDateChange(''); }
-                }} />
-            </div>
-            {dateWarning && <p className="text-[12px]" style={{ color: "#EBE000" }} role="alert">{dateWarning}</p>}
+              );
+            })()}
 
-            {/* Allergen note */}
-            <div>
-              <label className="text-[14px]  block mb-1">{V.allergenNote}</label>
-              <textarea value={allergenNote} onChange={(e) => onAllergenNoteChange(e.target.value)} rows={2}
-                className="w-full px-4 py-2 text-[14px] border border-white rounded-lg focus:outline-none transition-colors resize-none bg-transparent text-white placeholder:text-white/30"
-                placeholder={V.allergenPlaceholder} />
-            </div>
-
-            {checkoutError && <p className="text-[12px] text-red-300">{checkoutError}</p>}
+            {/* Fulfillment section */}
+            <CartFulfillmentSection
+              locale={locale}
+              fulfillmentType={fulfillmentType}
+              onFulfillmentTypeChange={onFulfillmentTypeChange}
+              deliveryDisabled={deliveryDisabled}
+              date={fulfillmentDate}
+              onDateChange={onDateChange}
+              dateValue={toDateValue(fulfillmentDate)}
+              minDateValue={minDateValue ?? undefined}
+              maxDateValue={maxDateValue ?? undefined}
+              isDateUnavailable={subtotal >= deliveryMinForAnyday ? undefined : (date: DateValue) => {
+                const d = date.toDate(getLocalTimeZone());
+                return closedPickupDays.includes(d.getDay());
+              }}
+              dateWarning={dateWarning}
+              noDateError={!fulfillmentDate && totalQuantity > 0}
+              noDateErrorText={isFr ? 'Veuillez sélectionner une date' : 'Please select a date'}
+              dateLabel="Date"
+              dateHint={subtotal >= deliveryMinForAnyday ? undefined : (() => {
+                const dayNames = closedPickupDays.map((d) => DAY_LABELS[d]).join(', ');
+                return isFr ? `Pas de cueillette le ${dayNames.toLowerCase()}` : `No pickup on ${dayNames}`;
+              })()}
+              allergenNote={allergenNote}
+              onAllergenNoteChange={onAllergenNoteChange}
+              allergenLabel={V.allergenNote}
+              allergenPlaceholder={V.allergenPlaceholder}
+              checkoutError={checkoutError}
+            />
           </div>
         </>
       )}
@@ -528,6 +505,8 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const [error, setError] = useState<string | null>(null);
   const [cart, setCart] = usePersistedState<Map<string, number>>('rhubarbe:volume:cart', new Map(), mapSerializer);
   const [typeSettings, setTypeSettings] = useState<Record<string, CateringTypeConfig>>({});
+  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState(200000);
+  const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]);
 
   // Clean up orphaned cart entries when products load
   useEffect(() => {
@@ -572,7 +551,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   }, []);
 
   const TYPE_LABELS: Record<string, Record<string, string>> = {
-    brunch: { en: 'Brunch', fr: 'Brunch' },
+    brunch: { en: 'Buffet', fr: 'Buffet' },
     lunch: { en: 'Lunch', fr: 'Lunch' },
     dinatoire: { en: 'Dînatoire', fr: 'Dînatoire' },
   };
@@ -809,9 +788,11 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   useEffect(() => {
     fetch('/api/storefront/volume-products')
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((data: { products: VolumeProduct[]; cateringTypeSettings?: Record<string, CateringTypeConfig> }) => {
+      .then((data: any) => {
         setProducts(data.products ?? data as unknown as VolumeProduct[]);
         if (data.cateringTypeSettings) setTypeSettings(data.cateringTypeSettings);
+        if (data.deliveryMinForAnyday != null) setDeliveryMinForAnyday(data.deliveryMinForAnyday);
+        if (data.closedPickupDays) setClosedPickupDays(data.closedPickupDays);
       })
       .catch(() => setError(V.loadError))
       .finally(() => setLoading(false));
@@ -855,7 +836,10 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                     </h2>
                     {config && min != null && min > 0 && (
                       <p className="text-[14px] mb-2" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                        min {min}{unit ? ` ${unit}` : ''}{inc > 1 ? `, +${inc}` : ''}
+                        {config.orderScope === 'variant'
+                          ? (isFr ? `Minimum ${min} chacun` : `Minimum ${min} each`)
+                          : (isFr ? `Minimum ${min} au choix` : `Minimum ${min} of any`)}
+                        {inc > 1 && (isFr ? `, par multiples de ${inc}` : `, in multiples of ${inc}`)}
                       </p>
                     )}
                     {(() => {
@@ -1046,9 +1030,10 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                       {TYPE_LABELS['dinatoire']?.[locale] ?? 'Dînatoire'}
                     </h2>
                     <p className="text-[14px] mb-2" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                      min {min}{inc > 1 ? `, +${inc}` : ''}
+                      {isFr ? `Minimum ${min} au choix` : `Minimum ${min} of any`}
+                      {inc > 1 && (isFr ? `, par multiples de ${inc}` : `, in multiples of ${inc}`)}
                       {(() => {
-                        const dinatoireTotal = items.reduce((s, p) => s + getTotalQuantity(p, cart), 0);
+                        const dinatoireTotal = dinatoireProducts.reduce((s, p) => s + getTotalQuantity(p, cart), 0);
                         if (dinatoireTotal > 0 && dinatoireTotal < min) {
                           return <span className="ml-3 text-[14px]" style={{ color: '#FC260B' }}>
                             {isFr ? `sélectionnez au moins ${min}` : `select at least ${min}`}
@@ -1087,25 +1072,37 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                           <span className="text-gray-300">|</span>
                         )}
                       </div>
-                      {visibleDietaryTags.map((tag) => {
-                        const isActive = dietaryFilter.includes(tag);
-                        const count = dinatoireProducts.filter((p) => p.dietaryTags?.includes(tag)).length;
+                      {visibleDietaryTags.length > 0 && (() => {
+                        const allActive = dietaryFilter.length === 0;
                         return (
-                          <button key={tag} type="button"
-                            onClick={() => setDietaryFilter((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])}
-                            className="text-[36px] leading-none transition-colors"
-                            style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
-                            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
-                          >
-                            {tag}<sup className="text-[14px] ml-[2px]">{count}</sup>
-                          </button>
+                          <>
+                            <button type="button"
+                              onClick={() => setDietaryFilter([])}
+                              className="text-[36px] leading-none transition-colors"
+                              style={{ color: allActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                              onMouseEnter={(e) => { if (!allActive) e.currentTarget.style.color = '#D49BCB'; }}
+                              onMouseLeave={(e) => { if (!allActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                            >
+                              {isFr ? 'Tout' : 'All'}
+                            </button>
+                            {visibleDietaryTags.map((tag) => {
+                              const isActive = dietaryFilter.length === 1 && dietaryFilter[0] === tag;
+                              const count = dinatoireProducts.filter((p) => p.dietaryTags?.includes(tag)).length;
+                              return (
+                                <button key={tag} type="button"
+                                  onClick={() => setDietaryFilter(isActive ? [] : [tag])}
+                                  className="text-[36px] leading-none transition-colors"
+                                  style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
+                                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
+                                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                                >
+                                  {tag.charAt(0).toUpperCase() + tag.slice(1)}<sup className="text-[14px] ml-[2px]" style={{ verticalAlign: 'super', top: '-0.2em', position: 'relative' }}>({count})</sup>
+                                </button>
+                              );
+                            })}
+                          </>
                         );
-                      })}
-                      {(dietaryFilter.length > 0 || temperatureFilter) && (
-                        <button type="button" onClick={() => { setDietaryFilter([]); setTemperatureFilter(''); }}
-                          className="text-[12px] text-gray-400 hover:text-gray-600">clear</button>
-                      )}
+                      })()}
                     </div>
 
                     {/* Desktop: hot left, cold right */}
@@ -1173,7 +1170,8 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           onQuantityChange={handleQuantityChange}
           getTypeConfig={(g: CartGroup) => typeSettings[g.cateringType] ?? DEFAULT_TYPE_CONFIG}
           checkoutLoading={checkoutLoading} checkoutError={checkoutError}
-          locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr} />
+          locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr}
+          deliveryMinForAnyday={deliveryMinForAnyday} closedPickupDays={closedPickupDays} />
       </OrderCartPanel>
     </main>
   );

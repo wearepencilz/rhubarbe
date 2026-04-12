@@ -88,9 +88,11 @@ input[type="search"]::-webkit-search-cancel-button {
 /* Cart panel overrides — restyle inline cart components inside the blue slide-in */
 .cart-panel-content {
   color: white;
+  font-size: 16px;
 }
 .cart-panel-content * {
   border-color: white !important;
+  font-size: inherit;
 }
 /* Remove white bg/border/rounded from the root cart wrapper */
 .cart-panel-content > div {

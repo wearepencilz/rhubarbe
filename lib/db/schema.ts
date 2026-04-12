@@ -91,7 +91,7 @@ export const products = pgTable('products', {
   volumeUnitLabel: text('volume_unit_label').notNull().default('quantity'), // 'quantity' | 'people'
 
   // Catering-specific fields
-  cateringType: text('catering_type'), // 'brunch' | 'lunch' | 'dinatoire'
+  cateringType: text('catering_type'), // 'brunch' (buffet) | 'lunch' | 'dinatoire'
   cateringDescription: customJsonb<{ en: string; fr: string }>('catering_description'),
   cateringFlavourName: customJsonb<{ en: string; fr: string }>('catering_flavour_name'),
   cateringEndDate: timestamp('catering_end_date'),

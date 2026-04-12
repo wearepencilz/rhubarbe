@@ -607,7 +607,7 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
             <select value={cateringType} onChange={(e) => { setCateringType(e.target.value); markDirty(); }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Select type…</option>
-              <option value="brunch">Brunch</option><option value="lunch">Lunch</option><option value="dinatoire">Dînatoire</option>
+              <option value="brunch">Buffet</option><option value="lunch">Lunch</option><option value="dinatoire">Dînatoire</option>
             </select>
             {!cateringType && <p className="text-xs text-warning-600 mt-1">Type required to apply ordering rules from settings</p>}
           </SectionCard>

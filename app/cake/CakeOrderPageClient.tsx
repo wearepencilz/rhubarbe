@@ -5,13 +5,12 @@ import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
-import dynamic from 'next/dynamic';
 import { getActivePricingTier, resolvePricingGridPrice, getTierDetailForSize } from '@/lib/utils/order-helpers';
 import type { PricingGridRow, CakeTierDetailEntry } from '@/lib/utils/order-helpers';
 import OrderCartPanel from '@/components/OrderCartPanel';
+import CartFulfillmentSection from '@/components/CartFulfillmentSection';
 import { ProductGridSkeleton } from '@/components/ui/OrderPageSkeleton';
 
-const DatePickerField = dynamic(() => import('@/components/ui/DatePickerField'), { ssr: false });
 
 // ── Types ──
 
@@ -96,6 +95,7 @@ interface PersistedCart {
 }
 
 const CART_STORAGE_KEY = 'rhubarbe:cake:cart';
+const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 function saveCart(cart: PersistedCart | null) {
   try {
@@ -500,7 +500,7 @@ function CakeInlineCart({
   selectedFlavourHandles, selectedSize, onSizeChange,
   resolvedSize,
   gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange, sheetCakeAddonIds, onToggleSheetAddon, sheetCakeFlavour, onSheetCakeFlavourChange,
-  gridMinSize, gridMaxSize, blockedDates, latestDateStr,
+  gridMinSize, gridMaxSize, blockedDates, latestDateStr, deliveryMinForAnyday, closedPickupDays,
 }: {
   selectedProduct: CakeProduct | null;
   numberOfPeople: number;
@@ -547,6 +547,8 @@ function CakeInlineCart({
   gridMaxSize: number | null;
   blockedDates: Set<string>;
   latestDateStr: string | null;
+  deliveryMinForAnyday: number;
+  closedPickupDays: number[];
 }) {
   const isFr = locale === 'fr';
   const minDateValue = toDateValue(earliestDateStr);
@@ -702,11 +704,6 @@ function CakeInlineCart({
                 {selectedFlavourNames.join(', ')}
               </p>
             )}
-            {selectedFlavourAllergens.length > 0 && (
-              <p className="text-[12px] mt-0.5">
-                {isFr ? 'peut contenir' : 'may contain'}: {selectedFlavourAllergens.join(', ')}
-              </p>
-            )}
           </div>
 
           {/* 2a. Legacy: Headcount input → resolved price */}
@@ -787,16 +784,6 @@ function CakeInlineCart({
                   </p>
                 )}
               </div>
-
-              {/* Resolved price — show for croquembouche even without flavour, and for others with flavour */}
-              {gridPrice && selectedSize && (isCroq || selectedFlavourHandles.length > 0) && (
-                <div className="flex justify-between text-sm font-semibold">
-                  <span>{selectedSize} {sizeLabel.toLowerCase()}</span>
-                  <span>
-                    ${(gridPrice.priceInCents / 100).toFixed(2)}
-                  </span>
-                </div>
-              )}
 
               {/* Tier detail display */}
               {tierDetail && (
@@ -982,102 +969,85 @@ function CakeInlineCart({
             );
           })()}
 
-          <div>
-            <div className="flex gap-2">
-              {(['pickup', 'delivery'] as const).map((type) => (
-                <button key={type} type="button"
-                  onClick={() => onFulfillmentTypeChange(type)}
-                  disabled={type === 'pickup' && isDeliveryOnly}
-                  className={`flex-1 py-2 text-[14px] rounded-full border transition-colors ${
-                    fulfillmentType === type
-                      ? 'border-white bg-white text-[#0065B6]'
-                      : 'border-white text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
-                  }`}
-                >
-                  {type === 'pickup' ? (isFr ? 'Cueillette' : 'Pickup') : (isFr ? 'Livraison' : 'Delivery')}
-                </button>
-              ))}
-            </div>
+          {/* Est total */}
+          <div className="flex items-center justify-between text-[16px]">
+            <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
+            <span className="font-medium">
+              {(() => {
+                const total = isGridProduct && gridPrice
+                  ? gridPrice.priceInCents + addonTotal
+                  : isTastingProduct && selectedProduct.pricingGrid.length > 0
+                    ? selectedProduct.pricingGrid[0].priceInCents
+                    : calculatedPrice;
+                return total != null && total > 0 ? `$${(total / 100).toFixed(2)}` : '\u2014';
+              })()}
+            </span>
           </div>
 
-          {fulfillmentType === 'delivery' && (
-            <div className="flex flex-col gap-1">
-              <label className="text-[14px]">
-                {isFr ? 'Adresse de livraison' : 'Delivery address'}
-              </label>
-              <textarea value={deliveryAddress}
-                onChange={(e) => onDeliveryAddressChange(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 text-sm border border-white rounded focus:border-white focus:outline-none transition-colors resize-none bg-transparent"
-                placeholder={isFr ? 'Entrez l\'adresse de livraison' : 'Enter delivery address'} />
-            </div>
+          {/* Earliest pickup */}
+          {maxLeadTimeDays > 0 && (
+            <p className="text-[16px]">
+              {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
+            </p>
           )}
-
-          {/* 4. Event date — label left, input right */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-[14px]">{C.date}</p>
-                {!pickupDate && (
-                  <span className="text-[12px]" style={{ color: '#EBE000' }}>{C.noDateError}</span>
-                )}
+          {/* Contains */}
+          {selectedFlavourAllergens.length > 0 && (
+            <div className="flex items-center gap-3">
+              <p className="text-[16px] shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
+              <div className="flex flex-wrap gap-1">
+                {selectedFlavourAllergens.map((a) => (
+                  <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white">{a}</span>
+                ))}
               </div>
-              {maxLeadTimeDays > 0 && (
-                <p className="text-[11px] mt-1">
-                  {isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}{formatDateHuman(earliestDateStr, locale)}
-                </p>
-              )}
-            </div>
-            <DatePickerField
-              value={toDateValue(pickupDate)}
-              minValue={minDateValue ?? today(getLocalTimeZone())}
-              maxValue={maxDateValue ?? undefined}
-              isDateUnavailable={isDateUnavailable}
-              onChange={(val: DateValue | null) => {
-                if (val) {
-                  onDateChange(`${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`);
-                } else { onDateChange(''); }
-              }}
-            />
-          </div>
-          {dateWarning && (
-            <p className="text-[12px]" style={{ color: '#EBE000' }} role="alert">{dateWarning}</p>
-          )}
-
-          {/* 5. Event type */}
-          {((isLegacyProduct && headcountValid) || isGridProduct || isTastingProduct) && (
-            <div className="flex flex-col gap-1">
-              <label className="text-[14px]">
-                {C.eventType}
-              </label>
-              <select value={eventType}
-                onChange={(e) => onEventTypeChange(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-white rounded focus:border-white focus:outline-none transition-colors bg-transparent"
-                aria-label={C.eventType}>
-                <option value="">{C.selectEvent}</option>
-                <option value="birthday">{C.eventOptions.birthday}</option>
-                <option value="wedding">{C.eventOptions.wedding}</option>
-                <option value="corporate">{C.eventOptions.corporate}</option>
-                <option value="other">{C.eventOptions.other}</option>
-              </select>
             </div>
           )}
 
-          {/* 6. Notes */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px]">
-              {C.specialInstructions}
-            </label>
-            <textarea value={specialInstructions}
-              onChange={(e) => onSpecialInstructionsChange(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 text-sm border border-white rounded focus:border-white focus:outline-none transition-colors resize-none bg-transparent"
-              placeholder={C.specialInstructionsPlaceholder} />
-          </div>
-
-          {checkoutError && (
-            <p className="text-[12px] text-[#EBE000]">{checkoutError}</p>
-          )}
+          <CartFulfillmentSection
+            locale={locale}
+            fulfillmentType={fulfillmentType}
+            onFulfillmentTypeChange={onFulfillmentTypeChange}
+            pickupDisabled={isDeliveryOnly}
+            showDeliveryAddress
+            deliveryAddress={deliveryAddress}
+            onDeliveryAddressChange={onDeliveryAddressChange}
+            date={pickupDate}
+            onDateChange={onDateChange}
+            dateValue={toDateValue(pickupDate)}
+            minDateValue={minDateValue ?? undefined}
+            maxDateValue={maxDateValue ?? undefined}
+            isDateUnavailable={(date: DateValue) => {
+              const dateStr = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
+              if (blockedDates.has(dateStr)) return true;
+              const cakeTotal = (isGridProduct && gridPrice ? gridPrice.priceInCents + addonTotal : isTastingProduct && selectedProduct.pricingGrid.length > 0 ? selectedProduct.pricingGrid[0].priceInCents : calculatedPrice) ?? 0;
+              if (cakeTotal >= deliveryMinForAnyday) return false;
+              return closedPickupDays.includes(date.toDate(getLocalTimeZone()).getDay());
+            }}
+            dateWarning={dateWarning}
+            noDateError={!pickupDate}
+            noDateErrorText={isFr ? 'Veuillez sélectionner une date' : 'Please select a date'}
+            dateLabel="Date"
+            dateHint={(() => {
+              const cakeTotal = (isGridProduct && gridPrice ? gridPrice.priceInCents + addonTotal : isTastingProduct && selectedProduct.pricingGrid.length > 0 ? selectedProduct.pricingGrid[0].priceInCents : calculatedPrice) ?? 0;
+              if (cakeTotal >= deliveryMinForAnyday) {
+                return maxLeadTimeDays > 0 ? `${isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}${formatDateHuman(earliestDateStr, locale)}` : undefined;
+              }
+              const dayNames = closedPickupDays.map((d) => DAY_LABELS[d]).join(', ');
+              const closedHint = isFr ? `Pas de cueillette le ${dayNames.toLowerCase()}` : `No pickup on ${dayNames}`;
+              const earliestHint = maxLeadTimeDays > 0 ? `${isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}${formatDateHuman(earliestDateStr, locale)}` : '';
+              return [closedHint, earliestHint].filter(Boolean).join('. ');
+            })()}
+            showEventType={((isLegacyProduct && headcountValid) || isGridProduct || isTastingProduct)}
+            eventType={eventType}
+            onEventTypeChange={onEventTypeChange}
+            eventTypeLabel={C.eventType}
+            eventOptions={C.eventOptions}
+            selectEventText={C.selectEvent}
+            specialInstructions={specialInstructions}
+            onSpecialInstructionsChange={onSpecialInstructionsChange}
+            specialInstructionsLabel={C.specialInstructions}
+            specialInstructionsPlaceholder={C.specialInstructionsPlaceholder}
+            checkoutError={checkoutError}
+          />
 
         </div>
       )}
@@ -1122,6 +1092,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
+  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState(200000);
+  const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]);
   const [showMobileCart, setShowMobileCart] = useState(false);
 
   // Listen for blue sidebar tab click
@@ -1144,7 +1116,11 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
-      .then((data) => { if (data.brandColor) setBrandColor(data.brandColor); })
+      .then((data) => {
+        if (data.brandColor) setBrandColor(data.brandColor);
+        if (data.deliveryMinForAnyday != null) setDeliveryMinForAnyday(data.deliveryMinForAnyday);
+        if (data.closedPickupDays) setClosedPickupDays(data.closedPickupDays);
+      })
       .catch(() => {});
   }, []);
 
@@ -1673,6 +1649,8 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     gridMaxSize,
     blockedDates,
     latestDateStr,
+    deliveryMinForAnyday,
+    closedPickupDays,
   };
 
   // Mobile bottom bar price
@@ -1687,13 +1665,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
         {/* Left: Products */}
         <div>
-          <h1 className="text-2xl uppercase tracking-widest mb-2"
-            style={{ fontWeight: 500 }}>
+          <h1 className="text-[48px] leading-none mb-8" style={{ color: '#1A3821' }}>
             {pageTitle}
           </h1>
-          <p className="text-sm text-gray-500 mb-10 max-w-xl">
-            {pageSubtitle}
-          </p>
 
           {loading && (
             <ProductGridSkeleton />
@@ -1704,22 +1678,40 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
               <p className="text-[16px]">{C.noProducts}</p>
             </div>
           )}
-          {!loading && !error && products.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
-              {products.filter((p) => !isAddonProduct(p, products)).map((product) => {
-                const isSelected = selectedProductId === product.id;
-                return (
-                  <CakeProductCard key={product.id} product={product} locale={locale}
-                    isSelected={isSelected}
-                    onSelect={handleSelectProduct} brandColor={brandColor}
-                    numberOfPeople={numberOfPeople} C={C}
-                    selectedFlavourHandles={isSelected ? selectedFlavourHandles : []}
-                    onToggleFlavour={handleToggleFlavour}
-                    earliestDateStr={earliestDateStr} />
-                );
-              })}
-            </div>
-          )}
+          {!loading && !error && products.length > 0 && (() => {
+            const displayProducts = products.filter((p) => !isAddonProduct(p, products));
+            const regularCakes = displayProducts.filter((p) => !isTasting(p));
+            const tastingCakes = displayProducts.filter((p) => isTasting(p));
+            const renderCard = (product: CakeProduct) => {
+              const isSelected = selectedProductId === product.id;
+              return (
+                <CakeProductCard key={product.id} product={product} locale={locale}
+                  isSelected={isSelected}
+                  onSelect={handleSelectProduct} brandColor={brandColor}
+                  numberOfPeople={numberOfPeople} C={C}
+                  selectedFlavourHandles={isSelected ? selectedFlavourHandles : []}
+                  onToggleFlavour={handleToggleFlavour}
+                  earliestDateStr={earliestDateStr} />
+              );
+            };
+            return (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
+                  {regularCakes.map(renderCard)}
+                </div>
+                {tastingCakes.length > 0 && (
+                  <div className="mt-12">
+                    <h2 className="text-[40px] leading-none mb-6" style={{ color: '#1A3821' }}>
+                      {isFr ? 'Dégustation' : 'Tasting'}
+                    </h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
+                      {tastingCakes.map(renderCard)}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
       {/* Cake cart slide-in panel */}

@@ -30,7 +30,7 @@ const STATUS_COLOR: Record<string, 'success' | 'gray' | 'warning' | 'error'> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  brunch: 'Brunch',
+  brunch: 'Buffet',
   lunch: 'Lunch',
   dinatoire: 'Dînatoire',
 };
@@ -234,7 +234,7 @@ export default function VolumeProductsPage() {
             </div>
             <div className="p-6 space-y-3">
               {[
-                { value: 'brunch', label: 'Brunch' },
+                { value: 'brunch', label: 'Buffet' },
                 { value: 'lunch', label: 'Lunch' },
                 { value: 'dinatoire', label: 'Dînatoire' },
               ].map((opt) => (

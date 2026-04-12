@@ -33,7 +33,7 @@ const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 const CATERING_TYPES = ['brunch', 'lunch', 'dinatoire'] as const;
 
 const DEFAULT_CONFIGS: Record<string, CateringTypeConfig> = {
-  brunch: { label: { en: 'Brunch', fr: 'Brunch' }, orderScope: 'variant', orderMinimum: 12, variantMinimum: 12, increment: 6, unitLabel: 'quantity', maxAdvanceDays: null, leadTimeTiers: [] },
+  brunch: { label: { en: 'Buffet', fr: 'Buffet' }, orderScope: 'variant', orderMinimum: 12, variantMinimum: 12, increment: 6, unitLabel: 'quantity', maxAdvanceDays: null, leadTimeTiers: [] },
   lunch: { label: { en: 'Lunch', fr: 'Lunch' }, orderScope: 'order', orderMinimum: 6, variantMinimum: 0, increment: 1, unitLabel: 'people', maxAdvanceDays: null, leadTimeTiers: [] },
   dinatoire: { label: { en: 'Dînatoire', fr: 'Dînatoire' }, orderScope: 'order', orderMinimum: 3, variantMinimum: 0, increment: 1, unitLabel: 'people', maxAdvanceDays: null, leadTimeTiers: [] },
 };
@@ -45,6 +45,8 @@ export default function CateringSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [typeConfigs, setTypeConfigs] = useState<Record<string, CateringTypeConfig>>({});
+  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState<number>(200000); // cents, default $2000
+  const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]); // default Sunday
 
   useEffect(() => {
     Promise.all([
@@ -54,6 +56,8 @@ export default function CateringSettingsPage() {
       .then(([locs, settings]) => {
         setLocations(locs);
         setSelectedLocationId(settings.cateringPickupLocationId || '');
+        if (settings.deliveryMinForAnyday != null) setDeliveryMinForAnyday(settings.deliveryMinForAnyday);
+        if (settings.closedPickupDays) setClosedPickupDays(settings.closedPickupDays);
         // Merge saved configs with defaults
         const saved = (settings.cateringTypeSettings ?? {}) as Record<string, Partial<CateringTypeConfig>>;
         const merged: Record<string, CateringTypeConfig> = {};
@@ -80,6 +84,8 @@ export default function CateringSettingsPage() {
           ...current,
           cateringPickupLocationId: selectedLocationId || null,
           cateringTypeSettings: typeConfigs,
+          deliveryMinForAnyday,
+          closedPickupDays,
         }),
       });
       if (res.ok) toast.success('Settings saved');
@@ -167,6 +173,33 @@ export default function CateringSettingsPage() {
         )}
       </div>
 
+      {/* Delivery & Calendar Settings */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 mb-6">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Delivery & Calendar</h2>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Closed pickup days</label>
+          <p className="text-xs text-gray-400 mb-2">Days when pickup is not available. These are blocked on the calendar.</p>
+          <div className="flex flex-wrap gap-2">
+            {DAY_LABELS.map((label, i) => (
+              <button key={i} type="button"
+                onClick={() => setClosedPickupDays((prev) => prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i])}
+                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${closedPickupDays.includes(i) ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Delivery minimum for any-day delivery ($)</label>
+          <p className="text-xs text-gray-400 mb-2">When the cart total exceeds this amount, all days become available (closed days are unblocked).</p>
+          <input type="number" min={0} step={1}
+            value={deliveryMinForAnyday / 100}
+            onChange={(e) => setDeliveryMinForAnyday(Math.round(parseFloat(e.target.value || '0') * 100))}
+            className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        </div>
+      </div>
       {/* Per-type settings */}
       {CATERING_TYPES.map((type) => {
         const config = typeConfigs[type];
