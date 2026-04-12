@@ -45,8 +45,7 @@ export default function CateringSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [typeConfigs, setTypeConfigs] = useState<Record<string, CateringTypeConfig>>({});
-  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState<number>(200000); // cents, default $2000
-  const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]); // default Sunday
+  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState<number>(200000);
 
   useEffect(() => {
     Promise.all([
@@ -57,7 +56,6 @@ export default function CateringSettingsPage() {
         setLocations(locs);
         setSelectedLocationId(settings.cateringPickupLocationId || '');
         if (settings.deliveryMinForAnyday != null) setDeliveryMinForAnyday(settings.deliveryMinForAnyday);
-        if (settings.closedPickupDays) setClosedPickupDays(settings.closedPickupDays);
         // Merge saved configs with defaults
         const saved = (settings.cateringTypeSettings ?? {}) as Record<string, Partial<CateringTypeConfig>>;
         const merged: Record<string, CateringTypeConfig> = {};
@@ -85,7 +83,6 @@ export default function CateringSettingsPage() {
           cateringPickupLocationId: selectedLocationId || null,
           cateringTypeSettings: typeConfigs,
           deliveryMinForAnyday,
-          closedPickupDays,
         }),
       });
       if (res.ok) toast.success('Settings saved');
@@ -173,27 +170,14 @@ export default function CateringSettingsPage() {
         )}
       </div>
 
-      {/* Delivery & Calendar Settings */}
+      {/* Delivery Settings */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 mb-6">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Delivery & Calendar</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Delivery</h2>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Closed pickup days</label>
-          <p className="text-xs text-gray-400 mb-2">Days when pickup is not available. These are blocked on the calendar.</p>
-          <div className="flex flex-wrap gap-2">
-            {DAY_LABELS.map((label, i) => (
-              <button key={i} type="button"
-                onClick={() => setClosedPickupDays((prev) => prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i])}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${closedPickupDays.includes(i) ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Delivery minimum for any-day delivery ($)</label>
-          <p className="text-xs text-gray-400 mb-2">When the cart total exceeds this amount, all days become available (closed days are unblocked).</p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Minimum for any-day delivery ($)</label>
+          <p className="text-xs text-gray-400 mb-2">When the cart total exceeds this amount, all days become available (closed days from the pickup location are unblocked).</p>
           <input type="number" min={0} step={1}
             value={deliveryMinForAnyday / 100}
             onChange={(e) => setDeliveryMinForAnyday(Math.round(parseFloat(e.target.value || '0') * 100))}

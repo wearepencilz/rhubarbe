@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { products } from '@/lib/db/schema';
+import { products, pickupLocations } from '@/lib/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { shopifyFetch } from '@/lib/shopify/client';
 import { isTaxOption } from '@/lib/tax/constants';
@@ -16,8 +16,17 @@ import * as settingsQueries from '@/lib/db/queries/settings';
  */
 export async function GET() {
   try {
-    const allSettings = await settingsQueries.getAll();
+    const allSettings = await settingsQueries.getAll() as any;
     const cateringTypeSettings = allSettings.cateringTypeSettings ?? {};
+
+    // Fetch closed days from the assigned pickup location
+    let closedPickupDays: number[] = [];
+    const locationId = allSettings.cateringPickupLocationId;
+    if (locationId) {
+      const [loc] = await db.select({ disabledPickupDays: pickupLocations.disabledPickupDays })
+        .from(pickupLocations).where(eq(pickupLocations.id, locationId)).limit(1);
+      if (loc?.disabledPickupDays) closedPickupDays = loc.disabledPickupDays;
+    }
 
     const volumeProducts = await db
       .select({
@@ -210,7 +219,7 @@ export async function GET() {
     });
 
     return NextResponse.json(
-      { products: result, cateringTypeSettings, deliveryMinForAnyday: allSettings.deliveryMinForAnyday ?? 200000, closedPickupDays: allSettings.closedPickupDays ?? [0] },
+      { products: result, cateringTypeSettings, deliveryMinForAnyday: allSettings.deliveryMinForAnyday ?? 200000, closedPickupDays },
       { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
     );
   } catch (error) {

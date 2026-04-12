@@ -14,6 +14,7 @@ interface VolumeProduct {
   id: string;
   name: string;
   image: string | null;
+  serves: number | null;
   volumeEnabled: boolean;
   status: string | null;
   cateringType: string | null;
@@ -132,6 +133,7 @@ export default function VolumeProductsPage() {
         <Table aria-label={`${label} Catering Products`}>
           <Table.Header>
             <Table.Head isRowHeader label="Product" />
+            <Table.Head label="Serves" />
             <Table.Head label="Dietary" />
             <Table.Head label="Temperature" />
             <Table.Head label="Status" />
@@ -156,6 +158,7 @@ export default function VolumeProductsPage() {
                     </div>
                   </div>
                 </Table.Cell>
+                <Table.Cell><span className="text-sm text-primary">{product.serves || '—'}</span></Table.Cell>
                 <Table.Cell>
                   <div className="flex flex-wrap gap-1">
                     {(product.dietaryTags ?? []).map((t) => (

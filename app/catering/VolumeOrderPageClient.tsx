@@ -390,7 +390,7 @@ function VolumeInlineCart({
                       const typeServes = typeGroups.reduce((s, g) => s + g.totalQty * (g.servesPerUnit ?? 0), 0);
                       return typeServes > 0 ? (
                         <p className="text-[12px] mb-2" style={{ opacity: 0.6 }}>
-                          {isFr ? `≈ ${typeServes} personnes` : `≈ ${typeServes} people`}
+                          {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
                         </p>
                       ) : null;
                     })()}

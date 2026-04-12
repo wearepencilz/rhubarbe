@@ -27,6 +27,7 @@ export async function listVolumeProducts() {
       id: products.id,
       name: products.name,
       image: products.image,
+      serves: products.servesPerUnit,
       volumeMinOrderQuantity: products.volumeMinOrderQuantity,
       volumeEnabled: products.volumeEnabled,
       status: products.status,

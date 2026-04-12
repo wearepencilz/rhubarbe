@@ -23,6 +23,17 @@ export default function AdminLayout({
     }
   }, [status, router, isLoginPage]);
 
+  // Prevent scroll-to-change on number inputs
+  useEffect(() => {
+    const handler = (e: WheelEvent) => {
+      if ((e.target as HTMLElement)?.matches('input[type="number"]')) {
+        (e.target as HTMLElement).blur();
+      }
+    };
+    document.addEventListener('wheel', handler, { passive: true });
+    return () => document.removeEventListener('wheel', handler);
+  }, []);
+
   if (isLoginPage) {
     return <>{children}</>;
   }
