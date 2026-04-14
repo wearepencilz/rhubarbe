@@ -36,7 +36,7 @@ export async function getByCategory(category: string) {
  */
 export async function create(
   category: string,
-  data: { label: string; value: string; description?: string; sortOrder?: number; archived?: boolean }
+  data: { label: string; value: string; description?: string; sortOrder?: number; archived?: boolean; translations?: { fr?: string } }
 ) {
   // If no sortOrder provided, put it at the end
   let sortOrder = data.sortOrder;
@@ -55,6 +55,7 @@ export async function create(
       label: data.label,
       value: data.value,
       description: data.description ?? null,
+      translations: data.translations ?? null,
       sortOrder,
       archived: data.archived ?? false,
     })

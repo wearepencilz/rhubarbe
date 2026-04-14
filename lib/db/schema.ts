@@ -392,6 +392,7 @@ export const taxonomyValues = pgTable('taxonomy_values', {
   label: text('label').notNull(),
   value: text('value').notNull(),
   description: text('description'),
+  translations: customJsonb<{ fr?: string }>('translations'),
   sortOrder: integer('sort_order').notNull().default(0),
   archived: boolean('archived').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),

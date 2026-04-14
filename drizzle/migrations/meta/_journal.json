@@ -176,6 +176,13 @@
       "when": 1775575200000,
       "tag": "0024_add_cake_max_people",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1776208542465,
+      "tag": "0025_safe_captain_flint",
+      "breakpoints": true
     }
   ]
 }

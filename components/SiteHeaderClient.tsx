@@ -8,6 +8,8 @@ import { useCart } from '@/contexts/CartContext';
 import SiteNav from '@/components/SiteNav';
 import MobileMenu from '@/components/MobileMenu';
 
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
 interface SiteHeaderClientProps {
   logo: string;
   companyName: string;
@@ -91,9 +93,12 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
 
           {/* Right: Address + Hours (desktop) */}
           <div className="hidden md:flex items-center text-[16px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
+            <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#B1CB00' }} />
             <span>1320 rue charlevoix</span>
             <span className="mx-2">|</span>
             <span>9h-12h</span>
+            <span className="mx-2">|</span>
+            <LanguageSwitcher color="#1A3821" />
           </div>
 
           {/* Mobile hamburger / X */}

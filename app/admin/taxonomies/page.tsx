@@ -11,6 +11,7 @@ interface TaxonomyValue {
   label: string;
   value: string;
   description?: string;
+  translations?: { fr?: string };
   sortOrder: number;
   archived: boolean;
 }
@@ -52,7 +53,7 @@ export default function TaxonomiesPage() {
   const [taxonomies, setTaxonomies] = useState<Record<string, TaxonomyValue[]>>({});
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ label: '', description: '' });
+  const [editForm, setEditForm] = useState({ label: '', description: '', frLabel: '' });
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ label: '', description: '' });
   const [saving, setSaving] = useState(false);
@@ -107,7 +108,7 @@ export default function TaxonomiesPage() {
       const response = await fetch(`/api/settings/taxonomies/${activeTab}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({ label: editForm.label, description: editForm.description, translations: { fr: editForm.frLabel || undefined } }),
       });
       if (!response.ok) throw new Error((await response.json()).error || 'Failed to update');
       await fetchTaxonomies();
@@ -241,6 +242,7 @@ export default function TaxonomiesPage() {
                       {editingId === value.id ? (
                         <div className="space-y-3">
                           <Input value={editForm.label} onChange={(v) => setEditForm({ ...editForm, label: v })} />
+                          <Input value={editForm.frLabel} onChange={(v) => setEditForm({ ...editForm, frLabel: v })} placeholder="French label (optional)" />
                           <Input value={editForm.description} onChange={(v) => setEditForm({ ...editForm, description: v })} placeholder="Description (optional)" />
                           <div className="flex items-center gap-3">
                             <button
@@ -259,13 +261,14 @@ export default function TaxonomiesPage() {
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900">{value.label}</p>
+                            {value.translations?.fr && <p className="text-xs text-gray-500 mt-0.5">fr: {value.translations.fr}</p>}
                             {value.description && <p className="text-xs text-gray-500 mt-0.5">{value.description}</p>}
                             <p className="text-xs text-gray-400 mt-0.5 font-mono">{value.value}</p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <button
                               type="button"
-                              onClick={() => { setEditingId(value.id); setEditForm({ label: value.label, description: value.description || '' }); }}
+                              onClick={() => { setEditingId(value.id); setEditForm({ label: value.label, description: value.description || '', frLabel: value.translations?.fr || '' }); }}
                               className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded"
                               title="Edit"
                             >

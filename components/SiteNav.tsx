@@ -16,7 +16,7 @@ export default function SiteNav() {
   } as const;
 
   const items = [
-    { href: '/order', label: 'menu', count: orderCount },
+    { href: '/order', label: 'weekly menu', count: orderCount },
     { href: '/catering', label: 'catering', count: volumeCount },
     { href: '/cake', label: 'cakes', count: cakeCount },
     { href: '/stories', label: 'stories', count: 0 },
@@ -27,9 +27,6 @@ export default function SiteNav() {
       {items.map((item) => (
         <Link key={item.href} href={item.href} className="hover:opacity-60 transition-opacity relative">
           {item.label}
-          {item.count > 0 && (
-            <sup className="text-[10px] opacity-50 ml-[1px]">({item.count})</sup>
-          )}
         </Link>
       ))}
     </nav>

@@ -56,6 +56,16 @@ body {
     font-kerning: normal;
 }
 
+/* Interactive elements should always show pointer cursor */
+button,
+[role="button"],
+a,
+select,
+summary,
+label[for] {
+    cursor: pointer;
+}
+
 /* Hide the default expand arrow on Safari.  */
 details summary::-webkit-details-marker {
     display: none;

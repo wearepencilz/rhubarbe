@@ -8,6 +8,7 @@ import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
 import { CateringCardSkeleton } from '@/components/ui/OrderPageSkeleton';
+import CateringHeader from './CateringHeader';
 
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 import OrderCartPanel from '@/components/OrderCartPanel';
@@ -165,6 +166,7 @@ function VolumeProductCard({
   const showOverlay = hasItems || hovered;
 
   const allergens = product.allergens ?? [];
+  const tempTag = product.cateringType === 'dinatoire' ? product.temperatureTags?.find((t) => ['hot', 'cold', 'chaud', 'froid'].includes(t.toLowerCase())) : undefined;
 
   return (
     <div className="flex flex-col"
@@ -187,18 +189,33 @@ function VolumeProductCard({
                 ))}
               </div>
             )}
+            {tempTag && (
+              <div className="absolute top-4 right-4 z-10">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{tempTag}</span>
+              </div>
+            )}
           </>
         )}
         {/* State 2: Pink overlay with white badges + controls */}
         {showOverlay && (
-          <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-between p-4">
-            {allergens.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {allergens.map((a) => (
-                  <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
-                ))}
+          <div className="w-full h-full bg-[#0065B6] flex flex-col justify-between p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                {allergens.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {allergens.map((a) => (
+                      <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
+                    ))}
+                  </div>
+                )}
+                {product.shortCardCopy && (
+                  <p className="text-[16px] text-white" style={{ marginTop: allergens.length > 0 ? 16 : 0 }}>{product.shortCardCopy}</p>
+                )}
               </div>
-            ) : <div />}
+              {tempTag && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white shrink-0">{tempTag}</span>
+              )}
+            </div>
             <div className="flex flex-col gap-2">
               {hasItems ? (
                 <>
@@ -237,14 +254,14 @@ function VolumeProductCard({
               ) : product.variants.length === 0 ? (
                 <button type="button"
                   onClick={() => onQuantityChange(product.id, smartIncrement(0))}
-                  className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/20">
-                  {isFr ? '+ Ajouter' : '+ Add'}
+                  className="w-full h-10 rounded-full bg-white text-[16px] text-[#0065B6] font-medium hover:bg-white/90">
+                  {isFr ? 'Ajouter' : 'Add'}
                 </button>
               ) : (
                 <button type="button"
                   onClick={() => handleVariantQtyChange(product.variants[0].id, smartIncrement(0))}
-                  className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/20">
-                  {isFr ? '+ Ajouter' : '+ Add'}
+                  className="w-full h-10 rounded-full bg-white text-[16px] text-[#0065B6] font-medium hover:bg-white/90">
+                  {isFr ? 'Ajouter' : 'Add'}
                 </button>
               )}
             </div>
@@ -253,11 +270,11 @@ function VolumeProductCard({
       </div>
 
       <div className="flex flex-col pt-2.5 gap-0.5">
-        <h3 className="text-[16px] leading-tight" style={{ fontWeight: 500 }}>
+        <h3 className="text-[16px] leading-tight" style={{ fontWeight: 500, color: '#1A3821' }}>
           {displayName}
         </h3>
         {product.price != null && product.price > 0 && (
-          <span className="text-[16px] text-gray-500">
+          <span className="text-[16px]" style={{ color: '#1A3821' }}>
             ${(product.price / 100).toFixed(2)}
           </span>
         )}
@@ -269,13 +286,13 @@ function VolumeProductCard({
           <button type="button"
             onClick={() => onQuantityChange(product.id, smartIncrement(0))}
             className="w-full h-8 border border-gray-300 text-[16px] font-medium hover:bg-gray-50 transition-colors">
-            {isFr ? '+ Ajouter' : '+ Add'}
+            {isFr ? 'Ajouter' : 'Add'}
           </button>
         ) : !hasItems && product.variants.length > 0 ? (
           <button type="button"
             onClick={() => handleVariantQtyChange(product.variants[0].id, smartIncrement(0))}
             className="w-full h-8 border border-gray-300 text-[16px] font-medium hover:bg-gray-50 transition-colors">
-            {isFr ? '+ Ajouter' : '+ Add'}
+            {isFr ? 'Ajouter' : 'Add'}
           </button>
         ) : (
           <div className="space-y-1.5">
@@ -533,20 +550,21 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
 
   // Filters — from taxonomy API
   const [dietaryFilter, setDietaryFilter] = useState<string[]>([]);
-  const [temperatureFilter, setTemperatureFilter] = useState<string>('');
-  const [availableDietaryTags, setAvailableDietaryTags] = useState<string[]>([]);
-  const [availableTemperatureTags, setAvailableTemperatureTags] = useState<string[]>([]);
+  const [activeType, setActiveType] = useState<string>('');
+  const [temperatureFilter, setTemperatureFilter] = useState<string[]>([]);
+  const [availableDietaryTags, setAvailableDietaryTags] = useState<Array<{ value: string; label: string; fr?: string }>>([]);
+  const [availableTemperatureTags, setAvailableTemperatureTags] = useState<Array<{ value: string; label: string; fr?: string }>>([]);
 
   useEffect(() => {
     fetch('/api/settings/taxonomies/cateringDietary')
       .then((r) => r.ok ? r.json() : { values: [] })
-      .then((data: { values?: Array<{ value: string; archived?: boolean }> }) => {
-        setAvailableDietaryTags((data.values ?? []).filter((d) => !d.archived).map((d) => d.value));
+      .then((data: { values?: Array<{ value: string; label: string; archived?: boolean; translations?: { fr?: string } }> }) => {
+        setAvailableDietaryTags((data.values ?? []).filter((d) => !d.archived).map((d) => ({ value: d.value, label: d.label, fr: d.translations?.fr })));
       }).catch(() => {});
     fetch('/api/settings/taxonomies/cateringTemperature')
       .then((r) => r.ok ? r.json() : { values: [] })
-      .then((data: { values?: Array<{ value: string; archived?: boolean }> }) => {
-        setAvailableTemperatureTags((data.values ?? []).filter((d) => !d.archived).map((d) => d.value));
+      .then((data: { values?: Array<{ value: string; label: string; archived?: boolean; translations?: { fr?: string } }> }) => {
+        setAvailableTemperatureTags((data.values ?? []).filter((d) => !d.archived).map((d) => ({ value: d.value, label: d.label, fr: d.translations?.fr })));
       }).catch(() => {});
   }, []);
 
@@ -564,16 +582,16 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
 
   // Only show filter tags that exist on at least one dinatoire product
   const dinatoireProducts = useMemo(() => filteredProducts.filter((p) => p.cateringType === 'dinatoire'), [filteredProducts]);
-  const visibleDietaryTags = useMemo(() => availableDietaryTags.filter((tag) => dinatoireProducts.some((p) => p.dietaryTags?.includes(tag))), [availableDietaryTags, dinatoireProducts]);
-  const visibleTemperatureTags = useMemo(() => availableTemperatureTags.filter((tag) => dinatoireProducts.some((p) => p.temperatureTags?.includes(tag))), [availableTemperatureTags, dinatoireProducts]);
+  const visibleDietaryTags = useMemo(() => availableDietaryTags.filter((tag) => dinatoireProducts.some((p) => p.dietaryTags?.includes(tag.value))), [availableDietaryTags, dinatoireProducts]);
+  const visibleTemperatureTags = useMemo(() => availableTemperatureTags.filter((tag) => dinatoireProducts.some((p) => p.temperatureTags?.includes(tag.value))), [availableTemperatureTags, dinatoireProducts]);
 
   const filteredDinatoireProducts = useMemo(() => {
     let result = dinatoireProducts;
     if (dietaryFilter.length > 0) {
       result = result.filter((p) => dietaryFilter.some((tag) => p.dietaryTags?.includes(tag)));
     }
-    if (temperatureFilter) {
-      result = result.filter((p) => p.temperatureTags?.includes(temperatureFilter));
+    if (temperatureFilter.length) {
+      result = result.filter((p) => temperatureFilter.some((tag) => p.temperatureTags?.includes(tag)));
     }
     return result;
   }, [dinatoireProducts, dietaryFilter, temperatureFilter]);
@@ -593,6 +611,34 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   }, [filteredProducts, filteredDinatoireProducts]);
 
   const hasGroups = useMemo(() => TYPE_ORDER.some((t) => groupedProducts[t].length > 0), [groupedProducts]);
+
+  const headerTypes = useMemo(() => {
+    return TYPE_ORDER
+      .filter((t) => (t === 'dinatoire' ? dinatoireProducts.length > 0 : (groupedProducts[t]?.length ?? 0) > 0))
+      .map((t) => {
+        const allItems = t === 'dinatoire' ? dinatoireProducts : (groupedProducts[t] ?? []);
+        const subs = visibleDietaryTags
+          .filter((tag) => allItems.some((p) => p.dietaryTags?.includes(tag.value)))
+          .map((tag) => {
+            // Count products matching this dietary tag AND the current temperature filter
+            const pool = temperatureFilter.length
+              ? allItems.filter((p) => temperatureFilter.some((tf) => p.temperatureTags?.includes(tf)))
+              : allItems;
+            return { value: tag.value, label: isFr && tag.fr ? tag.fr : tag.label, count: pool.filter((p) => p.dietaryTags?.includes(tag.value)).length };
+          });
+        return { key: t, label: TYPE_LABELS[t]?.[locale] ?? t, count: allItems.length, subFilters: t === 'dinatoire' && subs.length > 1 ? subs : [], config: typeSettings[t] ?? null };
+      });
+  }, [groupedProducts, dinatoireProducts, visibleDietaryTags, typeSettings, locale, temperatureFilter]);
+
+  useEffect(() => { if (!activeType && headerTypes.length > 0) setActiveType(headerTypes[0].key); }, [headerTypes, activeType]);
+
+  const activeProducts = useMemo(() => {
+    if (!activeType) return [];
+    let all = activeType === 'dinatoire' ? dinatoireProducts : (groupedProducts[activeType] ?? []);
+    if (dietaryFilter.length) all = all.filter((p) => dietaryFilter.some((tag) => p.dietaryTags?.includes(tag)));
+    if (temperatureFilter.length) all = all.filter((p) => temperatureFilter.some((tag) => p.temperatureTags?.includes(tag)));
+    return all;
+  }, [activeType, groupedProducts, dinatoireProducts, dietaryFilter, temperatureFilter]);
 
   // Report count — moved after cartGroups declaration
   
@@ -811,336 +857,56 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
           )}
           {!loading && !error && products.length > 0 && (
             <>
-              {/* Brunch & Lunch — side by side on desktop */}
-              <div className="md:grid md:grid-cols-2 md:gap-8 mb-12">
-              {['brunch', 'lunch'].map((type) => {
-                const items = groupedProducts[type];
-                if (items.length === 0) return null;
-                const config = typeSettings[type];
-                const min = config?.orderScope === 'variant' ? config?.variantMinimum : config?.orderMinimum;
-                const inc = config?.increment || 1;
-                const unit = config?.unitLabel === 'people' ? (isFr ? 'pers.' : 'people') : '';
-                const smartInc = (cur: number) => {
-                  if (config?.orderScope === 'variant' && cur === 0) return config?.variantMinimum || inc;
-                  return cur + inc;
-                };
-                const smartDec = (cur: number) => {
-                  const n = cur - inc;
-                  if (config?.orderScope === 'variant' && n < (config?.variantMinimum ?? 0)) return 0;
-                  return n < 0 ? 0 : n;
-                };
-                return (
-                  <div key={type}>
-                    <h2 className="text-[40px] leading-none mb-2" style={{ color: '#1A3821' }}>
-                      {TYPE_LABELS[type]?.[locale] ?? type}
-                    </h2>
-                    {config && min != null && min > 0 && (
-                      <p className="text-[14px] mb-2" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                        {config.orderScope === 'variant'
-                          ? (isFr ? `Minimum ${min} chacun` : `Minimum ${min} each`)
-                          : (isFr ? `Minimum ${min} au choix` : `Minimum ${min} of any`)}
-                        {inc > 1 && (isFr ? `, par multiples de ${inc}` : `, in multiples of ${inc}`)}
-                      </p>
-                    )}
-                    {(() => {
-                      const typeServes = items.reduce((s, p) => {
-                        const qty = getTotalQuantity(p, cart);
-                        return s + qty * (p.servesPerUnit ?? 0);
-                      }, 0);
-                      return typeServes > 0 ? (
-                        <p className="text-[14px] mb-4" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                          {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
-                        </p>
-                      ) : <div className="mb-4" />;
-                    })()}
-                    {items.map((product) => {
-                      const name = (isFr ? product.translations?.fr?.title : null) || product.title || product.name;
-                      const allergens = (product.allergens ?? []);
-                      const price = product.price;
-                      const hasVariants = product.variants.length > 1;
-                      return (
-                        <div key={product.id}>
-                          {hasVariants ? product.variants.map((v) => {
-                            const qty = cart.get(v.id) ?? 0;
-                            const vLabel = tr(v.label, locale);
-                            return (
-                              <div key={v.id} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-[14px]" style={{ color: '#1A3821' }}>{name}</span>
-                                  <span className="text-[12px] ml-1.5" style={{ color: 'rgba(26,56,33,0.4)' }}>{vLabel}</span>
-                                  {allergens.map((a) => (
-                                    <span key={a} className="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium ml-1.5 border border-gray-200 text-gray-400">{a}</span>
-                                  ))}
-                                </div>
-                                {(v.price ?? price) != null && (v.price ?? price)! > 0 && (
-                                  <span className="text-[13px] shrink-0" style={{ color: 'rgba(26,56,33,0.4)' }}>${((v.price ?? price)! / 100).toFixed(2)}</span>
-                                )}
-                                {qty === 0 ? (
-                                  <button type="button" onClick={() => handleQuantityChange(v.id, smartInc(0))}
-                                    className="w-[76px] h-6 text-[12px] text-center rounded-full border border-gray-300 hover:border-[#1A3821] transition-colors shrink-0" style={{ color: '#1A3821' }}>
-                                    {isFr ? 'ajouter' : 'add'}
-                                  </button>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <button type="button" onClick={() => handleQuantityChange(v.id, smartDec(qty))}
-                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>
-                                      {smartDec(qty) === 0 ? '×' : '−'}
-                                    </button>
-                                    <span className="text-[13px] font-medium w-4 text-center" style={{ color: '#1A3821' }}>{qty}</span>
-                                    <button type="button" onClick={() => handleQuantityChange(v.id, smartInc(qty))}
-                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>+</button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          }) : (() => {
-                            const vid = product.variants.length > 0 ? product.variants[0].id : product.id;
-                            const qty = cart.get(vid) ?? 0;
-                            return (
-                              <div className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-[14px]" style={{ color: '#1A3821' }}>{name}</span>
-                                  {allergens.map((a) => (
-                                    <span key={a} className="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium ml-1.5 border border-gray-200 text-gray-400">{a}</span>
-                                  ))}
-                                </div>
-                                {price != null && price > 0 && (
-                                  <span className="text-[13px] shrink-0" style={{ color: 'rgba(26,56,33,0.4)' }}>${(price / 100).toFixed(2)}</span>
-                                )}
-                                {qty === 0 ? (
-                                  <button type="button" onClick={() => handleQuantityChange(vid, smartInc(0))}
-                                    className="w-[76px] h-6 text-[12px] text-center rounded-full border border-gray-300 hover:border-[#1A3821] transition-colors shrink-0" style={{ color: '#1A3821' }}>
-                                    {isFr ? 'ajouter' : 'add'}
-                                  </button>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <button type="button" onClick={() => handleQuantityChange(vid, smartDec(qty))}
-                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>
-                                      {smartDec(qty) === 0 ? '×' : '−'}
-                                    </button>
-                                    <span className="text-[13px] font-medium w-4 text-center" style={{ color: '#1A3821' }}>{qty}</span>
-                                    <button type="button" onClick={() => handleQuantityChange(vid, smartInc(qty))}
-                                      className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>+</button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-              </div>
-
-              {/* Dînatoire — condensed list rows */}
-              {groupedProducts['dinatoire'].length > 0 && (() => {
-                const dinatoireConfig = typeSettings['dinatoire'];
-                const min = dinatoireConfig?.orderMinimum ?? 3;
-                const inc = dinatoireConfig?.increment ?? 1;
-                const items = groupedProducts['dinatoire'];
-
-                // Sub-group by temperature then dietary category
-                const hotItems = items.filter((p) => p.temperatureTags?.includes('hot') || p.temperatureTags?.includes('chaud'));
-                const coldItems = items.filter((p) => p.temperatureTags?.includes('cold') || p.temperatureTags?.includes('froid'));
-                const otherItems = items.filter((p) => !hotItems.includes(p) && !coldItems.includes(p));
-
-                const catOrder = ['vegetarian', 'végétarien', 'fish', 'poisson', 'meat', 'viande'];
-                const groupByDietary = (list: VolumeProduct[]) => {
-                  const groups: { label: string; items: VolumeProduct[] }[] = [];
-                  const used = new Set<string>();
-                  for (const cat of catOrder) {
-                    const matching = list.filter((p) => p.dietaryTags?.some((t) => t.toLowerCase() === cat));
-                    if (matching.length === 0) continue;
-                    const label = cat.charAt(0).toUpperCase() + cat.slice(1);
-                    if (used.has(label.toLowerCase())) continue;
-                    used.add(label.toLowerCase());
-                    groups.push({ label, items: matching });
+              <CateringHeader
+                types={headerTypes}
+                activeType={activeType}
+                onTypeChange={(t) => { setActiveType(t); setDietaryFilter([]); setTemperatureFilter([]); }}
+                activeSubFilter={dietaryFilter}
+                onSubFilterChange={setDietaryFilter}
+                temperatureFilters={activeType === 'dinatoire' ? visibleTemperatureTags.map((tag) => {
+                  // Count products matching this temp tag AND the current dietary filter
+                  const pool = dietaryFilter.length
+                    ? dinatoireProducts.filter((p) => dietaryFilter.some((d) => p.dietaryTags?.includes(d)))
+                    : dinatoireProducts;
+                  return {
+                    value: tag.value,
+                    label: isFr && tag.fr ? tag.fr : tag.label,
+                    count: pool.filter((p) => p.temperatureTags?.includes(tag.value)).length,
+                  };
+                }) : []}
+                activeTemperature={temperatureFilter}
+                onTemperatureChange={setTemperatureFilter}
+                hasMinViolation={(() => {
+                  if (!activeType) return false;
+                  const config = typeSettings[activeType];
+                  if (!config) return false;
+                  const typeProducts = activeType === 'dinatoire' ? dinatoireProducts : (groupedProducts[activeType] ?? []);
+                  const typeTotal = typeProducts.reduce((s, p) => s + getTotalQuantity(p, cart), 0);
+                  if (typeTotal === 0) return false;
+                  if (config.orderScope === 'order') return typeTotal < config.orderMinimum;
+                  if (config.orderScope === 'variant') {
+                    return typeProducts.some((p) => p.variants.some((v) => {
+                      const q = cart.get(v.id) ?? 0;
+                      return q > 0 && q < config.variantMinimum;
+                    }));
                   }
-                  const ungrouped = list.filter((p) => !groups.some((g) => g.items.includes(p)));
-                  if (ungrouped.length > 0) groups.push({ label: isFr ? 'Autre' : 'Other', items: ungrouped });
-                  return groups;
-                };
-
-                const renderRow = (product: VolumeProduct) => {
-                  const name = (isFr ? product.translations?.fr?.title : null) || product.title || product.name;
-                  const allergens = (product.allergens ?? []).filter((a) => !['vegetarian', 'végétarien', 'fish', 'poisson', 'meat', 'viande', 'hot', 'cold', 'chaud', 'froid'].includes(a.toLowerCase()));
-                  const price = product.price;
-                  const vid = product.variants.length > 0 ? product.variants[0].id : product.id;
-                  const qty = cart.get(vid) ?? 0;
-                  const isHot = product.temperatureTags?.some((t) => ['hot', 'chaud'].includes(t.toLowerCase()));
-
-                  return (
-                    <div key={product.id} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${isHot ? 'bg-[#FC260B]' : 'bg-[#0072CA]'}`} />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[14px]" style={{ color: '#1A3821' }}>{name}</span>
-                        {allergens.length > 0 && allergens.map((a) => (
-                          <span key={a} className="inline-flex items-center px-1.5 py-0 rounded-full text-[10px] font-medium ml-1.5 border border-gray-200 text-gray-400">{a}</span>
-                        ))}
-                      </div>
-                      {price != null && price > 0 && (
-                        <span className="text-[13px] shrink-0" style={{ color: 'rgba(26,56,33,0.4)' }}>${(price / 100).toFixed(2)}</span>
-                      )}
-                      {qty === 0 ? (
-                        <button type="button"
-                          onClick={() => handleQuantityChange(vid, dinatoireConfig?.variantMinimum || inc)}
-                          className="w-[76px] h-6 text-[12px] text-center rounded-full border border-gray-300 hover:border-[#1A3821] transition-colors" style={{ color: '#1A3821' }}>
-                          {isFr ? 'ajouter' : 'add'}
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button type="button"
-                            onClick={() => handleQuantityChange(vid, Math.max(0, qty - inc))}
-                            className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>
-                            {qty <= inc ? '×' : '−'}
-                          </button>
-                          <span className="text-[13px] font-medium w-4 text-center" style={{ color: '#1A3821' }}>{qty}</span>
-                          <button type="button"
-                            onClick={() => handleQuantityChange(vid, qty + inc)}
-                            className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-[14px] hover:bg-gray-100 transition-colors" style={{ color: '#1A3821' }}>+</button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                };
-
-                const renderSection = (label: string, productList: VolumeProduct[]) => {
-                  if (productList.length === 0) return null;
-                  const subgroups = groupByDietary(productList);
-                  return (
-                    <div className="mb-6">
-                      <div className="text-[11px] font-medium uppercase tracking-wider mb-3 pb-1.5 border-b border-gray-200" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                        {label}
-                      </div>
-                      {subgroups.map((sg) => (
-                        <div key={sg.label} className="mb-3">
-                          <p className="text-[12px] font-medium mb-1" style={{ color: 'rgba(26,56,33,0.5)' }}>{sg.label}</p>
-                          {sg.items.map(renderRow)}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                };
-
-                return (
-                  <div key="dinatoire" className="mb-12">
-                    <h2 className="text-[40px] leading-none mb-2" style={{ color: '#1A3821' }}>
-                      {TYPE_LABELS['dinatoire']?.[locale] ?? 'Dînatoire'}
-                    </h2>
-                    <p className="text-[14px] mb-2" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                      {isFr ? `Minimum ${min} au choix` : `Minimum ${min} of any`}
-                      {inc > 1 && (isFr ? `, par multiples de ${inc}` : `, in multiples of ${inc}`)}
-                      {(() => {
-                        const dinatoireTotal = dinatoireProducts.reduce((s, p) => s + getTotalQuantity(p, cart), 0);
-                        if (dinatoireTotal > 0 && dinatoireTotal < min) {
-                          return <span className="ml-3 text-[14px]" style={{ color: '#FC260B' }}>
-                            {isFr ? `sélectionnez au moins ${min}` : `select at least ${min}`}
-                          </span>;
-                        }
-                        return null;
-                      })()}
-                    </p>
-                    {(() => {
-                      const typeServes = items.reduce((s, p) => {
-                        const qty = getTotalQuantity(p, cart);
-                        return s + qty * (p.servesPerUnit ?? 0);
-                      }, 0);
-                      return typeServes > 0 ? (
-                        <p className="text-[14px] mb-4" style={{ color: 'rgba(26,56,33,0.4)' }}>
-                          {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
-                        </p>
-                      ) : <div className="mb-4" />;
-                    })()}
-
-                    {/* Filters — temperature hidden on desktop, dietary only */}
-                    <div className="flex flex-wrap items-baseline gap-8 mb-6">
-                      {/* Temperature filters — hidden on md+ (hot/cold shown side by side instead) */}
-                      <div className="md:hidden flex flex-wrap items-center gap-2">
-                        {visibleTemperatureTags.map((tag) => {
-                          const isActive = temperatureFilter === tag;
-                          return (
-                            <button key={tag} type="button"
-                              onClick={() => setTemperatureFilter((prev) => prev === tag ? '' : tag)}
-                              className={`px-3 py-1 text-[12px] rounded-full border transition-colors ${isActive ? 'bg-[#1A3821] text-white border-[#1A3821]' : 'border-gray-300 text-gray-500 hover:border-[#1A3821]'}`}>
-                              {tag}
-                            </button>
-                          );
-                        })}
-                        {visibleTemperatureTags.length > 0 && visibleDietaryTags.length > 0 && (
-                          <span className="text-gray-300">|</span>
-                        )}
-                      </div>
-                      {visibleDietaryTags.length > 0 && (() => {
-                        const allActive = dietaryFilter.length === 0;
-                        return (
-                          <>
-                            <button type="button"
-                              onClick={() => setDietaryFilter([])}
-                              className="text-[36px] leading-none transition-colors"
-                              style={{ color: allActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                              onMouseEnter={(e) => { if (!allActive) e.currentTarget.style.color = '#D49BCB'; }}
-                              onMouseLeave={(e) => { if (!allActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
-                            >
-                              {isFr ? 'Tout' : 'All'}
-                            </button>
-                            {visibleDietaryTags.map((tag) => {
-                              const isActive = dietaryFilter.length === 1 && dietaryFilter[0] === tag;
-                              const count = dinatoireProducts.filter((p) => p.dietaryTags?.includes(tag)).length;
-                              return (
-                                <button key={tag} type="button"
-                                  onClick={() => setDietaryFilter(isActive ? [] : [tag])}
-                                  className="text-[36px] leading-none transition-colors"
-                                  style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
-                                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
-                                >
-                                  {tag.charAt(0).toUpperCase() + tag.slice(1)}<sup className="text-[14px] ml-[2px]" style={{ verticalAlign: 'super', top: '-0.2em', position: 'relative' }}>({count})</sup>
-                                </button>
-                              );
-                            })}
-                          </>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Desktop: hot left, cold right */}
-                    <div className="hidden md:grid md:grid-cols-2 md:gap-8">
-                      <div>
-                        {hotItems.length > 0 && renderSection(isFr ? 'Bouchées chaudes' : 'Hot bites', hotItems)}
-                      </div>
-                      <div>
-                        {coldItems.length > 0 && renderSection(isFr ? 'Bouchées froides' : 'Cold bites', coldItems)}
-                      </div>
-                    </div>
-                    {/* Mobile: stacked */}
-                    <div className="md:hidden">
-                      {hotItems.length > 0 && renderSection(isFr ? 'Bouchées chaudes' : 'Hot bites', hotItems)}
-                      {coldItems.length > 0 && renderSection(isFr ? 'Bouchées froides' : 'Cold bites', coldItems)}
-                    </div>
-                    {otherItems.length > 0 && renderSection(
-                      hotItems.length === 0 && coldItems.length === 0
-                        ? (TYPE_LABELS['dinatoire']?.[locale] ?? 'Dînatoire')
-                        : (isFr ? 'Autre' : 'Other'),
-                      otherItems
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Ungrouped products */}
-              {groupedProducts['other'].length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-                  {groupedProducts['other'].map((product) => (
-                    <VolumeProductCard key={product.id} product={product} locale={locale}
-                      cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V} typeConfig={getTypeConfig(product)} typeTotalQty={getTotalQuantity(product, cart)} />
-                  ))}
-                </div>
-              )}
-              {filteredProducts.length === 0 && products.length > 0 && (
+                  return false;
+                })()}
+                locale={locale}
+              />
+              {/* Active type products */}
+              {activeProducts.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-sm text-gray-400">{isFr ? 'Aucun produit ne correspond aux filtres.' : 'No products match the selected filters.'}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4" style={{ columnGap: 24, rowGap: 56 }}>
+                  {activeProducts.map((product) => (
+                    <VolumeProductCard key={product.id} product={product} locale={locale}
+                      cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V}
+                      typeConfig={getTypeConfig(product)}
+                      typeTotalQty={getTotalQuantity(product, cart)} />
+                  ))}
                 </div>
               )}
             </>
