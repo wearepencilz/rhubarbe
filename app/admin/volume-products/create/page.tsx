@@ -112,8 +112,10 @@ export default function CreateCateringProductPage() {
           <div>
             <DatePicker
               aria-label="End Date"
+              allowClear
               value={cateringEndDate ? parseDate(cateringEndDate) : null}
               onChange={(date) => setCateringEndDate(date ? date.toString() : '')}
+              onClear={() => setCateringEndDate('')}
             />
             <p className="text-xs text-gray-400 mt-1">Optional. Leave empty if no end date.</p>
           </div>

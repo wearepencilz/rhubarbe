@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { products, pickupLocations } from '@/lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, or, isNull, gt, and } from 'drizzle-orm';
 import { shopifyFetch } from '@/lib/shopify/client';
 import { isTaxOption } from '@/lib/tax/constants';
 import * as settingsQueries from '@/lib/db/queries/settings';
@@ -60,7 +60,10 @@ export async function GET() {
       })
       .from(products)
       .where(
-        eq(products.volumeEnabled, true),
+        and(
+          eq(products.volumeEnabled, true),
+          or(isNull(products.cateringEndDate), gt(products.cateringEndDate, new Date())),
+        ),
       )
       .orderBy(asc(products.name));
 

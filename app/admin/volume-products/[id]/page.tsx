@@ -445,8 +445,10 @@ export default function EditVolumeProductPage({ params }: { params: { id: string
           <div>
             <DatePicker
               aria-label="End Date"
+              allowClear
               value={cateringEndDate ? parseDate(cateringEndDate) : null}
               onChange={(date) => { setCateringEndDate(date ? date.toString() : ''); markDirty(); }}
+              onClear={() => { setCateringEndDate(''); markDirty(); }}
             />
             <p className="text-xs text-gray-400 mt-1">Leave empty if this product has no end date.</p>
           </div>

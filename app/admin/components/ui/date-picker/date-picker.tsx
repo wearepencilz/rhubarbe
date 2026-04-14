@@ -17,9 +17,13 @@ interface DatePickerProps extends AriaDatePickerProps<DateValue> {
     onApply?: () => void;
     /** The function to call when the cancel button is clicked. */
     onCancel?: () => void;
+    /** Whether to show a clear button when a value is set. */
+    allowClear?: boolean;
+    /** The function to call when the clear button is clicked. */
+    onClear?: () => void;
 }
 
-export const DatePicker = ({ value: valueProp, defaultValue, onChange, onApply, onCancel, ...props }: DatePickerProps) => {
+export const DatePicker = ({ value: valueProp, defaultValue, onChange, onApply, onCancel, allowClear, onClear, ...props }: DatePickerProps) => {
     const formatter = useDateFormatter({
         month: "short",
         day: "numeric",
@@ -35,6 +39,20 @@ export const DatePicker = ({ value: valueProp, defaultValue, onChange, onApply, 
                 <Button size="md" color="secondary" iconLeading={CalendarIcon}>
                     {formattedDate}
                 </Button>
+                {allowClear && value && (
+                    <button
+                        type="button"
+                        className="ml-2 text-sm text-gray-400 hover:text-gray-600"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setValue(null);
+                            onClear?.();
+                        }}
+                        aria-label="Clear date"
+                    >
+                        ✕
+                    </button>
+                )}
             </AriaGroup>
             <AriaPopover
                 offset={8}
