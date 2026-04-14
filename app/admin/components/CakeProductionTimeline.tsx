@@ -101,7 +101,7 @@ export default function CakeProductionTimeline() {
   useEffect(() => {
     Promise.all([
       fetch('/api/orders?orderType=cake').then((r) => r.json()),
-      fetch('/api/settings').then((r) => r.json()),
+      fetch('/api/settings', { cache: 'no-store' }).then((r) => r.json()),
     ])
       .then(([ordersData, settings]) => {
         setOrders(ordersData);
