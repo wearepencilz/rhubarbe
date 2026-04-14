@@ -99,7 +99,7 @@ export default function CateringHeader({
                           type="button"
                           onClick={() => {
                             if (disabled) return;
-                            onSubFilterChange(isSubActive ? activeSubFilter.filter((v) => v !== s.value) : [...activeSubFilter, s.value]);
+                            onSubFilterChange(isSubActive ? [] : [s.value]);
                           }}
                           className="transition-colors leading-none text-left"
                           style={{
@@ -130,7 +130,7 @@ export default function CateringHeader({
                             type="button"
                             onClick={() => {
                               if (disabled) return;
-                              onTemperatureChange(isTempActive ? activeTemperature.filter((v) => v !== tf.value) : [...activeTemperature, tf.value]);
+                              onTemperatureChange(isTempActive ? [] : [tf.value]);
                             }}
                             className="transition-colors leading-none text-left"
                             style={{
