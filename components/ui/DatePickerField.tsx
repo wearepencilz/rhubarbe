@@ -22,26 +22,28 @@ import {
 
 interface DatePickerFieldProps extends AriaDatePickerProps<DateValue> {
   label?: string;
+  variant?: 'default' | 'white';
 }
 
-export default function DatePickerField({ label, ...props }: DatePickerFieldProps) {
+export default function DatePickerField({ label, variant = 'default', ...props }: DatePickerFieldProps) {
   const ariaLabel = label || 'Date';
+  const isWhite = variant === 'white';
   return (
     <AriaDatePicker {...props} aria-label={ariaLabel} className="flex flex-col gap-1" shouldForceLeadingZeros>
-      {label && (
+      {label && variant === 'default' && (
         <AriaLabel className="text-xs text-gray-500 uppercase tracking-wide">{label}</AriaLabel>
       )}
-      <AriaGroup className="flex items-center border-b border-gray-300 focus-within:border-gray-900 transition-colors cursor-pointer">
+      <AriaGroup className={`flex items-center cursor-pointer ${isWhite ? '' : 'border-b border-gray-300 focus-within:border-gray-900 transition-colors'}`}>
         <AriaButton className="flex flex-1 items-center outline-none">
-          <AriaDateInput className="flex flex-1 py-1.5 text-sm bg-transparent">
+          <AriaDateInput className={`flex flex-1 py-1.5 text-sm bg-transparent ${isWhite ? 'text-white' : ''}`}>
             {(segment) => (
               <AriaDateSegment
                 segment={segment}
-                className="rounded px-0.5 tabular-nums caret-transparent outline-none focus:bg-gray-900 focus:text-white"
+                className={`rounded px-0.5 tabular-nums caret-transparent outline-none ${isWhite ? 'focus:bg-white/20 text-white' : 'focus:bg-gray-900 focus:text-white'}`}
               />
             )}
           </AriaDateInput>
-          <span className="px-1 text-gray-400">
+          <span className={`px-1 ${isWhite ? 'text-white' : 'text-gray-400'}`}>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
             </svg>

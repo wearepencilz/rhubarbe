@@ -407,7 +407,7 @@ export function VolumeInlineCart({
                     {(() => {
                       const typeServes = typeGroups.reduce((s, g) => s + g.totalQty * (g.servesPerUnit ?? 0), 0);
                       return typeServes > 0 ? (
-                        <p className="text-[12px] mb-2" style={{ opacity: 0.6 }}>
+                        <p className="text-[14px] mb-2" style={{ opacity: 0.6 }}>
                           {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
                         </p>
                       ) : null;
@@ -422,16 +422,16 @@ export function VolumeInlineCart({
                       return group.variants.map((v) => (
                         <div key={v.variantId} className="flex items-center gap-2 py-1">
                           <div className="flex-1 min-w-0">
-                            <span className="text-[13px] truncate">{group.productName}</span>
-                            {group.variants.length > 1 && <span className="text-[11px]  ml-1">{v.variantLabel}</span>}
+                            <span className="text-[16px]">{group.productName}</span>
+                            {group.variants.length > 1 && <span className="text-[14px] ml-1 opacity-70">{v.variantLabel}</span>}
                           </div>
-                          {v.price > 0 && <span className="text-[11px]  shrink-0">${(v.price / 100).toFixed(2)}</span>}
+                          {v.price > 0 && <span className="text-[16px] shrink-0">${(v.price / 100).toFixed(2)}</span>}
                           <div className="flex items-center gap-1 shrink-0">
                             <button type="button" onClick={() => onQuantityChange(v.variantId, smartDec(v.quantity))}
                               className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-[11px] hover:bg-white/20">
                               {smartDec(v.quantity) === 0 ? '×' : '−'}
                             </button>
-                            <span className="text-[13px] w-5 text-center">{v.quantity}</span>
+                            <span className="text-[16px] w-5 text-center">{v.quantity}</span>
                             <button type="button" onClick={() => onQuantityChange(v.variantId, smartInc(v.quantity))}
                               className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-[11px] hover:bg-white/20">+</button>
                           </div>
@@ -445,16 +445,10 @@ export function VolumeInlineCart({
           </div>
           <div className="space-y-4 pt-6 mt-6 border-t border-white">
             {/* Est total */}
-            <div className="flex items-center justify-between text-[16px]">
+            <div className="flex items-center justify-between text-[16px] mb-16">
               <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
               <span className="font-medium">{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '\u2014'}</span>
             </div>
-            {/* Earliest pickup */}
-            {maxLeadTimeDays > 0 && (
-              <p className="text-[14px]">
-                {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
-              </p>
-            )}
             {/* Contains */}
             {(() => {
               const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
@@ -490,9 +484,14 @@ export function VolumeInlineCart({
               noDateError={!fulfillmentDate && totalQuantity > 0}
               noDateErrorText={isFr ? 'Veuillez sélectionner une date' : 'Please select a date'}
               dateLabel="Date"
-              dateHint={subtotal >= deliveryMinForAnyday ? undefined : (() => {
-                const dayNames = closedPickupDays.map((d) => DAY_LABELS[d]).join(', ');
-                return isFr ? `Pas de cueillette le ${dayNames.toLowerCase()}` : `No pickup on ${dayNames}`;
+              dateHint={(() => {
+                const parts: string[] = [];
+                if (maxLeadTimeDays > 0) parts.push(isFr ? `Au plus tôt\u00a0: ${formatDateHuman(earliestDateStr, locale)}` : `Earliest: ${formatDateHuman(earliestDateStr, locale)}`);
+                if (subtotal < deliveryMinForAnyday) {
+                  const dayNames = closedPickupDays.map((d) => DAY_LABELS[d]).join(', ');
+                  parts.push(isFr ? `Pas de cueillette le ${dayNames.toLowerCase()}` : `No pickup on ${dayNames}`);
+                }
+                return parts.length ? parts.join(' · ') : undefined;
               })()}
               allergenNote={allergenNote}
               onAllergenNoteChange={onAllergenNoteChange}

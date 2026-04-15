@@ -69,7 +69,7 @@ export default function CartFulfillmentSection({
           <button key={type} type="button"
             onClick={() => onFulfillmentTypeChange(type)}
             disabled={type === 'pickup' ? pickupDisabled : deliveryDisabled}
-            className={`flex-1 py-2 rounded-full border transition-colors ${
+            className={`flex-1 py-3 px-6 rounded-full border transition-colors text-left ${
               fulfillmentType === type
                 ? 'border-white bg-white text-[#0065B6]'
                 : 'border-white text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
@@ -90,19 +90,20 @@ export default function CartFulfillmentSection({
         </div>
       )}
 
-      {/* Date — label left, input right */}
-      <div className="flex items-center justify-between">
-        <div>
+      {/* Date — label+hint left, picker right */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="shrink-0">
           <div className="flex items-center gap-2">
-            <p>{dateLabel ?? (isFr ? 'Date' : 'Date')}</p>
+            <p className="text-[16px]">{dateLabel ?? (isFr ? 'Date' : 'Date')}</p>
             {noDateError && noDateErrorText && (
               <span className="text-[12px]" style={{ color: '#EBE000' }}>{noDateErrorText}</span>
             )}
           </div>
-          {dateHint && <p className="text-[11px] mt-1">{dateHint}</p>}
+          {dateHint && <p className="text-[14px] opacity-60 mt-0.5">{dateHint}</p>}
         </div>
         <DatePickerField
-          label={dateLabel ?? 'Date'}
+          aria-label={dateLabel ?? 'Date'}
+          variant="white"
           value={dateValue}
           minValue={minDateValue ?? today(getLocalTimeZone())}
           maxValue={maxDateValue ?? undefined}

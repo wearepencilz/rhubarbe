@@ -104,7 +104,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
             <span className="text-[13px] shrink-0">{item.quantity} × ${(item.price/100).toFixed(2)}</span>
           </div>
         ))}
-        <div className="border-t border-white pt-3 flex justify-between text-[14px]">
+        <div className="border-t border-white pt-3 flex justify-between text-[14px] mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(subtotal/100).toFixed(2)}</span>
         </div>
@@ -146,7 +146,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
             <span className="text-[13px] shrink-0">{item.quantity} × ${((item.linePriceCents/item.quantity)/100).toFixed(2)}</span>
           </div>
         ))}
-        <div className="border-t border-white pt-3 flex justify-between text-[14px]">
+        <div className="border-t border-white pt-3 flex justify-between text-[14px] mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(cateringSnapshot.subtotalCents/100).toFixed(2)}</span>
         </div>
@@ -194,7 +194,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
           </div>
         ))}
         {total > 0 && (
-          <div className="border-t border-white pt-3 flex justify-between text-[14px]">
+          <div className="border-t border-white pt-3 flex justify-between text-[14px] mb-16">
             <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
             <span className="font-medium">${(total/100).toFixed(2)}</span>
           </div>
@@ -229,42 +229,37 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
         id="unified-cart-panel"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="cart-drawer-title"
+        aria-label={isFr ? 'Panier' : 'Cart'}
         className={`fixed right-0 top-0 h-full w-1/2 max-w-[50vw] min-w-[360px] z-[70] flex flex-col transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
         style={{ backgroundColor: '#0065B6', color: 'white' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
-          <h2 id="cart-drawer-title" className="text-[24px] font-medium">
-            {isFr ? 'Panier' : 'Cart'}
-            <sup style={{ fontSize: 14, marginLeft: 2 }}>({totalCount})</sup>
-          </h2>
-          <button ref={closeButtonRef} onClick={onClose} className="text-[16px] hover:opacity-70"
+        {/* Header — tabs replace the Cart(n) heading */}
+        <div className="flex items-start justify-between px-6 pt-10 pb-0 shrink-0">
+          <div role="tablist" aria-label={isFr ? 'Types de panier' : 'Cart types'} className="flex" style={{ gap: 20 }}>
+            {TABS.map((t) => {
+              const isActive = activeTab === t.key;
+              const count = counts[t.key] ?? 0;
+              return (
+                <button key={t.key} type="button" role="tab"
+                  id={`cart-tab-btn-${t.key}`}
+                  aria-selected={isActive} aria-controls={`cart-tab-${t.key}`}
+                  onClick={() => setManualTab(t.key)}
+                  className="text-[24px] transition-opacity leading-none"
+                  style={{ opacity: isActive ? 1 : 0.4 }}>
+                  {isFr ? t.label.fr : t.label.en}
+                  {count > 0 && <sup style={{ fontSize: 13, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.1em' }}>({count})</sup>}
+                </button>
+              );
+            })}
+          </div>
+          <button ref={closeButtonRef} onClick={onClose} className="text-[16px] hover:opacity-70 mt-1"
             aria-label={isFr ? 'Fermer le panier' : 'Close cart'}>close</button>
         </div>
 
-        {/* Tabs */}
-        <div role="tablist" aria-label={isFr ? 'Types de panier' : 'Cart types'} className="flex gap-6 px-6 pb-4 shrink-0">
-          {TABS.map((t) => {
-            const isActive = activeTab === t.key;
-            const count = counts[t.key] ?? 0;
-            return (
-              <button key={t.key} type="button" role="tab"
-                aria-selected={isActive} aria-controls={`cart-tab-${t.key}`}
-                onClick={() => setManualTab(t.key)}
-                className="text-[16px] transition-opacity leading-none"
-                style={{ opacity: isActive ? 1 : 0.4 }}>
-                {isFr ? t.label.fr : t.label.en}
-                {count > 0 && <sup style={{ fontSize: 11, marginLeft: 2 }}>({count})</sup>}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Content */}
-        <div id={`cart-tab-${activeTab}`} role="tabpanel" className="flex-1 overflow-y-auto px-6 pb-4">
+        <div id={`cart-tab-${activeTab}`} role="tabpanel" className="flex-1 overflow-y-auto px-6 pb-4" style={{ paddingTop: 56 }}>
           {renderers[activeTab]?.content()}
         </div>
 

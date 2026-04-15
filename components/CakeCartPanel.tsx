@@ -464,7 +464,7 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
 
       {/* Est total */}
       {totalPrice > 0 && (
-        <div className="flex justify-between text-[16px] pt-2 border-t border-white">
+        <div className="flex justify-between text-[16px] pt-2 border-t border-white mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(totalPrice / 100).toFixed(2)}</span>
         </div>

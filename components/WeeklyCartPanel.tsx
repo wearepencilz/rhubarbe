@@ -82,32 +82,32 @@ export default function WeeklyCartPanel({ onCheckout, checkoutLoading, checkoutE
 
       {activeLaunch && (
         <div className="border-t border-white pt-4 space-y-3">
-          <div className="flex items-center justify-between text-[16px] text-white">
+          <div className="flex items-center justify-between text-[16px] text-white mb-16">
             <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
             <span className="font-medium">${(subtotal/100).toFixed(2)}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <p className="text-[14px] text-white">Date</p>
+            <p className="text-[16px] text-white">Date</p>
             {availablePickupDays.length > 1 ? (
               <select value={selectedPickupDay || ''} onChange={(e) => setSelectedPickupDay(e.target.value)}
-                className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none"
-                style={SELECT_STYLE}>
-                <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
+                className="appearance-none bg-transparent text-white text-[16px] focus:outline-none"
+                style={{ backgroundImage: SELECT_STYLE.backgroundImage, backgroundPosition: 'right 0 center', backgroundRepeat: 'no-repeat', backgroundSize: '16px', paddingRight: 22 }}>
+                <option value="">{isFr ? 'Sélectionner une date' : 'Select a date'}</option>
                 {availablePickupDays.map((day) => <option key={day} value={day}>{formatDate(day, locale)}</option>)}
               </select>
             ) : (
-              <span className="text-[14px] text-white">{formatPickupRange(activeLaunch, locale)}</span>
+              <span className="text-[16px] text-white">{formatPickupRange(activeLaunch, locale)}</span>
             )}
           </div>
 
           {activeLaunch.pickupSlots.length > 0 && (
             <div className="flex items-center justify-between">
-              <p className="text-[14px] text-white">{isFr ? 'Créneau' : 'Time slot'}</p>
+              <p className="text-[16px] text-white">{isFr ? 'Créneau' : 'Time slot'}</p>
               <select value={selectedSlotId || ''} onChange={(e) => setSelectedSlotId(e.target.value)}
-                className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none"
-                style={SELECT_STYLE}>
-                <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
+                className="appearance-none bg-transparent text-white text-[16px] focus:outline-none"
+                style={{ backgroundImage: SELECT_STYLE.backgroundImage, backgroundPosition: 'right 0 center', backgroundRepeat: 'no-repeat', backgroundSize: '16px', paddingRight: 22 }}>
+                <option value="">{isFr ? 'Sélectionner un créneau' : 'Select a time'}</option>
                 {activeLaunch.pickupSlots.map((s) => <option key={s.id} value={s.id}>{s.startTime} – {s.endTime}</option>)}
               </select>
             </div>
