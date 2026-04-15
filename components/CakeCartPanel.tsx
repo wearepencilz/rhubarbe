@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/lib/i18n/useT';
 import { useCakeCart, type CakeCartItem } from '@/contexts/CakeCartContext';
 import { resolvePricingGridPrice, getTierDetailForSize } from '@/lib/utils/order-helpers';
@@ -446,16 +447,22 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
     <div className="space-y-4">
       {/* Items */}
       <div className="space-y-4">
-        {items.map((item) => {
-          const product = products.find((p) => p.id === item.productId);
-          if (!product) return null;
-          return (
-            <CakeCartItemRow key={item.cartId} item={item} product={product} locale={locale} isFr={isFr}
-              onUpdate={(patch) => updateItem(item.cartId, patch)}
-              onRemove={() => removeItem(item.cartId)}
-              earliestDateStr={earliestDateStr} />
-          );
-        })}
+        <AnimatePresence initial={false}>
+          {items.map((item) => {
+            const product = products.find((p) => p.id === item.productId);
+            if (!product) return null;
+            return (
+              <motion.div key={item.cartId}
+                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}>
+                <CakeCartItemRow item={item} product={product} locale={locale} isFr={isFr}
+                  onUpdate={(patch) => updateItem(item.cartId, patch)}
+                  onRemove={() => removeItem(item.cartId)}
+                  earliestDateStr={earliestDateStr} />
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
 
       {/* Est total */}

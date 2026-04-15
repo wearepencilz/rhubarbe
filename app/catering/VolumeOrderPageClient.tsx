@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-state';
@@ -766,11 +767,13 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
-                  {activeProducts.map((product) => (
-                    <VolumeProductCard key={product.id} product={product} locale={locale}
-                      cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V}
-                      typeConfig={getTypeConfig(product)}
-                      typeTotalQty={getTotalQuantity(product, cart)} />
+                  {activeProducts.map((product, i) => (
+                    <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.06 }}>
+                      <VolumeProductCard product={product} locale={locale}
+                        cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V}
+                        typeConfig={getTypeConfig(product)}
+                        typeTotalQty={getTotalQuantity(product, cart)} />
+                    </motion.div>
                   ))}
                 </div>
               )}

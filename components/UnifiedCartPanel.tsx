@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useCartDrawer } from '@/contexts/CartDrawerContext';
 import { useCakeCart } from '@/contexts/CakeCartContext';
@@ -224,14 +225,23 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
 
   return (
     <>
-      {open && <div className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} aria-hidden="true" />}
-      <div
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} aria-hidden="true" />
+        )}
+      </AnimatePresence>
+      <motion.div
         id="unified-cart-panel"
         role="dialog"
         aria-modal="true"
         aria-label={isFr ? 'Panier' : 'Cart'}
-        className={`fixed right-0 top-0 h-full w-full md:w-1/2 md:max-w-[50vw] z-[70] flex flex-col transition-transform duration-300 ease-out ${
-          open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        initial={{ x: '100%' }}
+        animate={{ x: open ? 0 : '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className={`fixed right-0 top-0 h-full w-full md:w-1/2 md:max-w-[50vw] z-[70] flex flex-col ${
+          !open ? 'pointer-events-none' : ''
         }`}
         style={{ backgroundColor: '#0065B6', color: 'white' }}
       >
@@ -265,7 +275,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
 
         {/* Footer */}
         {(() => { const f = renderers[activeTab]?.footer(); return f ? <div className="px-6 py-4 shrink-0">{f}</div> : null; })()}
-      </div>
+      </motion.div>
     </>
   );
 }

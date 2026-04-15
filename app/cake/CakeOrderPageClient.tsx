@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useCakeCart } from '@/contexts/CakeCartContext';
@@ -290,8 +291,10 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           {displayProducts.length === 0
             ? <p className="text-[16px] text-center py-20">{T.cakeOrder?.noProducts || 'No products available'}</p>
             : <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-6">
-                {displayProducts.map((p) => (
-                  <CakeProductCard key={p.id} product={p} locale={locale} brandColor={brandColor} earliestDateStr={earliestDateStr} />
+                {displayProducts.map((p, i) => (
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.06 }}>
+                    <CakeProductCard product={p} locale={locale} brandColor={brandColor} earliestDateStr={earliestDateStr} />
+                  </motion.div>
                 ))}
               </div>
           }
