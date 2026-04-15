@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useCart } from '@/contexts/CartContext';
+import { useCartDrawer } from '@/contexts/CartDrawerContext';
 import SiteNav from '@/components/SiteNav';
 import MobileMenu from '@/components/MobileMenu';
-
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface SiteHeaderClientProps {
@@ -20,16 +19,12 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
   const [menuOpen, setMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
-  const pathname = usePathname();
   const { orderCount, volumeCount, cakeCount } = useOrderItems();
   const { cart } = useCart();
+  const { openCart } = useCartDrawer();
 
-  let currentCount = 0;
-  if (pathname?.startsWith('/order')) currentCount = orderCount;
-  else if (pathname?.startsWith('/catering')) currentCount = volumeCount;
-  else if (pathname?.startsWith('/cake')) currentCount = cakeCount;
-  else currentCount = cart?.lines.edges.reduce((sum, e) => sum + e.node.quantity, 0) ?? 0;
-  const hasCartItems = currentCount > 0;
+  const shopifyCount = cart?.lines.edges.reduce((sum, e) => sum + e.node.quantity, 0) ?? 0;
+  const totalCount = shopifyCount + orderCount + volumeCount + cakeCount;
 
   useEffect(() => {
     const onScroll = () => {
@@ -63,42 +58,41 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
       <header
         className={`fixed top-0 left-0 right-0 z-50 bg-[#FCFBF6] transition-transform duration-300 ${
           visible ? 'translate-y-0' : '-translate-y-full'
-        } ${hasCartItems ? 'pr-[60px]' : ''}`}
+        }`}
       >
         <div className="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-8 h-14 md:h-16">
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6">
             <Link href="/" aria-label={`${companyName} home`} onClick={closeMenu}>
               {logo ? (
-                <img
-                  src={logo}
-                  alt={companyName}
-                  className="h-[24px] w-auto object-contain"
-                />
+                <img src={logo} alt={companyName} className="h-[24px] w-auto object-contain" />
               ) : (
-                <span
-                  className="text-[16px] lowercase"
-                  style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}
-                >
+                <span className="text-[16px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
                   {companyName}
                 </span>
               )}
             </Link>
-
-            {/* Desktop nav */}
             <div className="hidden md:block">
               <SiteNav />
             </div>
           </div>
 
-          {/* Right: Address + Hours (desktop) */}
-          <div className="hidden md:flex items-center text-[16px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
-            <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#B1CB00' }} />
+          {/* Right */}
+          <div className="hidden md:flex items-center gap-4 text-[16px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
+            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#B1CB00' }} />
             <span>1320 rue charlevoix</span>
-            <span className="mx-2">|</span>
+            <span>|</span>
             <span>9h-12h</span>
-            <span className="mx-2">|</span>
+            <span>|</span>
             <LanguageSwitcher color="#1A3821" />
+            <span>|</span>
+            <button
+              onClick={() => openCart()}
+              className="hover:opacity-70 transition-opacity"
+              aria-label={`Open cart${totalCount > 0 ? ` (${totalCount} items)` : ''}`}
+            >
+              cart{totalCount > 0 && <sup style={{ fontSize: 11, marginLeft: 1 }}>({totalCount})</sup>}
+            </button>
           </div>
 
           {/* Mobile hamburger / X */}
@@ -108,11 +102,7 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
               className="transition-transform duration-300"
               style={{ transform: menuOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
             >

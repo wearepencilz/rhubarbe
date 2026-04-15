@@ -1,31 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useOrderItems } from '@/contexts/OrderItemsContext';
-import { useCart } from '@/contexts/CartContext';
 
 export default function SiteNav() {
-  const { orderCount, volumeCount, cakeCount } = useOrderItems();
-  const { cart } = useCart();
-  const cartCount = cart?.lines.edges.reduce((sum, e) => sum + e.node.quantity, 0) ?? 0;
-
-  const menuStyle = {
-    fontFamily: 'var(--font-solar-display)',
-    color: '#1A3821',
-    fontSize: '16px',
-  } as const;
-
   const items = [
-    { href: '/order', label: 'weekly menu', count: orderCount },
-    { href: '/catering', label: 'catering', count: volumeCount },
-    { href: '/cake', label: 'cakes', count: cakeCount },
-    { href: '/stories', label: 'stories', count: 0 },
+    { href: '/order', label: 'weekly menu' },
+    { href: '/catering', label: 'catering' },
+    { href: '/cake', label: 'cakes' },
+    { href: '/stories', label: 'stories' },
   ];
 
   return (
-    <nav className="flex items-center gap-6 lowercase leading-none" style={menuStyle}>
+    <nav className="flex items-center gap-6 lowercase leading-none"
+      style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821', fontSize: '16px' }}>
       {items.map((item) => (
-        <Link key={item.href} href={item.href} className="hover:opacity-60 transition-opacity relative">
+        <Link key={item.href} href={item.href} className="hover:opacity-60 transition-opacity">
           {item.label}
         </Link>
       ))}

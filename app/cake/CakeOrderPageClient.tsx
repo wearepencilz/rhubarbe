@@ -1,1734 +1,302 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
-import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
-import type { DateValue } from 'react-aria-components';
-import { getActivePricingTier, resolvePricingGridPrice, getTierDetailForSize } from '@/lib/utils/order-helpers';
+import { useCakeCart } from '@/contexts/CakeCartContext';
+import { useCartDrawer } from '@/contexts/CartDrawerContext';
+import { getActivePricingTier } from '@/lib/utils/order-helpers';
 import type { PricingGridRow, CakeTierDetailEntry } from '@/lib/utils/order-helpers';
-import OrderCartPanel from '@/components/OrderCartPanel';
-import CartFulfillmentSection from '@/components/CartFulfillmentSection';
+import { getDefaultFlavourSelection } from '@/lib/utils/cake-rules';
 import { ProductGridSkeleton } from '@/components/ui/OrderPageSkeleton';
-
 
 // ── Types ──
 
-interface TranslationObject {
-  en: string;
-  fr: string;
-}
-
-interface LeadTimeTier {
-  minPeople: number;
-  leadTimeDays: number;
-  deliveryOnly: boolean;
-}
-
-interface PricingTier {
-  minPeople: number;
-  priceInCents: number;
-  shopifyVariantId: string;
-}
-
+interface TranslationObject { en: string; fr: string; }
+interface LeadTimeTier { minPeople: number; leadTimeDays: number; deliveryOnly: boolean; }
+interface PricingTier { minPeople: number; priceInCents: number; shopifyVariantId: string; }
 interface CakeFlavourEntry {
-  handle: string;
-  label: { en: string; fr: string };
-  description: { en: string; fr: string } | null;
-  pricingTierGroup: string | null;
-  sortOrder: number;
-  active: boolean;
-  endDate: string | null;
-  allergens?: string[];
+  handle: string; label: { en: string; fr: string }; active: boolean;
+  endDate: string | null; allergens?: string[]; sortOrder: number;
+  description: { en: string; fr: string } | null; pricingTierGroup: string | null;
 }
-
 interface AddonProduct {
-  id: string;
-  name: string;
-  title: { en: string; fr: string };
-  image: string | null;
-  cakeDescription: { en: string; fr: string };
-  cakeProductType: string | null;
-  cakeMinPeople?: number | null;
-  cakeMaxPeople?: number | null;
-  pricingGrid: PricingGridRow[];
+  id: string; name: string; title: { en: string; fr: string }; image: string | null;
+  cakeDescription: { en: string; fr: string }; cakeProductType: string | null;
+  cakeMinPeople?: number | null; cakeMaxPeople?: number | null; pricingGrid: PricingGridRow[];
 }
-
 interface CakeProduct {
-  id: string;
-  name: string;
-  slug: string;
-  image: string | null;
-  price: number | null;
-  shopifyProductId: string | null;
-  cakeDescription: TranslationObject;
-  cakeFlavourNotes: TranslationObject | null;
-  cakeInstructions: TranslationObject;
-  cakeMinPeople: number;
-  cakeMaxPeople: number | null;
-  shortCardCopy: string | null;
-  allergens: string[];
-  leadTimeTiers: LeadTimeTier[];
-  pricingTiers: PricingTier[];
-  serves: string | null;
-  // New fields for grid-based products
-  cakeProductType: string | null;
-  cakeFlavourConfig: CakeFlavourEntry[];
-  cakeTierDetailConfig: CakeTierDetailEntry[];
-  cakeMaxFlavours: number | null;
-  pricingGrid: PricingGridRow[];
-  addons: AddonProduct[];
-  maxAdvanceDays: number | null;
-}
-
-// ── Cart persistence types ──
-
-interface PersistedCart {
-  productId: string;
-  selectedFlavourHandles: string[];
-  selectedSize: string;
-  addonIds: string[];
-  addonSizes?: Record<string, string>;
-  sheetCakeAddonIds?: string[];
-  sheetCakeFlavour?: string;
-  computedPrice: number | null;
-}
-
-const CART_STORAGE_KEY = 'rhubarbe:cake:cart';
-const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-function saveCart(cart: PersistedCart | null) {
-  try {
-    if (cart) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    } else {
-      localStorage.removeItem(CART_STORAGE_KEY);
-    }
-  } catch {}
-}
-
-function loadCart(): PersistedCart | null {
-  try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  id: string; name: string; slug: string; image: string | null; price: number | null;
+  shopifyProductId: string | null; cakeDescription: TranslationObject;
+  cakeFlavourNotes: TranslationObject | null; cakeInstructions: TranslationObject;
+  cakeMinPeople: number; cakeMaxPeople: number | null; shortCardCopy: string | null;
+  allergens: string[]; leadTimeTiers: LeadTimeTier[]; pricingTiers: PricingTier[];
+  serves: string | null; cakeProductType: string | null;
+  cakeFlavourConfig: CakeFlavourEntry[]; cakeTierDetailConfig: CakeTierDetailEntry[];
+  cakeMaxFlavours: number | null; pricingGrid: PricingGridRow[];
+  addons: AddonProduct[]; maxAdvanceDays: number | null;
 }
 
 // ── Helpers ──
 
-function isGridBased(product: CakeProduct): boolean {
-  return !!product.cakeProductType && product.cakeProductType !== 'wedding-cake-tasting';
+function tr(f: TranslationObject | null | undefined, locale: string) {
+  if (!f) return ''; return locale === 'fr' ? (f.fr || f.en) : (f.en || '');
 }
+function isGridBased(p: CakeProduct) { return !!p.cakeProductType && p.cakeProductType !== 'wedding-cake-tasting'; }
+function isTasting(p: CakeProduct) { return p.cakeProductType === 'wedding-cake-tasting'; }
+function isLegacy(p: CakeProduct) { return !p.cakeProductType; }
+function isCroquembouche(p: CakeProduct) { return p.cakeProductType === 'croquembouche'; }
+function isAddonProduct(p: CakeProduct, all: CakeProduct[]) { return all.some((x) => x.addons?.some((a) => a.id === p.id)); }
 
-function isTasting(product: CakeProduct): boolean {
-  return product.cakeProductType === 'wedding-cake-tasting';
-}
-
-function isLegacy(product: CakeProduct): boolean {
-  return !product.cakeProductType;
-}
-
-function isCroquembouche(product: CakeProduct): boolean {
-  return product.cakeProductType === 'croquembouche';
-}
-
-const CROQ_CHOUX_PER_GUEST = 3;
-
-/** Check if a product is only used as an addon (linked by another product) */
-function isAddonProduct(product: CakeProduct, allProducts: CakeProduct[]): boolean {
-  return allProducts.some((p) => p.addons?.some((a) => a.id === product.id));
-}
-
-function tr(field: TranslationObject | null | undefined, locale: string): string {
-  if (!field) return '';
-  if (locale === 'fr') return field.fr || field.en || '';
-  return field.en || '';
-}
-
-function getLeadTimeDays(tiers: LeadTimeTier[], numberOfPeople: number): number {
-  const applicable = tiers
-    .filter((t) => t.minPeople <= numberOfPeople)
-    .sort((a, b) => b.minPeople - a.minPeople);
-  return applicable[0]?.leadTimeDays ?? 0;
-}
-
-function getActiveLeadTimeTier(tiers: LeadTimeTier[], numberOfPeople: number): LeadTimeTier | null {
-  const applicable = tiers
-    .filter((t) => t.minPeople <= numberOfPeople)
-    .sort((a, b) => b.minPeople - a.minPeople);
-  return applicable[0] ?? null;
-}
-
-function getPriceFromTiers(tiers: PricingTier[], numberOfPeople: number): PricingTier | null {
-  if (tiers.length === 0) return null;
-  const applicable = tiers
-    .filter((t) => t.minPeople <= numberOfPeople)
-    .sort((a, b) => b.minPeople - a.minPeople);
-  return applicable[0] ?? null;
-}
-
-function getEarliestDate(leadTimeDays: number): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + leadTimeDays);
-  return d;
-}
-
-function toDateString(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function toDateValue(dateStr: string): DateValue | null {
-  if (!dateStr) return null;
-  try { return parseDate(dateStr); } catch { return null; }
-}
-
-function formatDateHuman(dateStr: string, locale: string): string {
-  try {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', {
-      weekday: 'short', month: 'short', day: 'numeric',
-    });
-  } catch { return dateStr; }
-}
-
-/** Derive distinct size options from a pricing grid */
-function getAvailableSizes(grid: PricingGridRow[]): string[] {
-  const seen = new Set<string>();
-  const sizes: string[] = [];
-  for (const row of grid) {
-    if (!seen.has(row.sizeValue)) {
-      seen.add(row.sizeValue);
-      sizes.push(row.sizeValue);
-    }
-  }
+function getAvailableSizes(grid: PricingGridRow[]) {
+  const seen = new Set<string>(); const sizes: string[] = [];
+  for (const r of grid) { if (!seen.has(r.sizeValue)) { seen.add(r.sizeValue); sizes.push(r.sizeValue); } }
   return sizes;
 }
-
-/**
- * Find the best matching size tier: largest numeric sizeValue that is ≤ the input number.
- * Returns the matching sizeValue string, or null if none applies.
- */
-function resolveNearestSize(availableSizes: string[], inputValue: number): string | null {
-  const numericSizes = availableSizes
-    .map((s) => ({ str: s, num: parseInt(s) }))
-    .filter((s) => !isNaN(s.num))
-    .sort((a, b) => b.num - a.num); // descending
-  for (const size of numericSizes) {
-    if (size.num <= inputValue) return size.str;
-  }
-  return null;
+function toDateString(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getEarliestDate(days: number) {
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+days); return d;
 }
 
+// ── FlavourDropdown ──
 
-// ── Flavour Dropdown Component (inside card) ──
-
-function FlavourDropdown({
-  product, locale, selectedFlavourHandles, onToggleFlavour, earliestDateStr,
-}: {
-  product: CakeProduct;
-  locale: string;
-  selectedFlavourHandles: string[];
-  onToggleFlavour: (handle: string) => void;
-  earliestDateStr: string;
+function FlavourDropdown({ product, locale, selectedFlavourHandles, onToggleFlavour, earliestDateStr, overlayMode = false }: {
+  product: CakeProduct; locale: string; selectedFlavourHandles: string[];
+  onToggleFlavour: (h: string) => void; earliestDateStr: string; overlayMode?: boolean;
 }) {
   const isFr = locale === 'fr';
   const isMulti = isCroquembouche(product) || isTasting(product);
   const maxFlavours = product.cakeMaxFlavours ?? 3;
-
-  // Filter out flavours whose endDate (minus lead time) makes them unorderable
-  const availableFlavours = product.cakeFlavourConfig.filter((f) => {
-    if (!f.endDate) return true;
-    return f.endDate >= earliestDateStr;
-  });
+  const available = product.cakeFlavourConfig.filter((f) => !f.endDate || f.endDate >= earliestDateStr);
 
   if (isMulti) {
-    // Multi-select for croquembouche: show checkboxes in a compact list
     const atLimit = selectedFlavourHandles.length >= maxFlavours;
     return (
-      <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
-        <p className="text-[12px] uppercase tracking-wide">
+      <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
+        <p className={`text-[12px] uppercase tracking-wide ${overlayMode ? 'text-white' : ''}`}>
           {isFr ? `Saveurs (max ${maxFlavours})` : `Flavours (max ${maxFlavours})`}
         </p>
         <div className="flex flex-wrap gap-1.5">
-          {availableFlavours.filter((f) => f.handle !== 'custom').map((flavour) => {
-            const isSelected = selectedFlavourHandles.includes(flavour.handle);
-            const disabled = !isSelected && atLimit;
+          {available.filter((f) => f.handle !== 'custom').map((f) => {
+            const isSel = selectedFlavourHandles.includes(f.handle);
+            const disabled = !isSel && atLimit;
             return (
-              <button
-                key={flavour.handle}
-                type="button"
-                onClick={() => { if (!disabled) onToggleFlavour(flavour.handle); }}
-                disabled={disabled}
-                className={`px-2 py-1 text-[10px] rounded-full border transition-colors ${
-                  isSelected
-                    ? 'bg-[#333112] text-white border-[#333112]'
-                    : disabled
-                    ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                }`}
-               
-              >
-                {tr(flavour.label, locale)}
+              <button key={f.handle} type="button" disabled={disabled}
+                onClick={() => { if (!disabled) onToggleFlavour(f.handle); }}
+                className={`px-2 py-1 text-[10px] rounded-full border transition-colors ${overlayMode
+                  ? isSel ? 'bg-white text-[#0065B6] border-white' : disabled ? 'border-white/30 text-white/30 cursor-not-allowed' : 'border-white text-white hover:bg-white/20'
+                  : isSel ? 'bg-[#333112] text-white border-[#333112]' : disabled ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                }`}>
+                {tr(f.label, locale)}
               </button>
             );
           })}
         </div>
-        {atLimit && (
-          <p className="text-[12px]">
-            {isFr ? `Maximum ${maxFlavours} atteint` : `Max ${maxFlavours} reached`}
-          </p>
-        )}
+        {atLimit && <p className={`text-[12px] ${overlayMode ? 'text-white/70' : ''}`}>{isFr ? `Maximum ${maxFlavours} atteint` : `Max ${maxFlavours} reached`}</p>}
       </div>
     );
   }
 
-  // Single-select dropdown for XXL / wedding cakes
   return (
-    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-      <select
-        value={selectedFlavourHandles[0] || ''}
-        onChange={(e) => onToggleFlavour(e.target.value)}
-        className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#333112] bg-white text-gray-700"
-       
-      >
-        {availableFlavours.map((flavour) => (
-          <option key={flavour.handle} value={flavour.handle}>
-            {tr(flavour.label, locale)}
-            {flavour.handle === 'custom' ? (isFr ? ' — contactez-nous' : ' — contact us') : ''}
-          </option>
-        ))}
-      </select>
+    <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
+      <p className={`text-[12px] uppercase tracking-wide ${overlayMode ? 'text-white' : ''}`}>{isFr ? 'Saveur' : 'Flavour'}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {available.map((f) => {
+          const isSel = selectedFlavourHandles[0] === f.handle;
+          return (
+            <button key={f.handle} type="button" onClick={() => onToggleFlavour(f.handle)}
+              className={`px-2 py-1 text-[10px] rounded-full border transition-colors ${overlayMode
+                ? isSel ? 'bg-white text-[#0065B6] border-white' : 'border-white text-white hover:bg-white/20'
+                : isSel ? 'bg-[#333112] text-white border-[#333112]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+              }`}>
+              {tr(f.label, locale)}{f.handle === 'custom' ? (isFr ? ' — contactez-nous' : ' — contact us') : ''}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ── Tier Diagram Component ──
+// ── CakeProductCard ──
 
-function TierDiagram({ tierDetail }: { tierDetail: CakeTierDetailEntry }) {
-  const diameters = tierDetail.diameters.split('/').map(Number).filter(Boolean);
-  if (diameters.length === 0) return null;
-
-  // Diameters are listed largest-to-smallest (e.g., "12/9/6" = bottom 12", middle 9", top 6")
-  // Render bottom-to-top visually: reverse so smallest is at top
-  const layers = [...diameters]; // already largest first
-  const maxDiameter = layers[0];
-  const containerWidth = 140; // px
-
-  return (
-    <div className="flex flex-col items-center py-2">
-      {/* Render smallest (top) first, largest (bottom) last */}
-      {[...layers].reverse().map((d, i) => {
-        const widthPx = Math.max((d / maxDiameter) * containerWidth, 20);
-        return (
-          <div
-            key={i}
-            className="rounded-sm mx-auto"
-            style={{
-              width: `${widthPx}px`,
-              height: '18px',
-              backgroundColor: 'rgba(255,255,255,0.6)',
-              marginBottom: i < layers.length - 1 ? '2px' : '0',
-              borderRadius: '2px',
-            }}
-          />
-        );
-      })}
-      {/* Base plate */}
-      <div
-        className="mx-auto mt-1 rounded-sm"
-        style={{
-          width: `${containerWidth + 10}px`,
-          height: '4px',
-          backgroundColor: 'rgba(255,255,255,0.3)',
-        }}
-      />
-    </div>
-  );
-}
-
-
-// ── Product Card ──
-
-function CakeProductCard({
-  product, locale, isSelected, onSelect, brandColor, numberOfPeople, C,
-  selectedFlavourHandles, onToggleFlavour, earliestDateStr,
-}: {
-  product: CakeProduct;
-  locale: string;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-  brandColor: string;
-  numberOfPeople: number;
-  C: Record<string, any>;
-  selectedFlavourHandles: string[];
-  onToggleFlavour: (handle: string) => void;
-  earliestDateStr: string;
+function CakeProductCard({ product, locale, brandColor, earliestDateStr }: {
+  product: CakeProduct; locale: string; brandColor: string; earliestDateStr: string;
 }) {
+  const isFr = locale === 'fr';
+  const { addItem, items, openCart: _openCart } = useCakeCart() as any;
+  const { openCart } = useCartDrawer();
+  const isMulti = isCroquembouche(product) || isTasting(product);
+  const maxFlavours = product.cakeMaxFlavours ?? 3;
+
+  const [hovered, setHovered] = useState(false);
+  const [localFlavours, setLocalFlavours] = useState<string[]>(() =>
+    getDefaultFlavourSelection(product.cakeFlavourConfig, isMulti, earliestDateStr)
+  );
+
+  const showOverlay = hovered;
+  const hasFlavours = (isGridBased(product) || isTasting(product)) && product.cakeFlavourConfig.length > 0;
+  const flavourReady = !hasFlavours || localFlavours.length > 0;
+
+  const allergens = product.allergens ?? [];
+  const tastingPrice = isTasting(product) && product.pricingGrid.length > 0 ? product.pricingGrid[0].priceInCents : null;
   const description = tr(product.cakeDescription, locale);
   const flavourNotes = tr(product.cakeFlavourNotes, locale);
-  const isFr = locale === 'fr';
 
-  // Price display: legacy uses pricing tiers, tasting uses fixed price, grid-based shows nothing on card
-  const activeTier = isLegacy(product) ? getActivePricingTier(product.pricingTiers, numberOfPeople) : null;
-  const tastingPrice = isTasting(product) && product.pricingGrid.length > 0
-    ? product.pricingGrid[0].priceInCents
-    : null;
+  // Default size: min from pricing grid
+  const defaultSize = useMemo(() => {
+    if (!isGridBased(product) || !product.pricingGrid.length) return '';
+    const sizes = getAvailableSizes(product.pricingGrid).map(Number).filter(Boolean);
+    if (!sizes.length) return '';
+    const min = Math.min(...sizes);
+    return isCroquembouche(product) ? String(Math.ceil(min / 3)) : String(min);
+  }, [product]);
 
-  const [cakeHovered, setCakeHovered] = useState(false);
+  const handleToggle = (handle: string) => {
+    setLocalFlavours((prev) => {
+      if (isMulti) {
+        if (prev.includes(handle)) return prev.filter((h) => h !== handle);
+        if (prev.length >= maxFlavours) return prev;
+        return [...prev, handle];
+      }
+      return prev.includes(handle) ? [] : [handle];
+    });
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!flavourReady) return;
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      productImage: product.image,
+      cakeProductType: product.cakeProductType,
+      flavourHandles: localFlavours,
+      size: defaultSize,
+      addonIds: [],
+      addonSizes: {},
+      sheetCakeAddonIds: [],
+      sheetCakeFlavour: '',
+      computedPrice: null,
+    });
+    openCart('cake');
+  };
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(product.id)}
-      className={`group flex flex-col text-left transition-all ${
-        isSelected
-          ? 'ring-2 ring-[#333112] ring-offset-2'
-          : ''
-      }`}
-      aria-pressed={isSelected}
-      aria-label={`${product.name}${isSelected ? ` (${C.selected})` : ''}`}
-      onMouseEnter={() => setCakeHovered(true)}
-      onMouseLeave={() => setCakeHovered(false)}
-    >
-      {(() => {
-        const showPink = isSelected || cakeHovered;
-        const allergens = product.allergens ?? [];
-        return product.image ? (
-          <div className="aspect-[4/5] overflow-hidden relative">
-            {!showPink && (
-              <>
-                <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover" />
-                {allergens.length > 0 && (
-                  <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
-                    {allergens.map((a) => (
-                      <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {showPink && (
-              <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-between p-4">
-                <div className="flex flex-wrap gap-1">
-                  {allergens.map((a) => (
-                    <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
-                  ))}
-                </div>
-                <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
-                  {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
-                </div>
+    <div className="flex flex-col cursor-pointer"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+      <div className="aspect-[4/5] overflow-hidden relative">
+        {!showOverlay && (
+          <>
+            {product.image
+              ? <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover" />
+              : <div className="w-full h-full" style={{ backgroundColor: brandColor }} />}
+            {allergens.length > 0 && (
+              <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
+                {allergens.map((a) => <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-black border border-black">{a}</span>)}
               </div>
             )}
-          </div>
-        ) : (
-          <div className="aspect-[4/5] relative">
-            {!showPink && <div className="w-full h-full" style={{ backgroundColor: brandColor }} />}
-            {showPink && (
-              <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-end p-4">
-                <div className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center">
-                  {isSelected ? C.selected : (isFr ? 'Sélectionner' : 'Select')}
+          </>
+        )}
+        {showOverlay && (
+          <div className="w-full h-full bg-[#0065B6] flex flex-col justify-between p-4">
+            <div>
+              {allergens.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {allergens.map((a) => <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>)}
                 </div>
-              </div>
-            )}
+              )}
+              {hasFlavours && (
+                <FlavourDropdown product={product} locale={locale}
+                  selectedFlavourHandles={localFlavours} onToggleFlavour={handleToggle}
+                  earliestDateStr={earliestDateStr} overlayMode />
+              )}
+            </div>
+            <button type="button" onClick={handleAddToCart}
+              className={`w-full h-10 rounded-full border border-white text-[16px] text-white font-medium flex items-center justify-center transition-colors ${flavourReady ? 'hover:bg-white/10' : 'opacity-40 cursor-default'}`}>
+              {flavourReady ? (isFr ? 'Ajouter au panier' : 'Add to cart') : (isFr ? 'Choisir une saveur' : 'Choose a flavour')}
+            </button>
           </div>
-        );
-      })()}
-
-      <div className="flex flex-col gap-1 pt-2.5">
-        <h3 className="text-[16px]" style={{ fontWeight: 500 }}>
-          {product.name}
-        </h3>
-
-        <div className="flex items-center gap-2 text-[16px] text-gray-400">
-          {activeTier && (
-            <span>${(activeTier.priceInCents / 100).toFixed(2)}</span>
-          )}
-          {tastingPrice != null && (
-            <span>${(tastingPrice / 100).toFixed(2)}</span>
-          )}
-          {product.serves && (
-            <span>
-              {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
-            </span>
-          )}
-        </div>
-
-        {flavourNotes && (
-          <p className="text-[16px] text-gray-500 italic">{flavourNotes}</p>
-        )}
-
-        {product.shortCardCopy && (
-          <p className="text-[16px] text-gray-500 leading-relaxed line-clamp-2">{product.shortCardCopy}</p>
-        )}
-
-        {description && (
-          <p className="text-[16px] text-gray-500 leading-relaxed line-clamp-3">{description}</p>
-        )}
-
-        {/* Flavour dropdown (inside card, only when selected) */}
-        {isSelected && (isGridBased(product) || isTasting(product)) && product.cakeFlavourConfig.length > 0 && (
-          <FlavourDropdown
-            product={product}
-            locale={locale}
-            selectedFlavourHandles={selectedFlavourHandles}
-            onToggleFlavour={onToggleFlavour}
-            earliestDateStr={earliestDateStr}
-          />
         )}
       </div>
-    </button>
-  );
-}
-
-
-// ── Inline Cart Sidebar ──
-
-function CakeInlineCart({
-  selectedProduct, numberOfPeople, calculatedPrice,
-  pickupDate, eventType, specialInstructions,
-  fulfillmentType, deliveryAddress,
-  dateWarning, earliestDateStr, maxLeadTimeDays,
-  onDateChange, onNumberOfPeopleChange, onEventTypeChange, onSpecialInstructionsChange,
-  onFulfillmentTypeChange, onDeliveryAddressChange,
-  onCheckout, onRemove, checkoutLoading, checkoutError,
-  locale, belowMin, isDeliveryOnly, C,
-  // New props for grid-based products
-  selectedFlavourHandles, selectedSize, onSizeChange,
-  resolvedSize,
-  gridPrice, tierDetail, addons, enabledAddonIds, onToggleAddon, addonSizes, onAddonSizeChange, sheetCakeAddonIds, onToggleSheetAddon, sheetCakeFlavour, onSheetCakeFlavourChange,
-  gridMinSize, gridMaxSize, blockedDates, latestDateStr, deliveryMinForAnyday, closedPickupDays,
-}: {
-  selectedProduct: CakeProduct | null;
-  numberOfPeople: number;
-  calculatedPrice: number | null;
-  pickupDate: string;
-  eventType: string;
-  specialInstructions: string;
-  fulfillmentType: 'pickup' | 'delivery';
-  deliveryAddress: string;
-  dateWarning: string | null;
-  earliestDateStr: string;
-  maxLeadTimeDays: number;
-  onDateChange: (d: string) => void;
-  onNumberOfPeopleChange: (n: number) => void;
-  onEventTypeChange: (t: string) => void;
-  onSpecialInstructionsChange: (s: string) => void;
-  onFulfillmentTypeChange: (t: 'pickup' | 'delivery') => void;
-  onDeliveryAddressChange: (a: string) => void;
-  onCheckout: () => void;
-  onRemove: () => void;
-  checkoutLoading: boolean;
-  checkoutError: string | null;
-  locale: string;
-  belowMin: boolean;
-  isDeliveryOnly: boolean;
-  C: Record<string, any>;
-  // New props
-  selectedFlavourHandles: string[];
-  selectedSize: string;
-  onSizeChange: (size: string) => void;
-  resolvedSize: string;
-  gridPrice: { priceInCents: number; shopifyVariantId: string | null } | null;
-  tierDetail: CakeTierDetailEntry | null;
-  addons: AddonProduct[];
-  enabledAddonIds: string[];
-  onToggleAddon: (addonId: string) => void;
-  addonSizes: Record<string, string>;
-  onAddonSizeChange: (addonId: string, size: string) => void;
-  sheetCakeAddonIds: string[];
-  onToggleSheetAddon: (addonId: string) => void;
-  sheetCakeFlavour: string;
-  onSheetCakeFlavourChange: (handle: string) => void;
-  gridMinSize: number;
-  gridMaxSize: number | null;
-  blockedDates: Set<string>;
-  latestDateStr: string | null;
-  deliveryMinForAnyday: number;
-  closedPickupDays: number[];
-}) {
-  const isFr = locale === 'fr';
-  const minDateValue = toDateValue(earliestDateStr);
-  const maxDateValue = latestDateStr ? toDateValue(latestDateStr) : undefined;
-  const [headcountTouched, setHeadcountTouched] = useState(false);
-
-  const isDateUnavailable = useCallback((date: DateValue) => {
-    const dateStr = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
-    return blockedDates.has(dateStr);
-  }, [blockedDates]);
-
-  const isGridProduct = selectedProduct ? isGridBased(selectedProduct) : false;
-  const isTastingProduct = selectedProduct ? isTasting(selectedProduct) : false;
-  const isLegacyProduct = selectedProduct ? isLegacy(selectedProduct) : false;
-  const isCroq = selectedProduct ? isCroquembouche(selectedProduct) : false;
-
-  const availableSizes = useMemo(() => {
-    if (!selectedProduct || !isGridProduct) return [];
-    return getAvailableSizes(selectedProduct.pricingGrid);
-  }, [selectedProduct, isGridProduct]);
-
-  const sizeLabel = isFr ? 'Invités' : 'Guests';
-
-  // For legacy products: min people from pricing tiers
-  const minPeople = selectedProduct?.pricingTiers?.length
-    ? selectedProduct.pricingTiers.slice().sort((a, b) => a.minPeople - b.minPeople)[0].minPeople
-    : 1;
-  const headcountValid = numberOfPeople >= minPeople;
-
-  // Compute the effective price to display
-  const displayPrice = isGridProduct ? gridPrice?.priceInCents ?? null : calculatedPrice;
-
-  // Compute addon total
-  // Add-ons are priced per-cake: once at main cake tier, once at sheet cake tier
-  const addonTotal = useMemo(() => {
-    if (!selectedProduct || enabledAddonIds.length === 0) return 0;
-    let total = 0;
-
-    const sheetCakeAddons: AddonProduct[] = [];
-    const regularAddons: AddonProduct[] = [];
-    for (const addonId of enabledAddonIds) {
-      const addon = addons.find((a) => a.id === addonId);
-      if (!addon) continue;
-      if (addon.cakeProductType === 'sheet-cake') sheetCakeAddons.push(addon);
-      else regularAddons.push(addon);
-    }
-
-    // Regular add-ons at main cake tier
-    if (resolvedSize) {
-      for (const addon of regularAddons) {
-        const price = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
-        if (price) total += price.priceInCents;
-      }
-    }
-
-    // Each sheet cake: its own price + regular add-ons at sheet cake tier
-    for (const sheetAddon of sheetCakeAddons) {
-      const sheetSize = addonSizes[sheetAddon.id];
-      if (!sheetSize || !sheetCakeFlavour) continue;
-      const sheetResolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize));
-      if (!sheetResolved) continue;
-      const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, sheetCakeFlavour);
-      if (sheetPrice) total += sheetPrice.priceInCents;
-      // Add-ons at sheet cake tier
-      for (const addonId of sheetCakeAddonIds) {
-        const addon = addons.find((a) => a.id === addonId);
-        if (!addon || addon.cakeProductType === 'sheet-cake') continue;
-        const price = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
-        if (price) total += price.priceInCents;
-      }
-    }
-
-    return total;
-  }, [selectedProduct, enabledAddonIds, sheetCakeAddonIds, sheetCakeFlavour, resolvedSize, addons, addonSizes]);
-
-  // Selected flavour names and allergens for display
-  const selectedFlavourNames = useMemo(() => {
-    if (!selectedProduct) return [];
-    return selectedFlavourHandles
-      .map((h) => selectedProduct.cakeFlavourConfig.find((f) => f.handle === h))
-      .filter(Boolean)
-      .map((f) => tr(f!.label, locale));
-  }, [selectedProduct, selectedFlavourHandles, locale]);
-
-  const selectedFlavourAllergens = useMemo(() => {
-    if (!selectedProduct) return [];
-    const all = new Set<string>();
-    for (const h of selectedFlavourHandles) {
-      const f = selectedProduct.cakeFlavourConfig.find((fl) => fl.handle === h);
-      f?.allergens?.forEach((a) => all.add(a));
-    }
-    // Also include product-level allergens
-    selectedProduct.allergens?.forEach((a) => all.add(a));
-    return Array.from(all);
-  }, [selectedProduct, selectedFlavourHandles]);
-
-  const aboveMax = gridMaxSize != null && parseInt(selectedSize) > gridMaxSize;
-
-  // Sheet cake validation
-  const sheetCakeInvalid = useMemo(() => {
-    if (!selectedProduct) return false;
-    const sheetAddon = addons.find((a) => a.cakeProductType === 'sheet-cake');
-    if (!sheetAddon || !enabledAddonIds.includes(sheetAddon.id)) return false;
-    const sizeStr = addonSizes[sheetAddon.id];
-    const size = sizeStr ? parseInt(sizeStr) : 0;
-    // Must have flavour and valid size to proceed
-    if (!sheetCakeFlavour || !size) return true;
-    if (sheetAddon.cakeMinPeople && size < sheetAddon.cakeMinPeople) return true;
-    if (sheetAddon.cakeMaxPeople && size > sheetAddon.cakeMaxPeople) return true;
-    // Must resolve to a valid price
-    const resolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), size);
-    if (!resolved) return true;
-    const price = resolvePricingGridPrice(sheetAddon.pricingGrid, resolved, sheetCakeFlavour);
-    if (!price) return true;
-    return false;
-  }, [selectedProduct, addons, enabledAddonIds, addonSizes, sheetCakeFlavour]);
-
-  // Can checkout?
-  const canCheckout = useMemo(() => {
-    if (!selectedProduct || !pickupDate || !!dateWarning || belowMin || aboveMax || sheetCakeInvalid) return false;
-    if (isTastingProduct) return true;
-    if (isGridProduct) {
-      // Croquembouche can checkout with just size (flavours are optional metadata)
-      if (isCroq) return !!gridPrice && !!selectedSize;
-      return !!gridPrice && selectedFlavourHandles.length > 0 && !!selectedSize;
-    }
-    // Legacy
-    return calculatedPrice != null;
-  }, [selectedProduct, pickupDate, dateWarning, belowMin, aboveMax, sheetCakeInvalid, isTastingProduct, isGridProduct, isCroq, gridPrice, selectedFlavourHandles, selectedSize, calculatedPrice]);
-
-  return (
-    <div>
-      {!selectedProduct ? (
-        <div className="py-8 text-center">
-          <p className="text-[16px]">{C.noItems}</p>
-          <p className="text-[14px] mt-1">{C.startHint}</p>
+      <div className="flex flex-col gap-1 pt-2.5">
+        <h3 className="text-[16px]" style={{ fontWeight: 500, color: '#1A3821' }}>{product.name}</h3>
+        <div className="flex items-center gap-2 text-[16px]" style={{ color: '#1A3821' }}>
+          {tastingPrice != null && <span>${(tastingPrice/100).toFixed(2)}</span>}
+          {product.serves && <span>{isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}</span>}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {/* 1. Cake name + remove */}
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[16px] font-medium">{selectedProduct.name}</p>
-              <button onClick={onRemove}
-                className="text-[14px] hover:opacity-100 shrink-0"
-               >
-                {isFr ? 'retirer' : 'remove'}
-              </button>
-            </div>
-            {/* Show selected flavour names */}
-            {selectedFlavourNames.length > 0 && (
-              <p className="text-[14px] mt-0.5">
-                {selectedFlavourNames.join(', ')}
-              </p>
-            )}
-          </div>
-
-          {/* 2a. Legacy: Headcount input → resolved price */}
-          {isLegacyProduct && (
-            <>
-              <div className="flex flex-col gap-1">
-                <label className="text-[14px]">
-                  {C.numberOfPeople}
-                </label>
-                <input type="number" min={1}
-                  value={numberOfPeople || ''}
-                  placeholder=""
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') { onNumberOfPeopleChange(0); return; }
-                    onNumberOfPeopleChange(Math.max(0, Math.floor(Number(raw) || 0)));
-                  }}
-                  onBlur={() => {
-                    setHeadcountTouched(true);
-                    if (numberOfPeople < 1) onNumberOfPeopleChange(1);
-                  }}
-                  className={`w-full px-3 py-2 text-sm border rounded focus:outline-none transition-colors bg-transparent ${
-                    headcountTouched && belowMin ? 'border-red-300 focus:border-red-500' : 'border-white focus:border-white'
-                  }`}
-                  aria-label={C.numberOfPeople} />
-                {headcountTouched && belowMin && (
-                  <p className="text-[12px] text-[#EBE000] mt-0.5">
-                    {isFr ? `Minimum ${minPeople} personnes` : `Minimum ${minPeople} people`}
-                  </p>
-                )}
-              </div>
-
-              {calculatedPrice != null ? (
-                <div className="flex justify-between text-sm font-semibold">
-                  <span>{numberOfPeople} {C.numberOfPeopleShort}</span>
-                  <span>
-                    ${(calculatedPrice / 100).toFixed(2)}
-                  </span>
-                </div>
-              ) : belowMin ? null : (
-                selectedProduct.pricingTiers.length === 0
-                  ? <p className="text-xs text-gray-400">{C.noPricing}</p>
-                  : null
-              )}
-            </>
-          )}
-
-          {/* 2b. Grid-based: Number input → resolved price */}
-          {isGridProduct && (
-            <>
-              <div className="flex flex-col gap-1">
-                <label className="text-[14px]">
-                  {sizeLabel}
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={selectedSize || ''}
-                  placeholder=""
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') { onSizeChange(''); return; }
-                    onSizeChange(String(Math.max(0, Math.floor(Number(raw) || 0))));
-                  }}
-                  className={`w-full px-3 py-2 text-sm border rounded focus:outline-none transition-colors bg-transparent ${
-                    belowMin ? 'border-red-300 focus:border-red-500' : 'border-white focus:border-white'
-                  }`}
-                  aria-label={sizeLabel}
-                />
-                {belowMin && (
-                  <p className="text-[12px] text-[#EBE000] mt-0.5">
-                    {isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}
-                  </p>
-                )}
-                {gridMaxSize && parseInt(selectedSize) > gridMaxSize && (
-                  <p className="text-[12px] text-[#EBE000] mt-0.5">
-                    {isFr ? `Maximum ${gridMaxSize}` : `Maximum ${gridMaxSize}`}
-                  </p>
-                )}
-              </div>
-
-              {/* Tier detail display */}
-              {tierDetail && (
-                <div className="space-y-1">
-                  <p className="text-[14px]">
-                    {isFr
-                      ? `${tierDetail.layers} étage${tierDetail.layers > 1 ? 's' : ''}: ${tierDetail.diameters} pouces`
-                      : `${tierDetail.layers} tier${tierDetail.layers > 1 ? 's' : ''}: ${tierDetail.diameters} inches`}
-                  </p>
-                  <TierDiagram tierDetail={tierDetail} />
-                </div>
-              )}
-            </>
-          )}
-
-          {/* 2c. Tasting: fixed price display */}
-          {isTastingProduct && selectedProduct.pricingGrid.length > 0 && (
-            <div className="flex justify-between text-sm font-semibold">
-              <span>{isFr ? 'Dégustation' : 'Tasting'}</span>
-              <span>
-                ${(selectedProduct.pricingGrid[0].priceInCents / 100).toFixed(2)}
-              </span>
-            </div>
-          )}
-
-          {/* Add-ons for main cake (non-sheet-cake only) */}
-          {isGridProduct && addons.filter((a) => a.cakeProductType !== 'sheet-cake').length > 0 && (
-            <>
-              <hr className="border-white" />
-              <div className="space-y-2">
-                {addons.filter((a) => a.cakeProductType !== 'sheet-cake').map((addon) => {
-                  const isEnabled = enabledAddonIds.includes(addon.id);
-                  let priceCents = 0;
-                  if (resolvedSize) {
-                    const p = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default');
-                    if (p) priceCents = p.priceInCents;
-                  }
-                  return (
-                    <div key={addon.id} className="flex items-center justify-between gap-2">
-                      <p className="text-[14px] flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                      {priceCents > 0 && <span className="text-[14px] shrink-0">+${(priceCents / 100).toFixed(2)}</span>}
-                      <button type="button" onClick={() => onToggleAddon(addon.id)} disabled={!resolvedSize}
-                        className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${!resolvedSize ? 'opacity-30 cursor-not-allowed border-white' : isEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
-                        aria-label={`${isEnabled ? 'Remove' : 'Add'} ${tr(addon.title, locale)}`} aria-pressed={isEnabled}>
-                        {isEnabled ? '✓' : '+'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Sheet cake section */}
-          {isGridProduct && addons.some((a) => a.cakeProductType === 'sheet-cake') && (() => {
-            const sheetAddon = addons.find((a) => a.cakeProductType === 'sheet-cake')!;
-            const sheetEnabled = enabledAddonIds.includes(sheetAddon.id);
-            const sheetSize = addonSizes[sheetAddon.id] || '';
-            const sheetResolved = sheetSize ? resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize)) : null;
-            const sheetFlavourHandle = sheetCakeFlavour || '';
-            const sheetPrice = (sheetResolved && sheetFlavourHandle)
-              ? resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, sheetFlavourHandle)
-              : null;
-            const regularAddons = addons.filter((a) => a.cakeProductType !== 'sheet-cake');
-
-            // Available flavours from the sheet cake's config
-            const sheetFlavours = (sheetAddon as any).cakeFlavourConfig as Array<{ handle: string; label: { en: string; fr: string }; active: boolean }> | undefined;
-
-            // Sheet cake subtotal
-            let sheetSubtotal = sheetPrice?.priceInCents ?? 0;
-            if (sheetResolved) {
-              for (const rid of sheetCakeAddonIds) {
-                const ra = regularAddons.find((a) => a.id === rid);
-                if (!ra) continue;
-                const rp = resolvePricingGridPrice(ra.pricingGrid, sheetResolved, 'default');
-                if (rp) sheetSubtotal += rp.priceInCents;
-              }
-            }
-
-            return (
-              <>
-                <hr className="border-white" />
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14px]">
-                        {tr(sheetAddon.title, locale)}
-                      </p>
-                      {tr(sheetAddon.cakeDescription, locale) && (
-                        <p className="text-[14px] leading-relaxed mt-0.5">{tr(sheetAddon.cakeDescription, locale)}</p>
-                      )}
-                    </div>
-                    <button type="button" onClick={() => onToggleAddon(sheetAddon.id)}
-                      className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${sheetEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
-                      aria-label={`${sheetEnabled ? 'Remove' : 'Add'} ${tr(sheetAddon.title, locale)}`} aria-pressed={sheetEnabled}>
-                      {sheetEnabled ? '✓' : '+'}
-                    </button>
-                  </div>
-
-                  {sheetEnabled && (
-                    <div className="space-y-2">
-
-                      {/* Flavour selector — 50/50 */}
-                      {sheetFlavours && sheetFlavours.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 items-center">
-                          <span className="text-[14px] uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
-                          <select value={sheetFlavourHandle}
-                            onChange={(e) => onSheetCakeFlavourChange(e.target.value)}
-                            className="w-full px-2 py-1.5 text-xs border border-white rounded focus:outline-none focus:border-white bg-transparent">
-                            <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
-                            {sheetFlavours.filter((f) => f.active).map((f) => (
-                              <option key={f.handle} value={f.handle}>{tr(f.label, locale)}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Guests input — 50/50 */}
-                      <div>
-                        <div className="grid grid-cols-2 gap-2 items-center">
-                          <span className="text-[14px] uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
-                          <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
-                            onChange={(e) => { const raw = e.target.value; onAddonSizeChange(sheetAddon.id, raw === '' ? '' : String(Math.max(0, Math.floor(Number(raw) || 0)))); }}
-                            className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none bg-transparent ${
-                              (sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople) ||
-                              (sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople)
-                                ? 'border-red-300 focus:border-red-500' : 'border-white focus:border-white'
-                            }`}
-                            aria-label={`${tr(sheetAddon.title, locale)} guests`} />
-                        </div>
-                        {sheetSize && sheetAddon.cakeMinPeople && parseInt(sheetSize) < sheetAddon.cakeMinPeople && (
-                          <p className="text-[12px] text-[#EBE000] mt-0.5 text-right">
-                            {isFr ? `Minimum ${sheetAddon.cakeMinPeople}` : `Minimum ${sheetAddon.cakeMinPeople}`}
-                          </p>
-                        )}
-                        {sheetSize && sheetAddon.cakeMaxPeople && parseInt(sheetSize) > sheetAddon.cakeMaxPeople && (
-                          <p className="text-[12px] text-[#EBE000] mt-0.5 text-right">
-                            {isFr ? `Maximum ${sheetAddon.cakeMaxPeople}` : `Maximum ${sheetAddon.cakeMaxPeople}`}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Sheet cake price */}
-                      {sheetPrice && sheetSize && (
-                        <div className="flex justify-between text-[14px]">
-                          <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
-                          <span>${(sheetPrice.priceInCents / 100).toFixed(2)}</span>
-                        </div>
-                      )}
-
-                      {/* Add-ons for sheet cake — price on right before toggle */}
-                      {regularAddons.length > 0 && sheetResolved && (
-                        <div className="space-y-1.5">
-                          {regularAddons.map((addon) => {
-                            const isOn = sheetCakeAddonIds.includes(addon.id);
-                            const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
-                            return (
-                              <div key={addon.id} className="flex items-center justify-between gap-2">
-                                <p className="text-[14px] flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                                {ap && <span className="text-[12px] shrink-0">+${(ap.priceInCents / 100).toFixed(2)}</span>}
-                                <button type="button" onClick={() => onToggleSheetAddon(addon.id)}
-                                  className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${isOn ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
-                                  aria-label={`${isOn ? 'Remove' : 'Add'} ${tr(addon.title, locale)} for sheet cake`} aria-pressed={isOn}>
-                                  {isOn ? '✓' : '+'}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Sheet subtotal */}
-                      {sheetSubtotal > 0 && (
-                        <div className="flex justify-between text-xs font-medium text-gray-700 pt-1 border-t border-white">
-                          <span>{tr(sheetAddon.title, locale)}</span>
-                          <span>${(sheetSubtotal / 100).toFixed(2)}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            );
-          })()}
-
-          {/* Est total */}
-          <div className="flex items-center justify-between text-[16px]">
-            <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
-            <span className="font-medium">
-              {(() => {
-                const total = isGridProduct && gridPrice
-                  ? gridPrice.priceInCents + addonTotal
-                  : isTastingProduct && selectedProduct.pricingGrid.length > 0
-                    ? selectedProduct.pricingGrid[0].priceInCents
-                    : calculatedPrice;
-                return total != null && total > 0 ? `$${(total / 100).toFixed(2)}` : '\u2014';
-              })()}
-            </span>
-          </div>
-
-          {/* Earliest pickup */}
-          {maxLeadTimeDays > 0 && (
-            <p className="text-[16px]">
-              {isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}
-            </p>
-          )}
-          {/* Contains */}
-          {selectedFlavourAllergens.length > 0 && (
-            <div className="flex items-center gap-3">
-              <p className="text-[16px] shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
-              <div className="flex flex-wrap gap-1">
-                {selectedFlavourAllergens.map((a) => (
-                  <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white">{a}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <CartFulfillmentSection
-            locale={locale}
-            fulfillmentType={fulfillmentType}
-            onFulfillmentTypeChange={onFulfillmentTypeChange}
-            pickupDisabled={isDeliveryOnly}
-            showDeliveryAddress
-            deliveryAddress={deliveryAddress}
-            onDeliveryAddressChange={onDeliveryAddressChange}
-            date={pickupDate}
-            onDateChange={onDateChange}
-            dateValue={toDateValue(pickupDate)}
-            minDateValue={minDateValue ?? undefined}
-            maxDateValue={maxDateValue ?? undefined}
-            isDateUnavailable={(date: DateValue) => {
-              const dateStr = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
-              if (blockedDates.has(dateStr)) return true;
-              const cakeTotal = (isGridProduct && gridPrice ? gridPrice.priceInCents + addonTotal : isTastingProduct && selectedProduct.pricingGrid.length > 0 ? selectedProduct.pricingGrid[0].priceInCents : calculatedPrice) ?? 0;
-              if (cakeTotal >= deliveryMinForAnyday) return false;
-              return closedPickupDays.includes(date.toDate(getLocalTimeZone()).getDay());
-            }}
-            dateWarning={dateWarning}
-            noDateError={!pickupDate}
-            noDateErrorText={isFr ? 'Veuillez sélectionner une date' : 'Please select a date'}
-            dateLabel="Date"
-            dateHint={(() => {
-              const cakeTotal = (isGridProduct && gridPrice ? gridPrice.priceInCents + addonTotal : isTastingProduct && selectedProduct.pricingGrid.length > 0 ? selectedProduct.pricingGrid[0].priceInCents : calculatedPrice) ?? 0;
-              if (cakeTotal >= deliveryMinForAnyday) {
-                return maxLeadTimeDays > 0 ? `${isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}${formatDateHuman(earliestDateStr, locale)}` : undefined;
-              }
-              const dayNames = closedPickupDays.map((d) => DAY_LABELS[d]).join(', ');
-              const closedHint = isFr ? `Pas de cueillette le ${dayNames.toLowerCase()}` : `No pickup on ${dayNames}`;
-              const earliestHint = maxLeadTimeDays > 0 ? `${isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}${formatDateHuman(earliestDateStr, locale)}` : '';
-              return [closedHint, earliestHint].filter(Boolean).join('. ');
-            })()}
-            showEventType={((isLegacyProduct && headcountValid) || isGridProduct || isTastingProduct)}
-            eventType={eventType}
-            onEventTypeChange={onEventTypeChange}
-            eventTypeLabel={C.eventType}
-            eventOptions={C.eventOptions}
-            selectEventText={C.selectEvent}
-            specialInstructions={specialInstructions}
-            onSpecialInstructionsChange={onSpecialInstructionsChange}
-            specialInstructionsLabel={C.specialInstructions}
-            specialInstructionsPlaceholder={C.specialInstructionsPlaceholder}
-            checkoutError={checkoutError}
-          />
-
-        </div>
-      )}
+        {flavourNotes && <p className="text-[16px] text-gray-500 italic">{flavourNotes}</p>}
+        {description && <p className="text-[16px] text-gray-500 leading-relaxed line-clamp-3">{description}</p>}
+      </div>
     </div>
   );
 }
 
-
-// ── Main Page Component ──
+// ── Main Page ──
 
 export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }) {
   const { T, locale } = useT();
   const isFr = locale === 'fr';
-  const C = T.cakeOrder;
+  const { items } = useCakeCart();
+  const { setDefaultTab } = useCartDrawer();
   const { setCakeCount } = useOrderItems();
-
-  // CMS-managed title/subtitle with i18n fallback
-  const localeContent = isFr ? cmsContent?.fr : cmsContent?.en;
-  const pageTitle = localeContent?.title || C.title;
-  const pageSubtitle = localeContent?.subtitle || C.subtitle;
 
   const [products, setProducts] = useState<CakeProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [numberOfPeople, setNumberOfPeople] = useState<number>(1);
-
-  // New state for grid-based products
-  const [selectedFlavourHandles, setSelectedFlavourHandles] = useState<string[]>([]);
-  const [selectedSize, setSelectedSize] = useState<string>('');
-  const [enabledAddonIds, setEnabledAddonIds] = useState<string[]>([]);
-  const [addonSizes, setAddonSizes] = useState<Record<string, string>>({});
-  const [sheetCakeAddonIds, setSheetCakeAddonIds] = useState<string[]>([]);
-  const [sheetCakeFlavour, setSheetCakeFlavour] = useState(''); // regular add-ons enabled for sheet cake
-
-  const [pickupDate, setPickupDate] = useState<string>('');
-  const [eventType, setEventType] = useState<string>('');
-  const [specialInstructions, setSpecialInstructions] = useState<string>('');
-  const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery'>('pickup');
-  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
-  const [dateWarning, setDateWarning] = useState<string | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
-  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState(200000);
-  const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]);
-  const [showMobileCart, setShowMobileCart] = useState(false);
 
-  // Listen for blue sidebar tab click
+  useEffect(() => { setDefaultTab('cake'); }, []);
+
   useEffect(() => {
-    const handler = () => setShowMobileCart(true);
-    window.addEventListener('open-order-cart', handler);
-    return () => window.removeEventListener('open-order-cart', handler);
+    const count = items.length;
+    setCakeCount(count);
+    try { localStorage.setItem('rhubarbe:cake:count', String(count)); } catch {}
+  }, [items, setCakeCount]);
+
+  useEffect(() => {
+    fetch('/api/settings').then((r) => r.json()).then((d) => { if (d.brandColor) setBrandColor(d.brandColor); }).catch(() => {});
   }, []);
-  const [cartRestored, setCartRestored] = useState(false);
-  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
-
-  // Report cart count to nav
-  useEffect(() => {
-    const c = selectedProductId ? 1 : 0;
-    setCakeCount(c);
-    try { localStorage.setItem('rhubarbe:cake:count', String(c)); } catch {}
-  }, [selectedProductId, setCakeCount]);
-
-  // Fetch brand color from settings
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.brandColor) setBrandColor(data.brandColor);
-        if (data.deliveryMinForAnyday != null) setDeliveryMinForAnyday(data.deliveryMinForAnyday);
-        if (data.closedPickupDays) setClosedPickupDays(data.closedPickupDays);
-      })
-      .catch(() => {});
-  }, []);
-
-  const selectedProduct = useMemo(
-    () => products.find((p) => p.id === selectedProductId) ?? null,
-    [products, selectedProductId],
-  );
-
-  // ── Legacy price calculation ──
-  const matchedTier = useMemo(() => {
-    if (!selectedProduct || !isLegacy(selectedProduct)) return null;
-    return getPriceFromTiers(selectedProduct.pricingTiers, numberOfPeople);
-  }, [selectedProduct, numberOfPeople]);
-
-  const calculatedPrice = matchedTier?.priceInCents ?? null;
-
-  // ── Grid-based price resolution ──
-  const resolvedSize = useMemo(() => {
-    if (!selectedProduct || !isGridBased(selectedProduct)) return null;
-    if (!selectedSize) return null;
-    const inputNum = parseInt(selectedSize);
-    if (isNaN(inputNum) || inputNum < 1) return null;
-    // Croquembouche: customer enters guests, grid uses choux (guests × 3)
-    const lookupValue = isCroquembouche(selectedProduct) ? inputNum * CROQ_CHOUX_PER_GUEST : inputNum;
-    return resolveNearestSize(getAvailableSizes(selectedProduct.pricingGrid), lookupValue);
-  }, [selectedProduct, selectedSize]);
-
-  const gridPrice = useMemo(() => {
-    if (!selectedProduct || !isGridBased(selectedProduct)) return null;
-    if (!resolvedSize) return null;
-
-    // For croquembouche: all flavours share the same price per size, so resolve by size alone
-    // Try the first selected handle, then fall back to any handle at that size, then 'default'
-    if (isCroquembouche(selectedProduct)) {
-      const handle = selectedFlavourHandles[0] || 'default';
-      const result = resolvePricingGridPrice(selectedProduct.pricingGrid, resolvedSize, handle);
-      if (result) return result;
-      // Fallback: find any row at this size
-      const anyRow = selectedProduct.pricingGrid.find((r) => r.sizeValue === resolvedSize);
-      if (anyRow) return { priceInCents: anyRow.priceInCents, shopifyVariantId: anyRow.shopifyVariantId };
-      return null;
-    }
-
-    // For XXL / wedding: need both size and flavour
-    if (selectedFlavourHandles.length === 0) return null;
-    return resolvePricingGridPrice(selectedProduct.pricingGrid, resolvedSize, selectedFlavourHandles[0]);
-  }, [selectedProduct, resolvedSize, selectedFlavourHandles]);
-
-  // ── Tier detail for resolved size ──
-  const tierDetail = useMemo(() => {
-    if (!selectedProduct || !resolvedSize) return null;
-    return getTierDetailForSize(selectedProduct.cakeTierDetailConfig, resolvedSize);
-  }, [selectedProduct, resolvedSize]);
-
-  // Lead time based on selected product and number of people
-  const { maxLeadTimeDays, earliestDateStr, isDeliveryOnly } = useMemo(() => {
-    if (!selectedProduct) return { maxLeadTimeDays: 0, earliestDateStr: toDateString(new Date()), isDeliveryOnly: false };
-    // For grid-based products, use the selected size as the "people" count for lead time
-    const effectivePeople = isGridBased(selectedProduct) ? (parseInt(resolvedSize || '0') || 1) : numberOfPeople;
-    const activeTierLT = getActiveLeadTimeTier(selectedProduct.leadTimeTiers, effectivePeople);
-    const days = activeTierLT?.leadTimeDays ?? 0;
-    return { maxLeadTimeDays: days, earliestDateStr: toDateString(getEarliestDate(days)), isDeliveryOnly: activeTierLT?.deliveryOnly ?? false };
-  }, [selectedProduct, numberOfPeople, selectedSize]);
-
-  // Fetch blocked dates for cake capacity — re-fetch when lead time changes
-  useEffect(() => {
-    const today = new Date();
-    const from = today.toISOString().slice(0, 10);
-    const to = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const lt = maxLeadTimeDays || 7;
-    fetch(`/api/cake-capacity?from=${from}&to=${to}&leadTime=${lt}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.blockedDates) setBlockedDates(new Set(data.blockedDates));
-      })
-      .catch(() => {});
-  }, [maxLeadTimeDays]);
-
-  // Max advance date based on product setting and selected flavour end dates
-  const latestDateStr = useMemo(() => {
-    let latest: string | null = null;
-
-    // Product-level max advance days
-    if (selectedProduct?.maxAdvanceDays) {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() + selectedProduct.maxAdvanceDays);
-      latest = toDateString(d);
-    }
-
-    // Flavour end dates — use the earliest endDate among selected flavours
-    if (selectedProduct && selectedFlavourHandles.length > 0) {
-      for (const handle of selectedFlavourHandles) {
-        const flavour = selectedProduct.cakeFlavourConfig.find((f) => f.handle === handle);
-        if (flavour?.endDate) {
-          if (!latest || flavour.endDate < latest) {
-            latest = flavour.endDate;
-          }
-        }
-      }
-    }
-
-    return latest;
-  }, [selectedProduct, selectedFlavourHandles]);
-
-  // Validate date against lead time and capacity
-  useEffect(() => {
-    if (!pickupDate) { setDateWarning(null); return; }
-    if (pickupDate < earliestDateStr) {
-      setDateWarning(
-        isFr
-          ? `Date trop tôt — choisissez le ${earliestDateStr} ou après`
-          : `Date too early — choose ${earliestDateStr} or later`,
-      );
-    } else if (blockedDates.has(pickupDate)) {
-      setDateWarning(
-        isFr
-          ? 'Cette date est complète — capacité de production atteinte'
-          : 'This date is fully booked — production capacity reached',
-      );
-    } else if (latestDateStr && pickupDate > latestDateStr) {
-      setDateWarning(
-        isFr
-          ? `Date trop tardive — choisissez le ${latestDateStr} ou avant`
-          : `Date too late — choose ${latestDateStr} or earlier`,
-      );
-    } else {
-      setDateWarning(null);
-    }
-  }, [pickupDate, earliestDateStr, isFr, blockedDates, latestDateStr]);
-
-  // Clear date if it becomes invalid when people count changes
-  useEffect(() => {
-    if (pickupDate && pickupDate < earliestDateStr) {
-      setPickupDate('');
-    }
-  }, [earliestDateStr]);
-
-  // Clear selected flavours that have expired (endDate before earliest possible date)
-  useEffect(() => {
-    if (!selectedProduct || selectedFlavourHandles.length === 0) return;
-    const stillValid = selectedFlavourHandles.filter((handle) => {
-      const flavour = selectedProduct.cakeFlavourConfig.find((f) => f.handle === handle);
-      if (!flavour?.endDate) return true;
-      return flavour.endDate >= earliestDateStr;
-    });
-    if (stillValid.length !== selectedFlavourHandles.length) {
-      setSelectedFlavourHandles(stillValid);
-    }
-  }, [earliestDateStr, selectedProduct]);
-
-  // Force delivery when active tier is delivery only
-  useEffect(() => {
-    if (isDeliveryOnly && fulfillmentType !== 'delivery') {
-      setFulfillmentType('delivery');
-    }
-  }, [isDeliveryOnly]);
-
-  const belowMin = useMemo(() => {
-    if (!selectedProduct) return false;
-    if (isGridBased(selectedProduct)) {
-      if (selectedProduct.pricingGrid.length === 0) return false;
-      const sizes = getAvailableSizes(selectedProduct.pricingGrid).map(Number).filter(Boolean);
-      if (sizes.length === 0) return false;
-      const minSize = Math.min(...sizes);
-      const inputNum = parseInt(selectedSize);
-      if (isNaN(inputNum) || inputNum <= 0) return false;
-      // Croquembouche: compare guest input × 3 against choux grid min
-      const compareValue = isCroquembouche(selectedProduct) ? inputNum * CROQ_CHOUX_PER_GUEST : inputNum;
-      return compareValue < minSize;
-    }
-    // Legacy
-    if (selectedProduct.pricingTiers.length === 0) return false;
-    const minFromTiers = selectedProduct.pricingTiers[0].minPeople;
-    return numberOfPeople < minFromTiers;
-  }, [selectedProduct, numberOfPeople, selectedSize]);
-
-  // Grid minimum for display
-  const gridMinSize = useMemo(() => {
-    if (!selectedProduct || !isGridBased(selectedProduct)) return 0;
-    const sizes = getAvailableSizes(selectedProduct.pricingGrid).map(Number).filter(Boolean);
-    if (sizes.length === 0) return 0;
-    const min = Math.min(...sizes);
-    // Croquembouche: show min in guest units
-    return isCroquembouche(selectedProduct) ? Math.ceil(min / CROQ_CHOUX_PER_GUEST) : min;
-  }, [selectedProduct]);
-
-  // Grid maximum for display (from cakeMaxPeople)
-  const gridMaxSize = useMemo(() => {
-    if (!selectedProduct?.cakeMaxPeople) return null;
-    return selectedProduct.cakeMaxPeople;
-  }, [selectedProduct]);
-
-  // ── Flavour toggle handler ──
-  const handleToggleFlavour = useCallback((handle: string) => {
-    if (!selectedProduct) return;
-    const isMulti = isCroquembouche(selectedProduct) || isTasting(selectedProduct);
-    const maxFlavours = selectedProduct.cakeMaxFlavours ?? 3;
-
-    setSelectedFlavourHandles((prev) => {
-      if (isMulti) {
-        // Multi-select: toggle on/off, respect max
-        if (prev.includes(handle)) {
-          return prev.filter((h) => h !== handle);
-        }
-        if (prev.length >= maxFlavours) return prev;
-        return [...prev, handle];
-      } else {
-        // Radio: single select
-        if (prev.includes(handle)) return [];
-        return [handle];
-      }
-    });
-  }, [selectedProduct]);
-
-  const handleSelectProduct = useCallback((productId: string) => {
-    setSelectedProductId((prev) => {
-      if (prev === productId) return null;
-      const product = products.find((p) => p.id === productId);
-      if (product) {
-        // Reset grid state
-        setEnabledAddonIds([]);
-
-        // Auto-select first flavour for grid-based products (not croquembouche)
-        if ((isGridBased(product) || isTasting(product)) && product.cakeFlavourConfig.length > 0) {
-          const roughEarliest = toDateString(getEarliestDate(product.leadTimeTiers[0]?.leadTimeDays ?? 0));
-          const firstActive = product.cakeFlavourConfig.find((f) => f.active && f.handle !== 'custom' && (!f.endDate || f.endDate >= roughEarliest));
-          setSelectedFlavourHandles(firstActive ? [firstActive.handle] : []);
-        } else {
-          setSelectedFlavourHandles([]);
-        }
-
-        // Auto-set size to minimum from pricing grid or legacy tiers
-        if (isGridBased(product) && product.pricingGrid.length > 0) {
-          const sizes = getAvailableSizes(product.pricingGrid).map(Number).filter(Boolean);
-          const minSize = sizes.length > 0 ? Math.min(...sizes) : 0;
-          const displayMin = isCroquembouche(product) ? Math.ceil(minSize / CROQ_CHOUX_PER_GUEST) : minSize;
-          setSelectedSize(displayMin > 0 ? String(displayMin) : '');
-        } else {
-          setSelectedSize('');
-          if (isLegacy(product) && product.pricingTiers.length > 0) {
-            const minPeople = product.pricingTiers
-              .slice()
-              .sort((a, b) => a.minPeople - b.minPeople)[0].minPeople;
-            setNumberOfPeople(minPeople);
-          }
-        }
-      }
-      return productId;
-    });
-  }, [products]);
-
-  const handleRemove = useCallback(() => {
-    setSelectedProductId(null);
-    setSelectedFlavourHandles([]);
-    setSelectedSize('');
-    setEnabledAddonIds([]);
-    saveCart(null);
-  }, []);
-
-  const handleSizeChange = useCallback((size: string) => {
-    setSelectedSize(size);
-  }, []);
-
-  const handleToggleAddon = useCallback((addonId: string) => {
-    setEnabledAddonIds((prev) => {
-      const removing = prev.includes(addonId);
-      if (removing) {
-        // If removing a sheet cake, clear its related state
-        const addon = (selectedProduct?.addons || []).find((a) => a.id === addonId);
-        if (addon?.cakeProductType === 'sheet-cake') {
-          setSheetCakeAddonIds([]);
-          setSheetCakeFlavour('');
-          setAddonSizes((s) => { const next = { ...s }; delete next[addonId]; return next; });
-        }
-        return prev.filter((id) => id !== addonId);
-      }
-      return [...prev, addonId];
-    });
-  }, [selectedProduct]);
-
-  // ── Cart persistence: save on state changes ──
-  useEffect(() => {
-    if (!cartRestored) return;
-    if (!selectedProductId) {
-      saveCart(null);
-      return;
-    }
-    const effectivePrice = selectedProduct && isGridBased(selectedProduct)
-      ? (gridPrice?.priceInCents ?? null)
-      : calculatedPrice;
-
-    saveCart({
-      productId: selectedProductId,
-      selectedFlavourHandles,
-      selectedSize,
-      addonIds: enabledAddonIds,
-      addonSizes,
-      sheetCakeAddonIds,
-      sheetCakeFlavour,
-      computedPrice: effectivePrice,
-    });
-  }, [selectedProductId, selectedFlavourHandles, selectedSize, enabledAddonIds, addonSizes, sheetCakeAddonIds, sheetCakeFlavour, gridPrice, calculatedPrice, cartRestored, selectedProduct]);
-
-  // ── Cart persistence: restore on page load ──
-  useEffect(() => {
-    if (products.length === 0) return;
-    if (cartRestored) return;
-
-    const saved = loadCart();
-    setCartRestored(true);
-    if (!saved) return;
-
-    const product = products.find((p) => p.id === saved.productId);
-    if (!product) return;
-
-    setSelectedProductId(saved.productId);
-    setSelectedFlavourHandles(saved.selectedFlavourHandles || []);
-    setSelectedSize(saved.selectedSize || '');
-    setEnabledAddonIds(saved.addonIds || []);
-    setAddonSizes(saved.addonSizes || {});
-    setSheetCakeAddonIds(saved.sheetCakeAddonIds || []);
-    setSheetCakeFlavour(saved.sheetCakeFlavour || '');
-
-    if (isLegacy(product) && product.pricingTiers.length > 0) {
-      const minPeople = product.pricingTiers
-        .slice()
-        .sort((a, b) => a.minPeople - b.minPeople)[0].minPeople;
-      setNumberOfPeople(minPeople);
-    }
-  }, [products, cartRestored]);
-
-  const handleCheckout = useCallback(async () => {
-    if (!selectedProduct) return;
-
-    // Determine price and variant based on product type
-    let shopifyVariantId: string | null = null;
-    let price: number | null = null;
-    let sizeValue: string | undefined;
-    let flavourHandle: string | undefined;
-
-    if (isTasting(selectedProduct)) {
-      // Tasting: fixed price from first grid entry
-      if (selectedProduct.pricingGrid.length === 0) return;
-      price = selectedProduct.pricingGrid[0].priceInCents;
-      shopifyVariantId = selectedProduct.pricingGrid[0].shopifyVariantId;
-    } else if (isGridBased(selectedProduct)) {
-      // Grid-based: resolve from grid
-      if (!gridPrice || !resolvedSize) return;
-      // Croquembouche can proceed without flavour selection (all same price)
-      if (!isCroquembouche(selectedProduct) && selectedFlavourHandles.length === 0) return;
-      price = gridPrice.priceInCents;
-      shopifyVariantId = gridPrice.shopifyVariantId;
-      sizeValue = resolvedSize;
-      flavourHandle = isCroquembouche(selectedProduct)
-        ? (selectedFlavourHandles[0] || 'default')
-        : selectedFlavourHandles[0];
-    } else {
-      // Legacy
-      if (calculatedPrice == null || !matchedTier) return;
-      price = calculatedPrice;
-      shopifyVariantId = matchedTier.shopifyVariantId;
-    }
-
-    setCheckoutError(null);
-    setCheckoutLoading(true);
-    try {
-      const items: any[] = [{
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        shopifyProductId: selectedProduct.shopifyProductId ?? '',
-        variantId: selectedProduct.id,
-        variantLabel: isGridBased(selectedProduct)
-          ? `${selectedSize} ${isFr ? 'invités' : 'guests'}`
-          : `${matchedTier?.minPeople ?? numberOfPeople} ${C.numberOfPeopleShort}`,
-        shopifyVariantId: shopifyVariantId ?? '',
-        sizeValue,
-        flavourHandle,
-        quantity: 1,
-        price,
-      }];
-
-      // Add addon items — each add-on is priced individually per cake tier
-      if (isGridBased(selectedProduct) && enabledAddonIds.length > 0) {
-        const sheetCakeIds: string[] = [];
-        const regularAddonIds: string[] = [];
-        for (const addonId of enabledAddonIds) {
-          const addon = (selectedProduct.addons || []).find((a) => a.id === addonId);
-          if (!addon) continue;
-          if (addon.cakeProductType === 'sheet-cake') sheetCakeIds.push(addonId);
-          else regularAddonIds.push(addonId);
-        }
-
-        // Regular add-ons at main cake tier
-        for (const addonId of regularAddonIds) {
-          const addon = (selectedProduct.addons || []).find((a) => a.id === addonId)!;
-          const addonResolved = resolvePricingGridPrice(addon.pricingGrid, resolvedSize!, 'default');
-          if (!addonResolved) continue;
-          items.push({
-            productId: addon.id, productName: addon.name, shopifyProductId: '',
-            variantId: addon.id, variantLabel: addon.name,
-            shopifyVariantId: addonResolved.shopifyVariantId ?? '',
-            sizeValue: resolvedSize, flavourHandle: 'default', quantity: 1,
-            price: addonResolved.priceInCents, isAddon: true,
-          });
-        }
-
-        // Sheet cake add-ons + regular add-ons at sheet cake tier
-        for (const sheetId of sheetCakeIds) {
-          const sheetAddon = (selectedProduct.addons || []).find((a) => a.id === sheetId)!;
-          const sheetSize = addonSizes[sheetId];
-          if (!sheetSize) continue;
-          const sheetResolved = resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize));
-          if (!sheetResolved) continue;
-
-          // Sheet cake itself
-          const sheetPrice = resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, sheetCakeFlavour || 'default');
-          if (sheetPrice) {
-            items.push({
-              productId: sheetAddon.id, productName: sheetAddon.name, shopifyProductId: '',
-              variantId: sheetAddon.id, variantLabel: `${sheetSize} ${isFr ? 'invités' : 'guests'}`,
-              shopifyVariantId: sheetPrice.shopifyVariantId ?? '',
-              sizeValue: sheetResolved, flavourHandle: sheetCakeFlavour || 'default', quantity: 1,
-              price: sheetPrice.priceInCents, isAddon: true,
-            });
-          }
-
-          // Regular add-ons at sheet cake tier (independently toggled)
-          for (const addonId of sheetCakeAddonIds) {
-            const addon = (selectedProduct.addons || []).find((a) => a.id === addonId);
-            if (!addon) continue;
-            const addonPrice = resolvePricingGridPrice(addon.pricingGrid, sheetResolved, 'default');
-            if (!addonPrice) continue;
-            items.push({
-              productId: addon.id, productName: addon.name, shopifyProductId: '',
-              variantId: `${addon.id}-sheet`, variantLabel: `${addon.name} (${isFr ? 'gâteau feuille' : 'sheet cake'})`,
-              shopifyVariantId: addonPrice.shopifyVariantId ?? '',
-              sizeValue: sheetResolved, flavourHandle: 'default', quantity: 1,
-              price: addonPrice.priceInCents, isAddon: true,
-            });
-          }
-        }
-      }
-
-      const res = await fetch('/api/checkout/cake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items,
-          pickupDate: `${pickupDate}T00:00:00`,
-          numberOfPeople: isGridBased(selectedProduct) ? parseInt(selectedSize) || 0 : numberOfPeople,
-          eventType,
-          specialInstructions: specialInstructions.trim() || null,
-          fulfillmentType,
-          deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress.trim() || null : null,
-          locale,
-          calculatedPrice: price,
-          selectedFlavours: selectedFlavourHandles,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setCheckoutError(data.error || C.checkoutError);
-        return;
-      }
-      // Clear cart on successful checkout
-      saveCart(null);
-      window.location.href = data.checkoutUrl;
-    } catch {
-      setCheckoutError(C.checkoutError);
-    } finally {
-      setCheckoutLoading(false);
-    }
-  }, [selectedProduct, gridPrice, calculatedPrice, matchedTier, selectedSize, resolvedSize, selectedFlavourHandles, enabledAddonIds, pickupDate, numberOfPeople, eventType, specialInstructions, fulfillmentType, deliveryAddress, locale, isFr]);
 
   useEffect(() => {
     fetch('/api/storefront/cake-products')
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((data: CakeProduct[]) => setProducts(data))
-      .catch(() => setError(C.loadError))
+      .then(setProducts).catch(() => setError(T.cakeOrder?.loadError || 'Failed to load'))
       .finally(() => setLoading(false));
   }, [isFr]);
 
-  // Shared sidebar props
-  const sidebarProps = {
-    selectedProduct,
-    numberOfPeople,
-    calculatedPrice,
-    pickupDate,
-    eventType,
-    specialInstructions,
-    fulfillmentType,
-    deliveryAddress,
-    dateWarning,
-    earliestDateStr,
-    maxLeadTimeDays,
-    onDateChange: setPickupDate,
-    onNumberOfPeopleChange: setNumberOfPeople,
-    onEventTypeChange: setEventType,
-    onSpecialInstructionsChange: setSpecialInstructions,
-    onFulfillmentTypeChange: setFulfillmentType,
-    onDeliveryAddressChange: setDeliveryAddress,
-    onRemove: handleRemove,
-    checkoutLoading,
-    checkoutError,
-    locale,
-    belowMin,
-    isDeliveryOnly,
-    C,
-    selectedFlavourHandles,
-    selectedSize,
-    onSizeChange: handleSizeChange,
-    resolvedSize: resolvedSize ?? '',
-    gridPrice,
-    tierDetail,
-    addons: selectedProduct?.addons ?? [],
-    enabledAddonIds,
-    onToggleAddon: handleToggleAddon,
-    addonSizes,
-    onAddonSizeChange: (addonId: string, size: string) => setAddonSizes((prev) => ({ ...prev, [addonId]: size })),
-    sheetCakeAddonIds,
-    onToggleSheetAddon: (addonId: string) => setSheetCakeAddonIds((prev) => prev.includes(addonId) ? prev.filter((id) => id !== addonId) : [...prev, addonId]),
-    sheetCakeFlavour,
-    onSheetCakeFlavourChange: setSheetCakeFlavour,
-    gridMinSize,
-    gridMaxSize,
-    blockedDates,
-    latestDateStr,
-    deliveryMinForAnyday,
-    closedPickupDays,
-  };
+  const earliestDateStr = useMemo(() => {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+7);
+    return toDateString(d);
+  }, []);
 
-  // Mobile bottom bar price
-  const mobilePrice = useMemo(() => {
-    if (!selectedProduct) return null;
-    if (isGridBased(selectedProduct)) return gridPrice?.priceInCents ?? null;
-    if (isTasting(selectedProduct) && selectedProduct.pricingGrid.length > 0) return selectedProduct.pricingGrid[0].priceInCents;
-    return calculatedPrice;
-  }, [selectedProduct, gridPrice, calculatedPrice]);
+  const displayProducts = useMemo(() => products.filter((p) => !isAddonProduct(p, products)), [products]);
 
   return (
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
-        {/* Left: Products */}
-        <div>
-          <h1 className="text-[48px] leading-none mb-8" style={{ color: '#1A3821' }}>
-            {pageTitle}
+      {loading && <ProductGridSkeleton />}
+      {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
+      {!loading && !error && (
+        <>
+          <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 180 }}>
+            {isFr ? 'Gâteaux' : 'Cakes'}
+            <sup style={{ fontSize: 14, verticalAlign: 'super', position: 'relative', top: '-0.2em', marginLeft: 2 }}>
+              ({displayProducts.length})
+            </sup>
           </h1>
-
-          {loading && (
-            <ProductGridSkeleton />
-          )}
-          {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
-          {!loading && !error && products.length === 0 && (
-            <div className="text-center py-20">
-              <p className="text-[16px]">{C.noProducts}</p>
-            </div>
-          )}
-          {!loading && !error && products.length > 0 && (() => {
-            const displayProducts = products.filter((p) => !isAddonProduct(p, products));
-            const regularCakes = displayProducts.filter((p) => !isTasting(p));
-            const tastingCakes = displayProducts.filter((p) => isTasting(p));
-            const renderCard = (product: CakeProduct) => {
-              const isSelected = selectedProductId === product.id;
-              return (
-                <CakeProductCard key={product.id} product={product} locale={locale}
-                  isSelected={isSelected}
-                  onSelect={handleSelectProduct} brandColor={brandColor}
-                  numberOfPeople={numberOfPeople} C={C}
-                  selectedFlavourHandles={isSelected ? selectedFlavourHandles : []}
-                  onToggleFlavour={handleToggleFlavour}
-                  earliestDateStr={earliestDateStr} />
-              );
-            };
-            return (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
-                  {regularCakes.map(renderCard)}
-                </div>
-                {tastingCakes.length > 0 && (
-                  <div className="mt-12">
-                    <h2 className="text-[40px] leading-none mb-6" style={{ color: '#1A3821' }}>
-                      {isFr ? 'Dégustation' : 'Tasting'}
-                    </h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
-                      {tastingCakes.map(renderCard)}
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </div>
-
-      {/* Cake cart slide-in panel */}
-      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={selectedProductId ? 1 : 0}
-        footer={selectedProductId ? (
-          <button onClick={() => { setShowMobileCart(false); handleCheckout(); }}
-            disabled={checkoutLoading || !selectedProductId || !pickupDate} data-checkout
-            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
-            <span>{checkoutLoading ? C.loading : C.checkout}</span>
-            <span>{mobilePrice != null ? `$${(mobilePrice / 100).toFixed(2)}` : ''}</span>
-          </button>
-        ) : undefined}>
-        <CakeInlineCart
-          {...sidebarProps}
-          onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
-        />
-      </OrderCartPanel>
+          {displayProducts.length === 0
+            ? <p className="text-[16px] text-center py-20">{T.cakeOrder?.noProducts || 'No products available'}</p>
+            : <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-6">
+                {displayProducts.map((p) => (
+                  <CakeProductCard key={p.id} product={p} locale={locale} brandColor={brandColor} earliestDateStr={earliestDateStr} />
+                ))}
+              </div>
+          }
+        </>
+      )}
     </main>
   );
 }

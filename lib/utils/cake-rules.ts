@@ -197,3 +197,19 @@ export function toDateStr(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * Returns the initial flavour selection for a product on card render (spec §3).
+ * - Multi-select (tasting, croquembouche): no default — user picks freely up to max.
+ * - Single-select: auto-select first available active flavour.
+ */
+export function getDefaultFlavourSelection(
+  flavours: FlavourEntry[],
+  isMultiSelect: boolean,
+  earliestDateStr: string,
+): string[] {
+  if (isMultiSelect) return [];
+  const available = filterAvailableFlavours(flavours, new Date(earliestDateStr + 'T00:00:00'), 0);
+  const first = available.find((f) => f.handle !== 'custom');
+  return first ? [first.handle] : [];
+}

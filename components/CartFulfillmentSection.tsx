@@ -102,6 +102,7 @@ export default function CartFulfillmentSection({
           {dateHint && <p className="text-[11px] mt-1">{dateHint}</p>}
         </div>
         <DatePickerField
+          label={dateLabel ?? 'Date'}
           value={dateValue}
           minValue={minDateValue ?? today(getLocalTimeZone())}
           maxValue={maxDateValue ?? undefined}

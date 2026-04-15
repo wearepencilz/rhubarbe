@@ -25,8 +25,9 @@ interface DatePickerFieldProps extends AriaDatePickerProps<DateValue> {
 }
 
 export default function DatePickerField({ label, ...props }: DatePickerFieldProps) {
+  const ariaLabel = label || 'Date';
   return (
-    <AriaDatePicker {...props} className="flex flex-col gap-1" shouldForceLeadingZeros>
+    <AriaDatePicker {...props} aria-label={ariaLabel} className="flex flex-col gap-1" shouldForceLeadingZeros>
       {label && (
         <AriaLabel className="text-xs text-gray-500 uppercase tracking-wide">{label}</AriaLabel>
       )}
@@ -49,13 +50,13 @@ export default function DatePickerField({ label, ...props }: DatePickerFieldProp
       </AriaGroup>
       <AriaPopover offset={4} placement="bottom start" className="z-50">
         <AriaDialog className="rounded-lg bg-white shadow-xl ring-1 ring-gray-200 p-4">
-          <AriaCalendar className="flex flex-col gap-2">
+          <AriaCalendar aria-label={ariaLabel} className="flex flex-col gap-2">
             <header className="flex items-center justify-between">
-              <AriaButton slot="previous" className="p-1 rounded hover:bg-gray-100 outline-none text-gray-500">
+              <AriaButton slot="previous" aria-label="Previous month" className="p-1 rounded hover:bg-gray-100 outline-none text-gray-500">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
               </AriaButton>
               <AriaHeading className="text-sm font-medium text-gray-900" />
-              <AriaButton slot="next" className="p-1 rounded hover:bg-gray-100 outline-none text-gray-500">
+              <AriaButton slot="next" aria-label="Next month" className="p-1 rounded hover:bg-gray-100 outline-none text-gray-500">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
               </AriaButton>
             </header>

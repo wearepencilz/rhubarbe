@@ -72,8 +72,8 @@ Stored per product as a JSON array. Each flavour entry:
 ```
 
 **Selection modes:**
-- Single-select dropdown: large format, wedding, sheet cake
-- Multi-select chips: croquembouche (max N), tasting (max 3)
+- Single-select dropdown: large format, wedding, sheet cake — auto-selects first available flavour as default
+- Multi-select chips: croquembouche (max N), tasting (max 3) — **no flavour pre-selected by default; user picks freely up to the max**
 
 **Croquembouche:** uses a standardised flavour list shared across all croquembouche products. No flavour-specific variant differences between products.
 

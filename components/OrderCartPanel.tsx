@@ -26,7 +26,7 @@ export default function OrderCartPanel({ open, onClose, title, itemCount, childr
       )}
       <div
         className={`fixed right-0 top-0 h-full w-1/2 max-w-[50vw] min-w-[360px] z-[70] flex flex-col transition-transform duration-300 ease-out cart-panel ${
-          open ? 'translate-x-0' : 'translate-x-full'
+          open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
         style={{ backgroundColor: '#0065B6' }}
       >

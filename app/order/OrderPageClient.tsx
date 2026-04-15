@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
-import { usePersistedState } from '@/lib/hooks/use-persisted-state';
+import { useWeeklyCart } from '@/contexts/WeeklyCartContext';
 import { generatePickupDays, isPickupDayDisabled } from '@/lib/utils/order-helpers';
 import { OrderPageSkeleton } from '@/components/ui/OrderPageSkeleton';
-import OrderCartPanel from '@/components/OrderCartPanel';
+import { useCartDrawer } from '@/contexts/CartDrawerContext';
 
 interface LaunchProduct {
   id: string;
@@ -185,35 +185,37 @@ function ProductCard({
             </>
           )}
           {showOverlay && (
-            <div className="w-full h-full bg-[#D49BCB] flex flex-col justify-between p-4">
-              <div className="flex flex-wrap gap-1">
-                {product.serves && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] text-white border border-white">
-                    {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
-                  </span>
-                )}
-                {allergens.map((a) => (
-                  <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
-                ))}
-              </div>
-              <div className="flex flex-col gap-2">
+            <div className="w-full h-full bg-[#0065B6] flex flex-col justify-between p-4">
+              <div>
+                <div className="flex flex-wrap gap-1">
+                  {product.serves && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] text-white border border-white">
+                      {isFr ? `Pour ${product.serves}` : `Serves ${product.serves}`}
+                    </span>
+                  )}
+                  {allergens.map((a) => (
+                    <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] uppercase font-medium text-white border border-white">{a}</span>
+                  ))}
+                </div>
                 {hasVariants && availableVariants.length > 1 && (
-                  <div className="flex flex-wrap gap-1.5 justify-center">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {availableVariants.map((v) => {
                       const isActive = v.id === (activeVariant?.id);
                       const label = isFr && v.labelFr ? v.labelFr : v.label;
                       return (
                         <button key={v.id} onClick={(e) => { e.stopPropagation(); onSelectVariant(v.id); }}
-                          className={`px-3 py-1.5 text-[16px] rounded-full border transition-colors ${isActive ? 'border-white bg-white text-[#D49BCB]' : 'border-white text-white hover:bg-white/20'}`}>
+                          className={`px-3 py-1 text-[10px] rounded-full border transition-colors ${isActive ? 'border-white bg-white text-[#0065B6]' : 'border-white text-white hover:bg-white/20'}`}>
                           {label}
                         </button>
                       );
                     })}
                   </div>
                 )}
+              </div>
+              <div>
                 {quantity === 0 ? (
                   <button onClick={onAdd} disabled={atMax || (hasVariants && !activeVariant)}
-                    className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="w-full h-10 rounded-full border border-white text-[16px] text-white font-medium hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                     {isFr ? '+ Ajouter' : '+ Add'}
                   </button>
                 ) : (
@@ -234,12 +236,12 @@ function ProductCard({
         </div>
       )}
       <div className="flex flex-col flex-1 pt-2.5 gap-1">
-        <h3 className="text-[16px] leading-tight" style={{ fontWeight: 500 }}>
+        <h3 className="text-[16px] leading-tight" style={{ fontWeight: 500, color: '#1A3821' }}>
           {displayName}
         </h3>
         <div className="flex items-center justify-between text-[16px]">
           {displayPrice != null && displayPrice > 0 && (
-            <span className="text-gray-900 font-medium">${(displayPrice / 100).toFixed(2)}</span>
+            <span style={{ color: '#1A3821' }}>${(displayPrice / 100).toFixed(2)}</span>
           )}
         </div>
         {shortCopy && (
@@ -350,30 +352,23 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
   const { T, locale } = useT();
   const isFr = locale === 'fr';
   const { setOrderCount } = useOrderItems();
+  const { cart, setCart, cartLaunchId, setCartLaunchId, selectedSlotId, setSelectedSlotId, selectedPickupDay, setSelectedPickupDay, launches: contextLaunches, activeLaunchIdx, setActiveLaunchIdx, loading: contextLoading } = useWeeklyCart();
 
-  const [launches, setLaunches] = useState<Launch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeLaunchIdx, setActiveLaunchIdx] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [cart, setCart] = usePersistedState<CartItem[]>('rhubarbe:order:cart', []);
-  const [cartLaunchId, setCartLaunchId] = usePersistedState<string | null>('rhubarbe:order:launchId', null);
   const [pendingSwitchIdx, setPendingSwitchIdx] = useState<number | null>(null);
-  const [selectedSlotId, setSelectedSlotId] = usePersistedState<string | null>('rhubarbe:order:slotId', null);
-  const [selectedPickupDay, setSelectedPickupDay] = usePersistedState<string | null>('rhubarbe:order:pickupDay', null);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [shopifyStock, setShopifyStock] = useState<Record<string, number | null>>({});
-  const [cartOpen, setCartOpen] = useState(false);
+  const { openCart, setDefaultTab } = useCartDrawer();
 
-  // Listen for blue sidebar tab click
-  useEffect(() => {
-    const handler = () => setCartOpen(true);
-    window.addEventListener('open-order-cart', handler);
-    return () => window.removeEventListener('open-order-cart', handler);
-  }, []);
+  // Use launches from context (already fetched)
+  const launches = contextLaunches;
+  const loading = contextLoading;
+
+  useEffect(() => { setDefaultTab('weekly'); }, []);
   // Report cart count to nav
   useEffect(() => {
     const total = cart.reduce((s, i) => s + i.quantity, 0);
@@ -381,39 +376,12 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
     try { localStorage.setItem('rhubarbe:order:count', String(total)); } catch {}
   }, [cart, setOrderCount]);
 
+  // Handle URL slug → active launch index
   useEffect(() => {
-    fetch('/api/launches/current')
-      .then((r) => r.json())
-      .then((data) => {
-        const raw = Array.isArray(data) ? data : data ? [data] : [];
-        // Normalize: ensure all expected fields have safe defaults
-        const list = raw.map((l: any) => ({
-          ...l,
-          title: l.title || { en: '', fr: '' },
-          introCopy: l.introCopy || { en: '', fr: '' },
-          products: l.products || [],
-          pickupSlots: l.pickupSlots || [],
-          pickupLocation: l.pickupLocation || null,
-        }));
-        setLaunches(list);
-        // Auto-select launch matching the URL slug
-        if (initialSlug && list.length > 0) {
-          const idx = list.findIndex((l: any) => l.slug === initialSlug);
-          if (idx >= 0) setActiveLaunchIdx(idx);
-        } else if (list.length > 0) {
-          // If cart has items from a specific launch, navigate to that one
-          const savedLaunchId = cartLaunchId;
-          const cartIdx = savedLaunchId ? list.findIndex((l: any) => l.id === savedLaunchId) : -1;
-          const targetIdx = cartIdx >= 0 ? cartIdx : 0;
-          setActiveLaunchIdx(targetIdx);
-          if (list[targetIdx].slug) {
-            window.history.replaceState(null, '', `/order/${list[targetIdx].slug}`);
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    if (!initialSlug || !launches.length) return;
+    const idx = launches.findIndex((l) => l.slug === initialSlug);
+    if (idx >= 0) setActiveLaunchIdx(idx);
+  }, [initialSlug, launches]);
 
   const launch = launches[activeLaunchIdx] || null;
 
@@ -627,7 +595,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
     if (!product) return productId;
     const hasVariants = product.variantType !== 'none' && product.variants.length > 1;
     if (!hasVariants) return productId;
-    const activeVariantId = selectedVariants[productId] || product.variants.find((v) => v.available)?.id;
+    const activeVariantId = selectedVariants[productId] || product.variants.find((v: any) => v.available)?.id;
     return activeVariantId ? `${productId}::${activeVariantId}` : productId;
   };
 
@@ -907,9 +875,10 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
           {/* Menu selector (if multiple) */}
           {launches.length > 1 && (
-            <div className="flex items-baseline mb-8" style={{ gap: '32px' }}>
+            <div className="flex items-baseline" style={{ paddingTop: 180, gap: '32px', marginBottom: 32 }}>
               {launches.map((l, i) => {
                 const isActive = i === activeLaunchIdx;
+                const count = (l.products || []).length;
                 return (
                   <button
                     key={l.id}
@@ -920,6 +889,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                     onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
                   >
                     {isFr ? l.title?.fr : l.title?.en}
+                    <sup style={{ fontSize: 14, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em', opacity: isActive ? 1 : 1 }}>({count})</sup>
                   </button>
                 );
               })}
@@ -930,8 +900,9 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
             <>
               {/* Menu title (single launch) */}
               {launches.length <= 1 && (
-                <h1 className="text-[48px] leading-none mb-8" style={{ color: '#1A3821' }}>
+                <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 180 }}>
                   {isFr ? launch.title?.fr : launch.title?.en}
+                  <sup style={{ fontSize: 14, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em' }}>({(launch.products || []).length})</sup>
                 </h1>
               )}
 
@@ -1073,91 +1044,6 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
         locale={locale}
       />
 
-      {/* Order cart slide-in panel */}
-      <OrderCartPanel open={cartOpen} onClose={() => setCartOpen(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={cart.reduce((s, i) => s + i.quantity, 0)}
-        footer={<OrderCartFooter cart={cart} checkoutLoading={checkoutLoading} isFr={isFr} onCheckout={() => { setCartOpen(false); handleCheckout(); }} />}>
-        {cart.length === 0 ? (
-          <p className="text-white text-[16px] text-center py-12">{isFr ? 'Aucun article' : 'No items yet'}</p>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              {cart.map((item) => {
-                const max = getMaxForProduct(item.productId);
-                const atMax = max != null && item.quantity >= max;
-                return (
-                <div key={item.productId} className="flex items-center gap-3 py-3">
-                  {item.image && (
-                    <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-white/10">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[16px] text-white font-medium truncate">{item.name}</p>
-                    {item.variantLabel && <p className="text-[14px] text-white">{item.variantLabel}</p>}
-                  </div>
-                  <span className="text-[13px] text-white shrink-0">${(item.price / 100).toFixed(2)}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => item.quantity <= 1 ? removeFromCart(item.productId) : updateCartQty(item.productId, item.quantity - 1)}
-                      className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">
-                      {item.quantity <= 1 ? '×' : '−'}
-                    </button>
-                    <span className="text-white text-[14px] w-6 text-center">{item.quantity}</span>
-                    <button onClick={() => updateCartQty(item.productId, item.quantity + 1)}
-                      disabled={atMax}
-                      className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
-                  </div>
-                </div>
-                );
-              })}
-            </div>
-
-            {/* Pickup date + slot selectors */}
-            {launch && (
-              <div className="border-t border-white pt-6 mt-6 space-y-3">
-                {/* Est total */}
-                <div className="flex items-center justify-between text-[16px] text-white">
-                  <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
-                  <span className="font-medium">${(cart.reduce((s, i) => s + i.price * i.quantity, 0) / 100).toFixed(2)}</span>
-                </div>
-                {/* Pickup date row */}
-                <div className="flex items-center justify-between">
-                  <p className="text-[14px] text-white">Date</p>
-                  {availablePickupDays.length > 1 ? (
-                    <select value={selectedPickupDay || ''} onChange={(e) => setSelectedPickupDay(e.target.value)}
-                      className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
-                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
-                      <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
-                      {availablePickupDays.map((day) => <option key={day} value={day}>{formatDate(day, locale)}</option>)}
-                    </select>
-                  ) : (
-                    <span className="text-[14px] text-white">{formatPickupRange(launch, locale)}</span>
-                  )}
-                </div>
-                {/* Time slot */}
-                {(launch.pickupSlots || []).length > 0 && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[14px] text-white">{isFr ? 'Créneau' : 'Time slot'}</p>
-                      {!selectedSlotId && (
-                        <span className="text-[12px]" style={{ color: '#EBE000' }}>{isFr ? 'choisir' : 'select'}</span>
-                      )}
-                    </div>
-                    <select value={selectedSlotId || ''} onChange={(e) => setSelectedSlotId(e.target.value)}
-                      className="appearance-none rounded-full border border-white bg-transparent text-white pl-4 pr-8 py-2 text-[14px] focus:outline-none bg-[length:10px_10px] bg-no-repeat"
-                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundPosition: 'right 16px center' }}>
-                      <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
-                      {launch.pickupSlots.map((s) => <option key={s.id} value={s.id}>{s.startTime} – {s.endTime}</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Checkout */}
-            {checkoutError && <p className="text-[14px] text-red-300">{checkoutError}</p>}
-          </div>
-        )}
-      </OrderCartPanel>
     </main>
   );
 }

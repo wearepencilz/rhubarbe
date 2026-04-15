@@ -3,11 +3,18 @@ import { Inter } from 'next/font/google';
 import '../src/styles/globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { OrderItemsProvider } from '@/contexts/OrderItemsContext';
+import { CartDrawerProvider } from '@/contexts/CartDrawerContext';
+import { CakeCartProvider } from '@/contexts/CakeCartContext';
+import { WeeklyCartProvider } from '@/contexts/WeeklyCartContext';
+import { CateringCartProvider } from '@/contexts/CateringCartContext';
 import { Providers } from './providers';
-import CartModal from '@/components/CartModal';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
 import PublicLayout from '@/components/PublicLayout';
+import UnifiedCartPanelRoot from '@/components/UnifiedCartPanelRoot';
+import CakeCartSlotRegistrar from '@/components/CakeCartSlotRegistrar';
+import WeeklyCartSlotRegistrar from '@/components/WeeklyCartSlotRegistrar';
+import CateringCartSlotRegistrar from '@/components/CateringCartSlotRegistrar';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -50,14 +57,25 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
+          <CartDrawerProvider>
           <CartProvider>
+            <CakeCartProvider>
+            <CateringCartProvider>
+            <WeeklyCartProvider>
             <OrderItemsProvider>
               <PublicLayout header={<SiteHeader />} footer={<SiteFooter />}>
                 {children}
               </PublicLayout>
-              <CartModal />
+              <UnifiedCartPanelRoot />
+              <CakeCartSlotRegistrar />
+              <WeeklyCartSlotRegistrar />
+              <CateringCartSlotRegistrar />
             </OrderItemsProvider>
+            </WeeklyCartProvider>
+            </CateringCartProvider>
+            </CakeCartProvider>
           </CartProvider>
+          </CartDrawerProvider>
         </Providers>
       </body>
     </html>

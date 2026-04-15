@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-state';
@@ -9,15 +9,16 @@ import type { DateValue } from 'react-aria-components';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
 import { CateringCardSkeleton } from '@/components/ui/OrderPageSkeleton';
 import CateringHeader from './CateringHeader';
+import { useCateringCart } from '@/contexts/CateringCartContext';
 
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-import OrderCartPanel from '@/components/OrderCartPanel';
+import { useCartDrawer } from '@/contexts/CartDrawerContext';
 import CartFulfillmentSection from '@/components/CartFulfillmentSection';
 
 
 interface TranslationObject { en: string; fr: string; }
 
-interface VolumeVariant {
+export interface VolumeVariant {
   id: string;
   label: TranslationObject;
   description: TranslationObject | null;
@@ -38,7 +39,7 @@ interface CateringTypeConfig {
   leadTimeTiers: LeadTimeTier[];
 }
 
-interface VolumeProduct {
+export interface VolumeProduct {
   id: string;
   name: string;
   title: string | null;
@@ -332,7 +333,7 @@ function VolumeProductCard({
   );
 }
 
-function VolumeInlineCart({
+export function VolumeInlineCart({
   groups, totalQuantity, subtotal, fulfillmentDate, fulfillmentTime,
   fulfillmentType, allergenNote, dateWarning, earliestDateStr, maxLeadTimeDays,
   servesEstimate, onDateChange, onTimeChange, onFulfillmentTypeChange, onAllergenNoteChange,
@@ -517,31 +518,30 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const pageTitle = localeContent?.title || V.title;
   const pageSubtitle = localeContent?.subtitle || V.subtitle;
 
-  const [products, setProducts] = useState<VolumeProduct[]>([]);
+  // Use CateringCartContext for persistent cart state
+  const {
+    cart: ctxCartObj, setQuantity: ctxSetQuantity, products, typeSettings,
+    deliveryMinForAnyday, closedPickupDays, cartGroups, totalQuantity, subtotal,
+    hasMinViolation, deliveryDisabled, maxLeadTimeDays, earliestDateStr, latestDateStr,
+    servesEstimate, dateWarning, fulfillment, setFulfillment,
+  } = useCateringCart();
+
+  // Convert context cart (Record) to Map for compatibility with existing code
+  const cart = useMemo(() => new Map(Object.entries(ctxCartObj)), [ctxCartObj]);
+  const setCart = useCallback((action: ((prev: Map<string, number>) => Map<string, number>) | Map<string, number>) => {
+    const prev = new Map(Object.entries(ctxCartObj));
+    const next = typeof action === 'function' ? action(prev) : action;
+    // Sync all changes back to context
+    const allKeys = new Set([...prev.keys(), ...next.keys()]);
+    for (const key of allKeys) {
+      const prevQty = prev.get(key) ?? 0;
+      const nextQty = next.get(key) ?? 0;
+      if (prevQty !== nextQty) ctxSetQuantity(key, nextQty);
+    }
+  }, [ctxCartObj, ctxSetQuantity]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cart, setCart] = usePersistedState<Map<string, number>>('rhubarbe:volume:cart', new Map(), mapSerializer);
-  const [typeSettings, setTypeSettings] = useState<Record<string, CateringTypeConfig>>({});
-  const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState(200000);
-  const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]);
-
-  // Clean up orphaned cart entries when products load
-  useEffect(() => {
-    if (products.length === 0) return;
-    const validIds = new Set<string>();
-    for (const p of products) {
-      validIds.add(p.id);
-      for (const v of p.variants) validIds.add(v.id);
-    }
-    setCart((prev) => {
-      let changed = false;
-      const next = new Map(prev);
-      for (const key of next.keys()) {
-        if (!validIds.has(key)) { next.delete(key); changed = true; }
-      }
-      return changed ? next : prev;
-    });
-  }, [products]);
 
   const DEFAULT_TYPE_CONFIG: CateringTypeConfig = { orderScope: 'order', orderMinimum: 1, variantMinimum: 0, increment: 1, unitLabel: 'quantity', maxAdvanceDays: null, leadTimeTiers: [] };
   const getTypeConfig = useCallback((product: VolumeProduct): CateringTypeConfig => {
@@ -642,170 +642,45 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
 
   // Report count — moved after cartGroups declaration
   
-  const [fulfillmentDate, setFulfillmentDate] = useState('');
-  const [fulfillmentTime, setFulfillmentTime] = useState('');
-  const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery'>('pickup');
-  const [dateWarning, setDateWarning] = useState<string | null>(null);
-  const [allergenNote, setAllergenNote] = useState('');
+  // Fulfillment from context
+  const fulfillmentDate = fulfillment.date;
+  const setFulfillmentDate = (d: string) => setFulfillment({ date: d });
+  const fulfillmentTime = fulfillment.time;
+  const setFulfillmentTime = (t: string) => setFulfillment({ time: t });
+  const fulfillmentType = fulfillment.type;
+  const setFulfillmentType = (t: 'pickup' | 'delivery') => setFulfillment({ type: t });
+  const allergenNote = fulfillment.allergenNote;
+  const setAllergenNote = (n: string) => setFulfillment({ allergenNote: n });
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#144437');
-  const [showMobileCart, setShowMobileCart] = useState(false);
-
-  // Listen for blue sidebar tab click
-  useEffect(() => {
-    const handler = () => setShowMobileCart(true);
-    window.addEventListener('open-order-cart', handler);
-    return () => window.removeEventListener('open-order-cart', handler);
-  }, []);
 
   useEffect(() => {
     fetch('/api/settings').then((r) => r.json())
-      .then((data) => {
-        if (data.brandColor) setBrandColor(data.brandColor);
-      }).catch(() => {});
+      .then((data) => { if (data.brandColor) setBrandColor(data.brandColor); }).catch(() => {});
   }, []);
 
-  const { maxLeadTimeDays, earliestDateStr } = useMemo(() => {
-    let maxDays = 0;
-    for (const product of products) {
-      const totalQty = getTotalQuantity(product, cart);
-      if (totalQty > 0) {
-        const config = getTypeConfig(product);
-        const days = getLeadTimeDays(config.leadTimeTiers || [], totalQty);
-        if (days > maxDays) maxDays = days;
-      }
-    }
-    return { maxLeadTimeDays: maxDays, earliestDateStr: toDateString(getEarliestDate(maxDays)) };
-  }, [products, cart, getTypeConfig]);
+  const { openCart, setDefaultTab } = useCartDrawer();
 
-  // Max advance date — use the smallest maxAdvanceDays across types in cart
-  const latestDateStr = useMemo(() => {
-    let minAdvance: number | null = null;
-    for (const product of products) {
-      const totalQty = getTotalQuantity(product, cart);
-      if (totalQty > 0) {
-        const config = getTypeConfig(product);
-        if (config.maxAdvanceDays) {
-          if (minAdvance === null || config.maxAdvanceDays < minAdvance) {
-            minAdvance = config.maxAdvanceDays;
-          }
-        }
-      }
-    }
-    if (minAdvance === null) return null;
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + minAdvance);
-    return toDateString(d);
-  }, [products, cart, getTypeConfig]);
-
-  useEffect(() => {
-    if (!fulfillmentDate) { setDateWarning(null); return; }
-    if (fulfillmentDate < earliestDateStr) {
-      setDateWarning(isFr
-        ? `Date trop t\u00f4t \u2014 choisissez le ${earliestDateStr} ou apr\u00e8s`
-        : `Date too early \u2014 choose ${earliestDateStr} or later`);
-    } else { setDateWarning(null); }
-  }, [fulfillmentDate, earliestDateStr, isFr]);
+  useEffect(() => { setDefaultTab('catering'); }, []);
 
   const handleQuantityChange = useCallback((variantId: string, quantity: number) => {
-    setCart((prev) => {
-      const next = new Map(prev);
-      if (quantity <= 0) next.delete(variantId); else next.set(variantId, quantity);
-      return next;
-    });
-  }, []);
+    const wasEmpty = Object.values(ctxCartObj).every((q) => q === 0);
+    ctxSetQuantity(variantId, quantity);
+    if (wasEmpty && quantity > 0) openCart('catering');
+  }, [ctxCartObj, ctxSetQuantity, openCart]);
 
   const handleRemoveProduct = useCallback((productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
-    setCart((prev) => {
-      const next = new Map(prev);
-      if (product.variants.length > 0) { for (const v of product.variants) next.delete(v.id); }
-      else { next.delete(productId); }
-      return next;
-    });
-  }, [products]);
+    if (product.variants.length > 0) { for (const v of product.variants) ctxSetQuantity(v.id, 0); }
+    else ctxSetQuantity(productId, 0);
+  }, [products, ctxSetQuantity]);
 
-  const cartGroups = useMemo<CartGroup[]>(() => {
-    const groups: CartGroup[] = [];
-    for (const product of products) {
-      const variants: CartGroup['variants'] = [];
-      if (product.variants.length > 0) {
-        for (const v of product.variants) {
-          const qty = cart.get(v.id) ?? 0;
-          if (qty > 0) variants.push({ variantId: v.id, variantLabel: tr(v.label, locale), quantity: qty, shopifyVariantId: v.shopifyVariantId ?? '', price: v.price ?? product.price ?? 0 });
-        }
-      } else {
-        const qty = cart.get(product.id) ?? 0;
-        if (qty > 0) variants.push({ variantId: product.id, variantLabel: '', quantity: qty, shopifyVariantId: '', price: product.price ?? 0 });
-      }
-      if (variants.length > 0) {
-        const config = getTypeConfig(product);
-        const translatedName = (locale === 'fr' ? product.translations?.fr?.title : null) || product.title || product.name;
-        groups.push({ productId: product.id, productName: translatedName, shopifyProductId: product.shopifyProductId ?? null, basePrice: product.price ?? 0, allergens: product.allergens || [], volumeUnitLabel: config.unitLabel ?? 'quantity', cateringType: product.cateringType ?? '', servesPerUnit: product.servesPerUnit, variants, totalQty: variants.reduce((s, v) => s + v.quantity, 0), totalPrice: variants.reduce((s, v) => s + v.price * v.quantity, 0) });
-      }
-    }
-    return groups;
-  }, [products, cart, locale]);
-
-  const totalQuantity = useMemo(() => cartGroups.reduce((s, g) => s + g.totalQty, 0), [cartGroups]);
-  const subtotal = useMemo(() => cartGroups.reduce((s, g) => s + g.totalPrice, 0), [cartGroups]);
-
-  // Report cart count from valid groups only
+  // Report cart count
   useEffect(() => {
     setVolumeCount(totalQuantity);
-    try { localStorage.setItem('rhubarbe:volume:count', String(totalQuantity)); } catch {}
   }, [totalQuantity, setVolumeCount]);
-
-  const servesEstimate = useMemo(() => {
-    const items: Array<{ quantity: number; servesPerUnit: number | null }> = [];
-    for (const product of products) {
-      const totalQty = getTotalQuantity(product, cart);
-      if (totalQty > 0) items.push({ quantity: totalQty, servesPerUnit: product.servesPerUnit });
-    }
-    return calculateServesEstimate(items);
-  }, [products, cart]);
-
-  const hasMinViolation = useMemo(() => {
-    // Group quantities by catering type for order-scope checks
-    const typeTotals = new Map<string, number>();
-    for (const p of products) {
-      const qty = getTotalQuantity(p, cart);
-      if (qty === 0) continue;
-      const type = p.cateringType ?? '';
-      typeTotals.set(type, (typeTotals.get(type) ?? 0) + qty);
-    }
-
-    return products.some((p) => {
-      const qty = getTotalQuantity(p, cart);
-      if (qty === 0) return false;
-      const config = getTypeConfig(p);
-      if (config.orderScope === 'variant') {
-        return p.variants.some((v) => {
-          const q = cart.get(v.id) ?? 0;
-          if (q === 0) return false;
-          if (q < config.variantMinimum) return true;
-          if (config.increment > 0 && (q - config.variantMinimum) % config.increment !== 0) return true;
-          return false;
-        });
-      } else {
-        // Order-scope: check total across all products of the same type
-        const typeTotal = typeTotals.get(p.cateringType ?? '') ?? 0;
-        if (typeTotal < config.orderMinimum) return true;
-        return false;
-      }
-    });
-  }, [products, cart, getTypeConfig]);
-
-  const deliveryDisabled = useMemo(() => {
-    return products.some((p) => { const qty = getTotalQuantity(p, cart); return qty > 0 && p.pickupOnly; });
-  }, [products, cart]);
-
-  useEffect(() => {
-    if (deliveryDisabled && fulfillmentType === 'delivery') setFulfillmentType('pickup');
-  }, [deliveryDisabled, fulfillmentType]);
 
   const checkoutItems = useMemo(() => {
     return cartGroups.flatMap((g) => g.variants.map((v) => ({
@@ -816,8 +691,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   }, [cartGroups]);
 
   const handleCheckout = useCallback(async () => {
-    setCheckoutError(null);
-    setCheckoutLoading(true);
+    setCheckoutError(null); setCheckoutLoading(true);
     try {
       const isoDate = fulfillmentTime ? `${fulfillmentDate}T${fulfillmentTime}:00` : `${fulfillmentDate}T00:00:00`;
       const res = await fetch('/api/checkout/volume', {
@@ -829,20 +703,12 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       window.location.href = data.checkoutUrl;
     } catch { setCheckoutError(V.checkoutError); }
     finally { setCheckoutLoading(false); }
-  }, [checkoutItems, fulfillmentDate, fulfillmentTime, fulfillmentType, allergenNote, locale, isFr]);
+  }, [checkoutItems, fulfillmentDate, fulfillmentTime, fulfillmentType, allergenNote, locale]);
 
   useEffect(() => {
-    fetch('/api/storefront/volume-products')
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((data: any) => {
-        setProducts(data.products ?? data as unknown as VolumeProduct[]);
-        if (data.cateringTypeSettings) setTypeSettings(data.cateringTypeSettings);
-        if (data.deliveryMinForAnyday != null) setDeliveryMinForAnyday(data.deliveryMinForAnyday);
-        if (data.closedPickupDays) setClosedPickupDays(data.closedPickupDays);
-      })
-      .catch(() => setError(V.loadError))
-      .finally(() => setLoading(false));
-  }, [isFr]);
+    // Products are fetched by CateringCartContext; just mark page as loaded
+    if (products.length > 0) setLoading(false);
+  }, [products]);
 
   return (
     <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
@@ -900,7 +766,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                   <p className="text-sm text-gray-400">{isFr ? 'Aucun produit ne correspond aux filtres.' : 'No products match the selected filters.'}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4" style={{ columnGap: 24, rowGap: 56 }}>
+                <div className="grid grid-cols-2 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
                   {activeProducts.map((product) => (
                     <VolumeProductCard key={product.id} product={product} locale={locale}
                       cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V}
@@ -914,31 +780,6 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
         </div>
       </div>
 
-      {/* Catering cart slide-in panel */}
-      <OrderCartPanel open={showMobileCart} onClose={() => setShowMobileCart(false)} title={isFr ? 'Votre panier' : 'Your cart'} itemCount={totalQuantity}
-        footer={totalQuantity > 0 ? (
-          <button onClick={() => { setShowMobileCart(false); handleCheckout(); }}
-            disabled={checkoutLoading || !fulfillmentDate || !!dateWarning || hasMinViolation} data-checkout
-            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
-            <span>{checkoutLoading ? V.loading : V.checkout}</span>
-            <span>{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : ''}</span>
-          </button>
-        ) : undefined}>
-        <VolumeInlineCart groups={cartGroups} totalQuantity={totalQuantity} subtotal={subtotal}
-          fulfillmentDate={fulfillmentDate} fulfillmentTime={fulfillmentTime}
-          fulfillmentType={fulfillmentType} allergenNote={allergenNote}
-          dateWarning={dateWarning} earliestDateStr={earliestDateStr}
-          maxLeadTimeDays={maxLeadTimeDays} servesEstimate={servesEstimate}
-          onDateChange={setFulfillmentDate} onTimeChange={setFulfillmentTime}
-          onFulfillmentTypeChange={setFulfillmentType} onAllergenNoteChange={setAllergenNote}
-          onCheckout={() => { setShowMobileCart(false); handleCheckout(); }}
-          onRemoveProduct={handleRemoveProduct}
-          onQuantityChange={handleQuantityChange}
-          getTypeConfig={(g: CartGroup) => typeSettings[g.cateringType] ?? DEFAULT_TYPE_CONFIG}
-          checkoutLoading={checkoutLoading} checkoutError={checkoutError}
-          locale={locale} hasMinViolation={hasMinViolation} deliveryDisabled={deliveryDisabled} V={V} latestDateStr={latestDateStr}
-          deliveryMinForAnyday={deliveryMinForAnyday} closedPickupDays={closedPickupDays} />
-      </OrderCartPanel>
     </main>
   );
 }

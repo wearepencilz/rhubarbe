@@ -9,6 +9,7 @@ import {
   countConflicts, isDateBlockedByCapacity,
   filterAvailableFlavours, consolidateAllergens,
   resolveNearestSize, guestsToChoux, toDateStr,
+  getDefaultFlavourSelection,
   type LeadTimeTier, type FlavourEntry, type CapacityOrder,
 } from '@/lib/utils/cake-rules';
 import { resolvePricingGridPrice, findMissingGridCells } from '@/lib/utils/order-helpers';
@@ -328,5 +329,41 @@ describe('End-to-End Order Scenarios', () => {
     expect(choux).toBe(60);
     const size = resolveNearestSize(['30', '50'], choux);
     expect(size).toBe('50');
+  });
+});
+
+// ─── Default Flavour Selection (spec §3) ────────────────────────────
+
+describe('getDefaultFlavourSelection', () => {
+  const TODAY_STR = '2026-04-14';
+
+  it('multi-select (tasting): returns empty — no default', () => {
+    expect(getDefaultFlavourSelection(FLAVOURS, true, TODAY_STR)).toEqual([]);
+  });
+
+  it('multi-select (croquembouche): returns empty — no default', () => {
+    expect(getDefaultFlavourSelection(FLAVOURS, true, TODAY_STR)).toEqual([]);
+  });
+
+  it('single-select: auto-selects first available active flavour', () => {
+    const result = getDefaultFlavourSelection(FLAVOURS, false, TODAY_STR);
+    expect(result).toHaveLength(1);
+    expect(result[0]).not.toBe('retired');
+  });
+
+  it('single-select: skips custom handle', () => {
+    const withCustomFirst: FlavourEntry[] = [
+      { handle: 'custom', active: true, endDate: null, allergens: [] },
+      { handle: 'pistachio', active: true, endDate: null, allergens: ['tree-nuts'] },
+    ];
+    const result = getDefaultFlavourSelection(withCustomFirst, false, TODAY_STR);
+    expect(result).toEqual(['pistachio']);
+  });
+
+  it('single-select: returns empty if no available flavours', () => {
+    const allInactive: FlavourEntry[] = [
+      { handle: 'retired', active: false, endDate: null, allergens: [] },
+    ];
+    expect(getDefaultFlavourSelection(allInactive, false, TODAY_STR)).toEqual([]);
   });
 });
