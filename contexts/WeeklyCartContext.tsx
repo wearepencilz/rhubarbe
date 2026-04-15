@@ -110,7 +110,7 @@ export function WeeklyCartProvider({ children }: { children: React.ReactNode }) 
     setCartState((prev) => {
       const next = typeof action === 'function' ? action(prev) : action;
       writeLS('rhubarbe:order:cart', next);
-      try { localStorage.setItem('rhubarbe:order:count', String(next.reduce((s, i) => s + i.quantity, 0))); } catch {}
+      try { localStorage.setItem('rhubarbe:order:count', String(next.reduce((s, i) => s + i.quantity, 0))); window.dispatchEvent(new Event('rhubarbe:count-updated')); } catch {}
       return next;
     });
   }, []);

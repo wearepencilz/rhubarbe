@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { useOrderItems } from '@/contexts/OrderItemsContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface MobileMenuProps {
@@ -11,7 +10,6 @@ interface MobileMenuProps {
 }
 
 export default function MobileMenu({ open, onClose }: MobileMenuProps) {
-  const { orderCount, volumeCount, cakeCount } = useOrderItems();
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
@@ -31,10 +29,10 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
   } as const;
 
   const items = [
-    { href: '/order', label: 'menu', count: orderCount },
-    { href: '/catering', label: 'catering', count: volumeCount },
-    { href: '/cake', label: 'cakes', count: cakeCount },
-    { href: '/stories', label: 'stories', count: 0 },
+    { href: '/order', label: 'menu' },
+    { href: '/catering', label: 'catering' },
+    { href: '/cake', label: 'cakes' },
+    { href: '/stories', label: 'stories' },
   ];
 
   return (
@@ -63,9 +61,6 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
                 className="text-[22px] lowercase hover:opacity-50 transition-opacity"
               >
                 {item.label}
-                {item.count > 0 && (
-                  <sup className="text-[12px] opacity-50 ml-[1px]">({item.count})</sup>
-                )}
               </Link>
             </li>
           ))}

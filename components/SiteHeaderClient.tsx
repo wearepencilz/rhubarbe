@@ -95,31 +95,24 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
             </button>
           </div>
 
-          {/* Mobile hamburger / X */}
-          <button
-            className="md:hidden relative w-8 h-8 flex items-center justify-center"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-              className="transition-transform duration-300"
-              style={{ transform: menuOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          {/* Mobile: cart + menu text links */}
+          <div className="md:hidden flex items-center gap-4 text-[14px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
+            <button
+              onClick={() => openCart()}
+              className="hover:opacity-50 transition-opacity"
+              aria-label={`Open cart${totalCount > 0 ? ` (${totalCount} items)` : ''}`}
             >
-              {menuOpen ? (
-                <>
-                  <line x1="4" y1="4" x2="16" y2="16" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="16" y1="4" x2="4" y2="16" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
-                </>
-              ) : (
-                <>
-                  <line x1="2" y1="5" x2="18" y2="5" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="2" y1="10" x2="18" y2="10" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="2" y1="15" x2="18" y2="15" stroke="#1A3821" strokeWidth="1.5" strokeLinecap="round" />
-                </>
-              )}
-            </svg>
-          </button>
+              cart{totalCount > 0 && <sup style={{ fontSize: 10, marginLeft: 1 }}>({totalCount})</sup>}
+            </button>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="hover:opacity-50 transition-opacity"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? 'close' : 'menu'}
+            </button>
+          </div>
         </div>
       </header>
 

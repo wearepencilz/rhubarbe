@@ -70,8 +70,10 @@ export function OrderItemsProvider({ children }: { children: React.ReactNode }) 
     const onStorage = (e: StorageEvent) => {
       if (e.key?.includes('rhubarbe:') && e.key?.includes(':count')) hydrate();
     };
+    const onLocalCount = () => hydrate();
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('rhubarbe:count-updated', onLocalCount);
+    return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('rhubarbe:count-updated', onLocalCount); };
   }, [hydrate]);
 
   return (

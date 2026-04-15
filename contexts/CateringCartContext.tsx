@@ -108,6 +108,7 @@ export function CateringCartProvider({ children }: { children: React.ReactNode }
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ cart, fulfillment }));
       const count = Object.values(cart).reduce((s, q) => s + q, 0);
       localStorage.setItem('rhubarbe:volume:count', String(count));
+      window.dispatchEvent(new Event('rhubarbe:count-updated'));
     } catch {}
   }, [cart, fulfillment, hydrated]);
 

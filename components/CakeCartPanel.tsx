@@ -195,29 +195,34 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
       {/* Name + remove */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[16px] font-medium">{product.name}</p>
-          {flavourNames.length > 0 && <p className="text-[14px] opacity-80">{flavourNames.join(', ')}</p>}
+          <p className="text-[14px] font-medium">{product.name}</p>
+          {flavourNames.length > 0 && <p className="text-[12px] opacity-80">{flavourNames.join(', ')}</p>}
         </div>
-        <button onClick={onRemove} className="text-[14px] hover:opacity-70 shrink-0">{isFr ? 'retirer' : 'remove'}</button>
+        <button onClick={onRemove} className="text-[12px] hover:opacity-70 shrink-0">{isFr ? 'retirer' : 'remove'}</button>
       </div>
 
       {/* Size input (grid-based) */}
       {isGrid && (
-        <div className="flex flex-col gap-1">
-          <label className="text-[14px]">{isFr ? 'Invités' : 'Guests'}</label>
-          <input type="number" min={1} value={item.size || ''} placeholder=""
-            onChange={(e) => { const v = e.target.value; onUpdate({ size: v === '' ? '' : String(Math.max(0, Math.floor(Number(v)||0))) }); }}
-            className={`w-full px-3 py-2 text-sm border rounded focus:outline-none bg-transparent ${belowMin ? 'border-red-300' : 'border-white focus:border-white'}`}
-            aria-label={isFr ? 'Invités' : 'Guests'} />
-          {belowMin && <p className="text-[12px] text-[#EBE000]">{isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}</p>}
-          {gridMaxSize && sizeNum > gridMaxSize && <p className="text-[12px] text-[#EBE000]">{isFr ? `Maximum ${gridMaxSize}` : `Maximum ${gridMaxSize}`}</p>}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[14px] shrink-0">{isFr ? 'Invités' : 'Guests'}</span>
+            <div className="flex items-center gap-2">
+              {displayPrice != null && displayPrice > 0 && <span className="text-[12px]">${(displayPrice/100).toFixed(2)}</span>}
+              <input type="number" min={1} value={item.size || ''} placeholder=""
+              onChange={(e) => { const v = e.target.value; onUpdate({ size: v === '' ? '' : String(Math.max(0, Math.floor(Number(v)||0))) }); }}
+              className={`px-3 py-1.5 text-[14px] border rounded-full focus:outline-none bg-transparent w-24 text-right ${belowMin ? 'border-red-300' : 'border-white focus:border-white'}`}
+              aria-label={isFr ? 'Invités' : 'Guests'} />
+            </div>
+          </div>
+          {belowMin && <p className="text-[11px] text-[#EBE000]">{isFr ? `Minimum ${gridMinSize}` : `Minimum ${gridMinSize}`}</p>}
+          {gridMaxSize && sizeNum > gridMaxSize && <p className="text-[11px] text-[#EBE000]">{isFr ? `Maximum ${gridMaxSize}` : `Maximum ${gridMaxSize}`}</p>}
         </div>
       )}
 
       {/* Tier diagram */}
       {tierDetail && (
         <div className="space-y-1">
-          <p className="text-[14px]">{isFr ? `${tierDetail.layers} étage${tierDetail.layers>1?'s':''}: ${tierDetail.diameters} pouces` : `${tierDetail.layers} tier${tierDetail.layers>1?'s':''}: ${tierDetail.diameters} inches`}</p>
+          <p className="text-[12px]">{isFr ? `${tierDetail.layers} étage${tierDetail.layers>1?'s':''}: ${tierDetail.diameters} pouces` : `${tierDetail.layers} tier${tierDetail.layers>1?'s':''}: ${tierDetail.diameters} inches`}</p>
           <TierDiagram tierDetail={tierDetail} />
         </div>
       )}
@@ -233,7 +238,7 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
       {/* Regular add-ons */}
       {isGrid && addons.filter((a) => a.cakeProductType !== 'sheet-cake').length > 0 && (
         <>
-          <hr className="border-white" />
+          <hr className="border-white/40" />
           <div className="space-y-2">
             {addons.filter((a) => a.cakeProductType !== 'sheet-cake').map((addon) => {
               const isEnabled = item.addonIds.includes(addon.id);
@@ -241,14 +246,16 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
               if (resolvedSize) { const p = resolvePricingGridPrice(addon.pricingGrid, resolvedSize, 'default'); if (p) priceCents = p.priceInCents; }
               return (
                 <div key={addon.id} className="flex items-center justify-between gap-2">
-                  <p className="text-[14px] flex-1 min-w-0">{tr(addon.title, locale)}</p>
-                  {priceCents > 0 && <span className="text-[14px] shrink-0">+${(priceCents/100).toFixed(2)}</span>}
-                  <button type="button" disabled={!resolvedSize}
-                    onClick={() => onUpdate({ addonIds: isEnabled ? item.addonIds.filter((id) => id !== addon.id) : [...item.addonIds, addon.id] })}
-                    className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${!resolvedSize ? 'opacity-30 cursor-not-allowed border-white' : isEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
-                    aria-pressed={isEnabled}>
-                    {isEnabled ? '✓' : '+'}
-                  </button>
+                  <p className="text-[12px] flex-1 min-w-0">{tr(addon.title, locale)}</p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {priceCents > 0 && <span className="text-[12px]">+${(priceCents/100).toFixed(2)}</span>}
+                    <button type="button" disabled={!resolvedSize}
+                      onClick={() => onUpdate({ addonIds: isEnabled ? item.addonIds.filter((id) => id !== addon.id) : [...item.addonIds, addon.id] })}
+                      className={`px-3 py-1 text-[11px] rounded-full transition-colors ${!resolvedSize ? 'opacity-30 cursor-not-allowed bg-white text-[#0065B6]' : isEnabled ? 'bg-white/20 text-white border border-white' : 'bg-white text-[#0065B6]'}`}
+                      aria-pressed={isEnabled}>
+                      {isEnabled ? (isFr ? 'Retirer' : 'Remove') : (isFr ? 'Ajouter' : 'Add')}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -267,22 +274,22 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
         const regularAddons = addons.filter((a) => a.cakeProductType !== 'sheet-cake');
         return (
           <>
-            <hr className="border-white" />
+            <hr className="border-white/40" />
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[14px] flex-1">{tr(sheetAddon.title, locale)}</p>
+                <p className="text-[12px] flex-1">{tr(sheetAddon.title, locale)}</p>
                 <button type="button"
                   onClick={() => { const next = sheetEnabled ? item.addonIds.filter((id) => id !== sheetAddon.id) : [...item.addonIds, sheetAddon.id]; onUpdate({ addonIds: next, ...(sheetEnabled ? { sheetCakeAddonIds: [], sheetCakeFlavour: '', addonSizes: { ...item.addonSizes, [sheetAddon.id]: '' } } : {}) }); }}
-                  className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${sheetEnabled ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
+                  className={`px-3 py-1 text-[11px] rounded-full transition-colors shrink-0 ${sheetEnabled ? 'bg-white/20 text-white border border-white' : 'bg-white text-[#0065B6]'}`}
                   aria-pressed={sheetEnabled}>
-                  {sheetEnabled ? '✓' : '+'}
+                  {sheetEnabled ? (isFr ? 'Retirer' : 'Remove') : (isFr ? 'Ajouter' : 'Add')}
                 </button>
               </div>
               {sheetEnabled && (
                 <div className="space-y-2">
                   {sheetFlavours && sheetFlavours.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 items-center">
-                      <span className="text-[14px] uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
+                      <span className="text-[12px] uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
                       <select value={item.sheetCakeFlavour} onChange={(e) => onUpdate({ sheetCakeFlavour: e.target.value })}
                         className="w-full px-2 py-1.5 text-xs border border-white rounded bg-transparent text-white focus:outline-none">
                         <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
@@ -291,13 +298,13 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2 items-center">
-                    <span className="text-[14px] uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
+                    <span className="text-[12px] uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
                     <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
                       onChange={(e) => { const v = e.target.value; onUpdate({ addonSizes: { ...item.addonSizes, [sheetAddon.id]: v === '' ? '' : String(Math.max(0, Math.floor(Number(v)||0))) } }); }}
                       className="w-full px-2 py-1.5 text-xs border border-white rounded bg-transparent text-white focus:outline-none" />
                   </div>
                   {sheetPrice && sheetSize && (
-                    <div className="flex justify-between text-[14px]">
+                    <div className="flex justify-between text-[12px]">
                       <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
                       <span>${(sheetPrice.priceInCents/100).toFixed(2)}</span>
                     </div>
@@ -309,14 +316,16 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
                         const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
                         return (
                           <div key={addon.id} className="flex items-center justify-between gap-2">
-                            <p className="text-[14px] flex-1">{tr(addon.title, locale)}</p>
-                            {ap && <span className="text-[12px] shrink-0">+${(ap.priceInCents/100).toFixed(2)}</span>}
-                            <button type="button"
-                              onClick={() => onUpdate({ sheetCakeAddonIds: isOn ? item.sheetCakeAddonIds.filter((id) => id !== addon.id) : [...item.sheetCakeAddonIds, addon.id] })}
-                              className={`px-3 py-1 text-[12px] rounded-full border transition-colors shrink-0 ${isOn ? 'border-white bg-white text-[#0065B6]' : 'border-white hover:bg-white/10'}`}
-                              aria-pressed={isOn}>
-                              {isOn ? '✓' : '+'}
-                            </button>
+                            <p className="text-[12px] flex-1">{tr(addon.title, locale)}</p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {ap && ap.priceInCents > 0 && <span className="text-[12px]">+${(ap.priceInCents/100).toFixed(2)}</span>}
+                              <button type="button"
+                                onClick={() => onUpdate({ sheetCakeAddonIds: isOn ? item.sheetCakeAddonIds.filter((id) => id !== addon.id) : [...item.sheetCakeAddonIds, addon.id] })}
+                                className={`px-3 py-1 text-[11px] rounded-full transition-colors ${isOn ? 'bg-white/20 text-white border border-white' : 'bg-white text-[#0065B6]'}`}
+                                aria-pressed={isOn}>
+                                {isOn ? (isFr ? 'Retirer' : 'Remove') : (isFr ? 'Ajouter' : 'Add')}
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -329,19 +338,6 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
         );
       })()}
 
-      {/* Price + allergens */}
-      {displayPrice != null && (
-        <div className="flex justify-between text-[16px]">
-          <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
-          <span className="font-medium">${(displayPrice/100).toFixed(2)}</span>
-        </div>
-      )}
-      {allergens.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[14px] shrink-0">{isFr ? 'Contient' : 'Contains'}</span>
-          {allergens.map((a) => <span key={a} className="px-2 py-0.5 rounded-full text-[12px] border border-white">{a}</span>)}
-        </div>
-      )}
     </div>
   );
 }
@@ -440,8 +436,8 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
   if (items.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-[16px]">{isFr ? 'Aucun gâteau sélectionné' : 'No cakes selected'}</p>
-        <p className="text-[14px] mt-1 opacity-60">{isFr ? 'Choisissez un gâteau pour commencer' : 'Choose a cake to get started'}</p>
+        <p className="text-[14px]">{isFr ? 'Aucun gâteau sélectionné' : 'No cakes selected'}</p>
+        <p className="text-[12px] mt-1 opacity-60">{isFr ? 'Choisissez un gâteau pour commencer' : 'Choose a cake to get started'}</p>
       </div>
     );
   }
@@ -464,16 +460,32 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
 
       {/* Est total */}
       {totalPrice > 0 && (
-        <div className="flex justify-between text-[16px] pt-2 border-t border-white mb-16">
+        <div className="flex justify-between text-[14px] pt-2 border-t border-white mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(totalPrice / 100).toFixed(2)}</span>
         </div>
       )}
 
-      {/* Earliest pickup */}
-      {maxLeadTimeDays > 0 && (
-        <p className="text-[16px]">{isFr ? 'Cueillette au plus tôt\u00a0: ' : 'Earliest pickup: '}{formatDateHuman(earliestDateStr, locale)}</p>
-      )}
+      {/* Consolidated allergens */}
+      {(() => {
+        const all = new Set<string>();
+        for (const item of items) {
+          const product = products.find((p) => p.id === item.productId);
+          if (!product) continue;
+          (product.allergens ?? []).forEach((a) => all.add(a));
+          for (const h of item.flavourHandles) {
+            const f = product.cakeFlavourConfig.find((fl) => fl.handle === h);
+            f?.allergens?.forEach((a) => all.add(a));
+          }
+        }
+        if (!all.size) return null;
+        return (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] shrink-0">{isFr ? 'Peut contenir' : 'May contain'}</span>
+            {Array.from(all).map((a) => <span key={a} className="px-2 py-0.5 rounded-full text-[11px] border border-white">{a}</span>)}
+          </div>
+        );
+      })()}
 
       {/* Shared fulfillment */}
       <CartFulfillmentSection
@@ -495,14 +507,19 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
           return closedPickupDays.includes(date.toDate(getLocalTimeZone()).getDay());
         }}
         dateWarning={dateWarning}
+        dateHint={maxLeadTimeDays > 0 ? `${isFr ? 'Au plus tôt\u00a0: ' : 'Earliest: '}${formatDateHuman(earliestDateStr, locale)}` : undefined}
         noDateError={!fulfillment.pickupDate}
         noDateErrorText={isFr ? 'Veuillez sélectionner une date' : 'Please select a date'}
         dateLabel="Date"
         showEventType
         eventType={fulfillment.eventType}
         onEventTypeChange={(t) => setFulfillment({ eventType: t })}
+        eventTypeLabel={isFr ? 'Type d\'événement' : 'Event type'}
+        eventOptions={{ birthday: isFr ? 'Anniversaire' : 'Birthday', wedding: isFr ? 'Mariage' : 'Wedding', corporate: isFr ? 'Corporatif' : 'Corporate', other: isFr ? 'Autre' : 'Other' }}
+        selectEventText={isFr ? 'Sélectionner…' : 'Select…'}
         specialInstructions={fulfillment.specialInstructions}
         onSpecialInstructionsChange={(s) => setFulfillment({ specialInstructions: s })}
+        specialInstructionsLabel="Notes"
         checkoutError={checkoutError}
       />
     </div>

@@ -142,8 +142,8 @@ export default function RequestForm({ type, content, onSuccess, embedded }: Requ
             </Field>
           )}
 
-          <Field label={F.notes}>
-            <textarea rows={4} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+          <Field label="Notes">
+            <input type="text" value={form.notes} onChange={(e) => set('notes', e.target.value)} />
           </Field>
 
           {status === 'error' && (

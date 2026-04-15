@@ -85,8 +85,8 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
     if (slot) return <div key={tick}>{slot.renderContent()}</div>;
     if (!weeklyItems.length) return (
       <div className="py-8 text-center space-y-3">
-        <p className="text-[16px] opacity-60">{isFr ? 'Panier vide' : 'Cart is empty'}</p>
-        <Link href="/order" onClick={onClose} className="inline-block px-6 py-2 rounded-full border border-white text-[14px] text-white hover:bg-white/10 transition-colors">
+        <p className="text-[14px] opacity-60">{isFr ? 'Panier vide' : 'Cart is empty'}</p>
+        <Link href="/order" onClick={onClose} className="inline-block px-6 py-2 rounded-full border border-white text-[12px] text-white hover:bg-white/10 transition-colors">
           {isFr ? 'Voir le menu' : 'Browse menu'}
         </Link>
       </div>
@@ -98,17 +98,17 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
           <div key={item.productId} className="flex items-center gap-3 py-2">
             {item.image && <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-white/10"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>}
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] text-white truncate">{item.name}</p>
-              {item.variantLabel && <p className="text-[12px] opacity-70">{item.variantLabel}</p>}
+              <p className="text-[12px] text-white truncate">{item.name}</p>
+              {item.variantLabel && <p className="text-[11px] opacity-70">{item.variantLabel}</p>}
             </div>
-            <span className="text-[13px] shrink-0">{item.quantity} × ${(item.price/100).toFixed(2)}</span>
+            <span className="text-[11px] shrink-0">{item.quantity} × ${(item.price/100).toFixed(2)}</span>
           </div>
         ))}
-        <div className="border-t border-white pt-3 flex justify-between text-[14px] mb-16">
+        <div className="border-t border-white pt-3 flex justify-between text-[12px] mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(subtotal/100).toFixed(2)}</span>
         </div>
-        <p className="text-[13px] opacity-60">{isFr ? 'Allez sur la page commande pour choisir votre date.' : 'Go to the order page to select your date.'}</p>
+        <p className="text-[11px] opacity-60">{isFr ? 'Allez sur la page commande pour choisir votre date.' : 'Go to the order page to select your date.'}</p>
       </div>
     );
   }
@@ -118,7 +118,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
     if (slot) return slot.renderFooter();
     if (!weeklyItems.length) return null;
     return (
-      <a href="/order" className="block w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium text-center hover:bg-white/90 transition-colors">
+      <a href="/order" className="block w-full py-3 rounded-full bg-white text-[#0065B6] text-[14px] font-medium text-center hover:bg-white/90 transition-colors">
         {isFr ? 'Finaliser la commande' : 'Complete order'}
       </a>
     );
@@ -129,8 +129,8 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
     if (slot) return <div key={tick}>{slot.renderContent()}</div>;
     if (!cateringSnapshot || !cateringSnapshot.items.length) return (
       <div className="py-8 text-center space-y-3">
-        <p className="text-[16px] opacity-60">{isFr ? 'Panier vide' : 'Cart is empty'}</p>
-        <Link href="/catering" onClick={onClose} className="inline-block px-6 py-2 rounded-full border border-white text-[14px] text-white hover:bg-white/10 transition-colors">
+        <p className="text-[14px] opacity-60">{isFr ? 'Panier vide' : 'Cart is empty'}</p>
+        <Link href="/catering" onClick={onClose} className="inline-block px-6 py-2 rounded-full border border-white text-[12px] text-white hover:bg-white/10 transition-colors">
           {isFr ? 'Voir le traiteur' : 'Browse catering'}
         </Link>
       </div>
@@ -140,19 +140,19 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
         {cateringSnapshot.items.map((item, i) => (
           <div key={i} className="flex items-center justify-between gap-3 py-1">
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] truncate">{item.productName}</p>
-              {item.variantLabel && <p className="text-[12px] opacity-70">{item.variantLabel}</p>}
+              <p className="text-[12px] truncate">{item.productName}</p>
+              {item.variantLabel && <p className="text-[11px] opacity-70">{item.variantLabel}</p>}
             </div>
-            <span className="text-[13px] shrink-0">{item.quantity} × ${((item.linePriceCents/item.quantity)/100).toFixed(2)}</span>
+            <span className="text-[11px] shrink-0">{item.quantity} × ${((item.linePriceCents/item.quantity)/100).toFixed(2)}</span>
           </div>
         ))}
-        <div className="border-t border-white pt-3 flex justify-between text-[14px] mb-16">
+        <div className="border-t border-white pt-3 flex justify-between text-[12px] mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(cateringSnapshot.subtotalCents/100).toFixed(2)}</span>
         </div>
-        {cateringSnapshot.fulfillmentDate && <p className="text-[13px] opacity-70">Date: {cateringSnapshot.fulfillmentDate}</p>}
-        {cateringSnapshot.allergenNote && <p className="text-[13px] opacity-70">{cateringSnapshot.allergenNote}</p>}
-        <p className="text-[13px] opacity-60">{isFr ? 'Allez sur la page traiteur pour modifier ou commander.' : 'Go to the catering page to modify or check out.'}</p>
+        {cateringSnapshot.fulfillmentDate && <p className="text-[11px] opacity-70">Date: {cateringSnapshot.fulfillmentDate}</p>}
+        {cateringSnapshot.allergenNote && <p className="text-[11px] opacity-70">{cateringSnapshot.allergenNote}</p>}
+        <p className="text-[11px] opacity-60">{isFr ? 'Allez sur la page traiteur pour modifier ou commander.' : 'Go to the catering page to modify or check out.'}</p>
       </div>
     );
   }
@@ -162,7 +162,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
     if (slot) return slot.renderFooter();
     if (!cateringSnapshot?.items.length) return null;
     return (
-      <a href="/catering" className="block w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium text-center hover:bg-white/90 transition-colors">
+      <a href="/catering" className="block w-full py-3 rounded-full bg-white text-[#0065B6] text-[14px] font-medium text-center hover:bg-white/90 transition-colors">
         {isFr ? 'Finaliser la commande' : 'Complete order'}
       </a>
     );
@@ -173,8 +173,8 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
     if (slot) return <div key={tick}>{slot.renderContent()}</div>;
     if (!cakeItems.length) return (
       <div className="py-8 text-center space-y-3">
-        <p className="text-[16px] opacity-60">{isFr ? 'Aucun gâteau' : 'No cakes'}</p>
-        <Link href="/cake" onClick={onClose} className="inline-block px-6 py-2 rounded-full border border-white text-[14px] text-white hover:bg-white/10 transition-colors">
+        <p className="text-[14px] opacity-60">{isFr ? 'Aucun gâteau' : 'No cakes'}</p>
+        <Link href="/cake" onClick={onClose} className="inline-block px-6 py-2 rounded-full border border-white text-[12px] text-white hover:bg-white/10 transition-colors">
           {isFr ? 'Voir les gâteaux' : 'Browse cakes'}
         </Link>
       </div>
@@ -186,21 +186,21 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
           <div key={item.cartId} className="flex items-center gap-3 py-2">
             {item.productImage && <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-white/10"><img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" /></div>}
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] truncate">{item.productName}</p>
-              {item.flavourHandles.length > 0 && <p className="text-[12px] opacity-70">{item.flavourHandles.join(', ')}</p>}
-              {item.size && <p className="text-[12px] opacity-70">{item.size} {isFr ? 'invités' : 'guests'}</p>}
+              <p className="text-[12px] truncate">{item.productName}</p>
+              {item.flavourHandles.length > 0 && <p className="text-[11px] opacity-70">{item.flavourHandles.join(', ')}</p>}
+              {item.size && <p className="text-[11px] opacity-70">{item.size} {isFr ? 'invités' : 'guests'}</p>}
             </div>
-            {item.computedPrice != null && <span className="text-[13px] shrink-0">${(item.computedPrice/100).toFixed(2)}</span>}
+            {item.computedPrice != null && <span className="text-[11px] shrink-0">${(item.computedPrice/100).toFixed(2)}</span>}
           </div>
         ))}
         {total > 0 && (
-          <div className="border-t border-white pt-3 flex justify-between text-[14px] mb-16">
+          <div className="border-t border-white pt-3 flex justify-between text-[12px] mb-16">
             <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
             <span className="font-medium">${(total/100).toFixed(2)}</span>
           </div>
         )}
-        {cakeFulfillment.pickupDate && <p className="text-[13px] opacity-70">Date: {cakeFulfillment.pickupDate}</p>}
-        <p className="text-[13px] opacity-60">{isFr ? 'Allez sur la page gâteaux pour modifier ou commander.' : 'Go to the cake page to edit or check out.'}</p>
+        {cakeFulfillment.pickupDate && <p className="text-[11px] opacity-70">Date: {cakeFulfillment.pickupDate}</p>}
+        <p className="text-[11px] opacity-60">{isFr ? 'Allez sur la page gâteaux pour modifier ou commander.' : 'Go to the cake page to edit or check out.'}</p>
       </div>
     );
   }
@@ -210,7 +210,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
     if (slot) return slot.renderFooter();
     if (!cakeItems.length) return null;
     return (
-      <a href="/cake" className="block w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium text-center hover:bg-white/90 transition-colors">
+      <a href="/cake" className="block w-full py-3 rounded-full bg-white text-[#0065B6] text-[14px] font-medium text-center hover:bg-white/90 transition-colors">
         {isFr ? 'Finaliser la commande' : 'Complete order'}
       </a>
     );
@@ -230,14 +230,14 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
         role="dialog"
         aria-modal="true"
         aria-label={isFr ? 'Panier' : 'Cart'}
-        className={`fixed right-0 top-0 h-full w-1/2 max-w-[50vw] min-w-[360px] z-[70] flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed right-0 top-0 h-full w-full md:w-1/2 md:max-w-[50vw] z-[70] flex flex-col transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
         style={{ backgroundColor: '#0065B6', color: 'white' }}
       >
         {/* Header — tabs replace the Cart(n) heading */}
         <div className="flex items-start justify-between px-6 pt-10 pb-0 shrink-0">
-          <div role="tablist" aria-label={isFr ? 'Types de panier' : 'Cart types'} className="flex" style={{ gap: 20 }}>
+          <div role="tablist" aria-label={isFr ? 'Types de panier' : 'Cart types'} className="flex flex-col md:flex-row" style={{ gap: 20 }}>
             {TABS.map((t) => {
               const isActive = activeTab === t.key;
               const count = counts[t.key] ?? 0;
@@ -246,7 +246,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
                   id={`cart-tab-btn-${t.key}`}
                   aria-selected={isActive} aria-controls={`cart-tab-${t.key}`}
                   onClick={() => setManualTab(t.key)}
-                  className="text-[24px] transition-opacity leading-none"
+                  className="text-[20px] transition-opacity leading-none"
                   style={{ opacity: isActive ? 1 : 0.4 }}>
                   {isFr ? t.label.fr : t.label.en}
                   {count > 0 && <sup style={{ fontSize: 13, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.1em' }}>({count})</sup>}
@@ -254,7 +254,7 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
               );
             })}
           </div>
-          <button ref={closeButtonRef} onClick={onClose} className="text-[16px] hover:opacity-70 mt-1"
+          <button ref={closeButtonRef} onClick={onClose} className="text-[14px] hover:opacity-70 mt-1"
             aria-label={isFr ? 'Fermer le panier' : 'Close cart'}>close</button>
         </div>
 

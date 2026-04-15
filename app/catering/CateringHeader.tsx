@@ -55,9 +55,9 @@ export default function CateringHeader({
   const config = active?.config ?? null;
 
   return (
-    <div style={{ paddingTop: 180 }}>
+    <div style={{ paddingTop: 80 }}>
       {/* Type tabs — each is a column; sub-filters stack vertically under the active one */}
-      <div className="flex flex-wrap items-start" style={{ gap: '24px' }}>
+      <div className="flex flex-col md:flex-row md:flex-wrap items-start" style={{ gap: '24px' }}>
         {types.map((t) => {
           const isActive = t.key === activeType;
           const showSubs = isActive && subs.length > 0;

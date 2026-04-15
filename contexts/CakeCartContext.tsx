@@ -67,6 +67,7 @@ function save(items: CakeCartItem[], fulfillment: CakeFulfillment) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, fulfillment }));
     localStorage.setItem('rhubarbe:cake:count', String(items.length));
+    window.dispatchEvent(new Event('rhubarbe:count-updated'));
   } catch {}
 }
 

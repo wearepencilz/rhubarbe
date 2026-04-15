@@ -14,9 +14,20 @@ export default function CakeCartSlotRegistrar() {
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
 
-  const stateRef = useRef({ items, fulfillment, locale, isFr, checkoutLoading, checkoutError });
-  stateRef.current = { items, fulfillment, locale, isFr, checkoutLoading, checkoutError };
+  useEffect(() => {
+    fetch('/api/storefront/cake-products').then((r) => r.json()).then(setProducts).catch(() => {});
+  }, []);
+
+  const freshPrice = (item: any) => {
+    const product = products.find((p: any) => p.id === item.productId);
+    if (!product) return item.computedPrice ?? 0;
+    return computeItemPrice(item, product) ?? 0;
+  };
+
+  const stateRef = useRef({ items, fulfillment, locale, isFr, checkoutLoading, checkoutError, freshPrice });
+  stateRef.current = { items, fulfillment, locale, isFr, checkoutLoading, checkoutError, freshPrice };
 
   const handleCheckout = async () => {
     const s = stateRef.current;
@@ -38,7 +49,7 @@ export default function CakeCartSlotRegistrar() {
             sizeValue: item.size,
             flavourHandle: item.flavourHandles[0] || 'default',
             quantity: 1,
-            price: item.computedPrice ?? 0,
+            price: s.freshPrice(item),
           })),
           pickupDate: `${s.fulfillment.pickupDate}T00:00:00`,
           numberOfPeople: s.items.reduce((sum, i) => sum + (parseInt(i.size) || 0), 0),
@@ -47,7 +58,7 @@ export default function CakeCartSlotRegistrar() {
           fulfillmentType: s.fulfillment.fulfillmentType,
           deliveryAddress: s.fulfillment.fulfillmentType === 'delivery' ? s.fulfillment.deliveryAddress || null : null,
           locale: s.locale,
-          calculatedPrice: s.items.reduce((sum, i) => sum + (i.computedPrice ?? 0), 0),
+          calculatedPrice: s.items.reduce((sum, i) => sum + s.freshPrice(i), 0),
           selectedFlavours: s.items.flatMap((i) => i.flavourHandles),
         }),
       });
@@ -76,10 +87,10 @@ export default function CakeCartSlotRegistrar() {
       renderFooter: () => {
         const s = stateRef.current;
         if (!s.items.length) return null;
-        const total = s.items.reduce((sum, i) => sum + (i.computedPrice ?? 0), 0);
+        const total = s.items.reduce((sum, i) => sum + s.freshPrice(i), 0);
         return (
           <button onClick={handleCheckoutRef.current} disabled={s.checkoutLoading || !s.fulfillment.pickupDate}
-            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
+            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[14px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
             <span>{s.checkoutLoading ? (s.isFr ? 'Chargement…' : 'Loading…') : (s.isFr ? 'Passer à la caisse' : 'Checkout')}</span>
             <span>{total > 0 ? `$${(total/100).toFixed(2)}` : ''}</span>
           </button>

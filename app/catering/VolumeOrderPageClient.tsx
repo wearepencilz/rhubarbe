@@ -367,8 +367,8 @@ export function VolumeInlineCart({
     <div>
       {totalQuantity === 0 ? (
         <div className="py-8 text-center">
-          <p className="text-[16px] ">{V.noItems}</p>
-          <p className="text-[14px]  mt-1">{V.startHint}</p>
+          <p className="text-[14px] ">{V.noItems}</p>
+          <p className="text-[12px]  mt-1">{V.startHint}</p>
         </div>
       ) : (
         <>
@@ -392,7 +392,7 @@ export function VolumeInlineCart({
                 return (
                   <div key={type} className="border-b border-white pb-3 mb-3 last:border-b-0 last:mb-0 last:pb-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <p className="text-[20px] font-medium">{label}</p>
+                      <p className="text-[16px] font-medium">{label}</p>
                       {type === 'dinatoire' && (() => {
                         const config = getTypeConfig(typeGroups[0]);
                         const typeTotal = typeGroups.reduce((s, g) => s + g.totalQty, 0);
@@ -407,7 +407,7 @@ export function VolumeInlineCart({
                     {(() => {
                       const typeServes = typeGroups.reduce((s, g) => s + g.totalQty * (g.servesPerUnit ?? 0), 0);
                       return typeServes > 0 ? (
-                        <p className="text-[14px] mb-2" style={{ opacity: 0.6 }}>
+                        <p className="text-[12px] mb-2" style={{ opacity: 0.6 }}>
                           {isFr ? `Pour environ ${typeServes} personnes` : `Serves about ${typeServes} people`}
                         </p>
                       ) : null;
@@ -422,16 +422,16 @@ export function VolumeInlineCart({
                       return group.variants.map((v) => (
                         <div key={v.variantId} className="flex items-center gap-2 py-1">
                           <div className="flex-1 min-w-0">
-                            <span className="text-[16px]">{group.productName}</span>
-                            {group.variants.length > 1 && <span className="text-[14px] ml-1 opacity-70">{v.variantLabel}</span>}
+                            <span className="text-[14px]">{group.productName}</span>
+                            {group.variants.length > 1 && <span className="text-[12px] ml-1 opacity-70">{v.variantLabel}</span>}
                           </div>
-                          {v.price > 0 && <span className="text-[16px] shrink-0">${(v.price / 100).toFixed(2)}</span>}
+                          {v.price > 0 && <span className="text-[14px] shrink-0">${(v.price / 100).toFixed(2)}</span>}
                           <div className="flex items-center gap-1 shrink-0">
                             <button type="button" onClick={() => onQuantityChange(v.variantId, smartDec(v.quantity))}
                               className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-[11px] hover:bg-white/20">
                               {smartDec(v.quantity) === 0 ? '×' : '−'}
                             </button>
-                            <span className="text-[16px] w-5 text-center">{v.quantity}</span>
+                            <span className="text-[14px] w-5 text-center">{v.quantity}</span>
                             <button type="button" onClick={() => onQuantityChange(v.variantId, smartInc(v.quantity))}
                               className="w-6 h-6 rounded-full border border-white flex items-center justify-center text-[11px] hover:bg-white/20">+</button>
                           </div>
@@ -445,7 +445,7 @@ export function VolumeInlineCart({
           </div>
           <div className="space-y-4 pt-6 mt-6 border-t border-white">
             {/* Est total */}
-            <div className="flex items-center justify-between text-[16px] mb-16">
+            <div className="flex items-center justify-between text-[14px] mb-16">
               <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
               <span className="font-medium">{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '\u2014'}</span>
             </div>
@@ -455,10 +455,10 @@ export function VolumeInlineCart({
               if (allAllergens.length === 0) return null;
               return (
                 <div className="flex items-center gap-3">
-                  <p className="text-[14px] shrink-0">{isFr ? 'Contient' : 'Contains'}</p>
+                  <p className="text-[12px] shrink-0">{isFr ? 'Peut contenir' : 'May contain'}</p>
                   <div className="flex flex-wrap gap-1">
                     {allAllergens.map((a) => (
-                      <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] border border-white">{a}</span>
+                      <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] border border-white">{a}</span>
                     ))}
                   </div>
                 </div>
@@ -710,7 +710,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   }, [products]);
 
   return (
-    <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+    <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
       <div>
         <div>
           {loading && (
@@ -765,7 +765,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                   <p className="text-sm text-gray-400">{isFr ? 'Aucun produit ne correspond aux filtres.' : 'No products match the selected filters.'}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
+                <div className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
                   {activeProducts.map((product) => (
                     <VolumeProductCard key={product.id} product={product} locale={locale}
                       cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V}

@@ -373,7 +373,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
   useEffect(() => {
     const total = cart.reduce((s, i) => s + i.quantity, 0);
     setOrderCount(total);
-    try { localStorage.setItem('rhubarbe:order:count', String(total)); } catch {}
+    try { localStorage.setItem('rhubarbe:order:count', String(total)); window.dispatchEvent(new Event('rhubarbe:count-updated')); } catch {}
   }, [cart, setOrderCount]);
 
   // Handle URL slug → active launch index
@@ -696,7 +696,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
     const locationAddress = launch.pickupLocation?.address || '';
 
     return (
-      <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+      <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
         <button
           onClick={() => setShowConfirmation(false)}
           className="text-xs uppercase tracking-widest text-gray-400 hover:text-gray-600 mb-8 flex items-center gap-1"
@@ -850,7 +850,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
   if (launches.length === 0) {
     return (
-      <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+      <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
         <div className="text-center py-24">
           <p
             className="text-xs uppercase tracking-widest text-gray-400 mb-4"
@@ -872,10 +872,10 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
   const currentOrderingOpen = launch?.orderingOpen ?? false;
 
   return (
-    <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+    <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
           {/* Menu selector (if multiple) */}
           {launches.length > 1 && (
-            <div className="flex items-baseline" style={{ paddingTop: 180, gap: '32px', marginBottom: 32 }}>
+            <div className="flex flex-col md:flex-row md:items-baseline" style={{ paddingTop: 80, gap: '16px', marginBottom: 32 }}>
               {launches.map((l, i) => {
                 const isActive = i === activeLaunchIdx;
                 const count = (l.products || []).length;
@@ -900,7 +900,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
             <>
               {/* Menu title (single launch) */}
               {launches.length <= 1 && (
-                <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 180 }}>
+                <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 80 }}>
                   {isFr ? launch.title?.fr : launch.title?.en}
                   <sup style={{ fontSize: 14, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em' }}>({(launch.products || []).length})</sup>
                 </h1>
@@ -997,7 +997,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                         {group.label}
                       </h2>
                     )}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-6">
                       {group.products.map((product) => (
                         <ProductCard
                           key={product.id}

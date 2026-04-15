@@ -94,12 +94,12 @@ export default function CartFulfillmentSection({
       <div className="flex items-center justify-between gap-4">
         <div className="shrink-0">
           <div className="flex items-center gap-2">
-            <p className="text-[16px]">{dateLabel ?? (isFr ? 'Date' : 'Date')}</p>
+            <p className="text-[14px] md:text-[16px]">{dateLabel ?? (isFr ? 'Date' : 'Date')}</p>
             {noDateError && noDateErrorText && (
-              <span className="text-[12px]" style={{ color: '#EBE000' }}>{noDateErrorText}</span>
+              <span className="text-[11px]" style={{ color: '#EBE000' }}>{noDateErrorText}</span>
             )}
           </div>
-          {dateHint && <p className="text-[14px] opacity-60 mt-0.5">{dateHint}</p>}
+          {dateHint && <p className="text-[12px] opacity-60 mt-0.5">{dateHint}</p>}
         </div>
         <DatePickerField
           aria-label={dateLabel ?? 'Date'}
@@ -113,29 +113,35 @@ export default function CartFulfillmentSection({
           }}
         />
       </div>
-      {dateWarning && <p className="text-[12px]" style={{ color: '#EBE000' }} role="alert">{dateWarning}</p>}
+      {dateWarning && <p className="text-[11px]" style={{ color: '#EBE000' }} role="alert">{dateWarning}</p>}
 
       {/* Event type (cake only) */}
       {showEventType && onEventTypeChange && eventOptions && (
-        <div className="flex flex-col gap-1">
-          <label>{eventTypeLabel}</label>
-          <select value={eventType ?? ''} onChange={(e) => onEventTypeChange(e.target.value)}
-            className="w-full px-3 py-2 border border-white rounded-full focus:outline-none bg-transparent">
-            <option value="">{selectEventText}</option>
-            <option value="birthday">{eventOptions.birthday}</option>
-            <option value="wedding">{eventOptions.wedding}</option>
-            <option value="corporate">{eventOptions.corporate}</option>
-            <option value="other">{eventOptions.other}</option>
-          </select>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-[14px] md:text-[16px] shrink-0">{eventTypeLabel}</p>
+          <div className="relative">
+            <select value={eventType ?? ''} onChange={(e) => onEventTypeChange(e.target.value)}
+              className="appearance-none pr-6 py-1 focus:outline-none bg-transparent text-[14px] md:text-[16px] text-right cursor-pointer"
+              style={{ border: 'none' }}>
+              <option value="">{selectEventText}</option>
+              <option value="birthday">{eventOptions.birthday}</option>
+              <option value="wedding">{eventOptions.wedding}</option>
+              <option value="corporate">{eventOptions.corporate}</option>
+              <option value="other">{eventOptions.other}</option>
+            </select>
+            <svg className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M4 6l4 4 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </div>
       )}
 
       {/* Notes */}
       {onSpecialInstructionsChange && (
         <div className="flex flex-col gap-1">
-          <label>{specialInstructionsLabel}</label>
-          <textarea value={specialInstructions ?? ''} onChange={(e) => onSpecialInstructionsChange(e.target.value)} rows={2}
-            className="w-full px-4 py-2 border border-white rounded-lg focus:outline-none resize-none bg-transparent text-white placeholder:text-white/30"
+          <label className="text-[14px] md:text-[16px]">{specialInstructionsLabel}</label>
+          <input type="text" value={specialInstructions ?? ''} onChange={(e) => onSpecialInstructionsChange(e.target.value)}
+            className="w-full py-2 border-b border-white focus:outline-none bg-transparent text-white text-[14px] md:text-[16px] placeholder:text-white/30"
             placeholder={specialInstructionsPlaceholder} />
         </div>
       )}
@@ -150,7 +156,7 @@ export default function CartFulfillmentSection({
         </div>
       )}
 
-      {checkoutError && <p className="text-[12px]" style={{ color: '#EBE000' }}>{checkoutError}</p>}
+      {checkoutError && <p className="text-[11px]" style={{ color: '#EBE000' }}>{checkoutError}</p>}
     </div>
   );
 }

@@ -254,7 +254,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   useEffect(() => {
     const count = items.length;
     setCakeCount(count);
-    try { localStorage.setItem('rhubarbe:cake:count', String(count)); } catch {}
+    try { localStorage.setItem('rhubarbe:cake:count', String(count)); window.dispatchEvent(new Event('rhubarbe:count-updated')); } catch {}
   }, [items, setCakeCount]);
 
   useEffect(() => {
@@ -276,12 +276,12 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   const displayProducts = useMemo(() => products.filter((p) => !isAddonProduct(p, products)), [products]);
 
   return (
-    <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+    <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
       {loading && <ProductGridSkeleton />}
       {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
       {!loading && !error && (
         <>
-          <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 180 }}>
+          <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 80 }}>
             {isFr ? 'Gâteaux' : 'Cakes'}
             <sup style={{ fontSize: 14, verticalAlign: 'super', position: 'relative', top: '-0.2em', marginLeft: 2 }}>
               ({displayProducts.length})
@@ -289,7 +289,7 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           </h1>
           {displayProducts.length === 0
             ? <p className="text-[16px] text-center py-20">{T.cakeOrder?.noProducts || 'No products available'}</p>
-            : <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-6">
+            : <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-6">
                 {displayProducts.map((p) => (
                   <CakeProductCard key={p.id} product={p} locale={locale} brandColor={brandColor} earliestDateStr={earliestDateStr} />
                 ))}
