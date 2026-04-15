@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Test Catering Rules",
+  "description": "Run catering ordering rules tests. Covers ordering rules (brunch/lunch/dinatoire), lead time, menu filter, and inferCateringTypeQuantities. Maps to docs/spec/rhubarbe_catering_ordering_spec.md.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npx vitest run lib/catering/catering-rules.test.ts"
+  }
+}

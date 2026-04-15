@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Test Cake Rules",
+  "description": "Run cake ordering rules tests (46 tests). Covers lead time, date availability, capacity overlap, flavour filtering, allergen consolidation, size resolution, pricing grid, and default flavour selection. Maps to docs/spec/rhubarbe_cake_ordering_spec.md.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npx vitest run lib/utils/cake-rules.test.ts"
+  }
+}
