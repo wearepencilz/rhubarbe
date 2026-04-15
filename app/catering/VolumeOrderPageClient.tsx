@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-state';
@@ -10,7 +9,7 @@ import { parseDate, getLocalTimeZone, today } from '@internationalized/date';
 import type { DateValue } from 'react-aria-components';
 import { calculateServesEstimate, isSundayUnavailable } from '@/lib/utils/order-helpers';
 import { CateringCardSkeleton } from '@/components/ui/OrderPageSkeleton';
-import CateringHeader from './CateringHeader';
+import CateringHeader, { formatRules } from './CateringHeader';
 import { useCateringCart } from '@/contexts/CateringCartContext';
 
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -181,7 +180,7 @@ function VolumeProductCard({
         {!showOverlay && (
           <>
             {displayImage ? (
-              <Image src={displayImage} alt={displayName} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
+              <img src={displayImage} alt={displayName} loading="lazy" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full" style={{ backgroundColor: brandColor }} />
             )}
@@ -761,22 +760,35 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                 })()}
                 locale={locale}
               />
+              {/* Ordering rules */}
+              {typeSettings[activeType] && (() => {
+                const config = typeSettings[activeType];
+                const rules = formatRules(config, isFr);
+                return rules ? (
+                  <p className="text-[14px]" style={{ color: 'rgba(26,56,33,0.4)', marginBottom: 20 }}>
+                    {rules}
+                  </p>
+                ) : null;
+              })()}
               {/* Active type products */}
               {activeProducts.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-sm text-gray-400">{isFr ? 'Aucun produit ne correspond aux filtres.' : 'No products match the selected filters.'}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
+                <AnimatePresence mode="wait">
+                <motion.div key={`${activeType}-${dietaryFilter.join()}-${temperatureFilter.join()}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}
+                  className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
                   {activeProducts.map((product, i) => (
-                    <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.06 }}>
+                    <motion.div key={product.id} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: i * 0.08 }}>
                       <VolumeProductCard product={product} locale={locale}
                         cart={cart} onQuantityChange={handleQuantityChange} brandColor={brandColor} V={V}
                         typeConfig={getTypeConfig(product)}
                         typeTotalQty={getTotalQuantity(product, cart)} />
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
+                </AnimatePresence>
               )}
             </>
           )}

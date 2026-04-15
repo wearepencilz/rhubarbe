@@ -5,11 +5,11 @@ function Bone({ className, style }: { className?: string; style?: React.CSSPrope
 }
 
 /** Skeleton for product card grids (regular orders + cakes) */
-export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+export function ProductGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <>
-      <Bone className="h-12 w-56 mb-8" style={{ marginTop: 180 }} />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
+      <Bone className="h-12 w-56 mb-20" style={{ marginTop: 80 }} />
+      <div className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i}>
             <Bone className="w-full aspect-[4/5] mb-2.5" />
@@ -26,13 +26,13 @@ export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
 export function CateringCardSkeleton() {
   return (
     <>
-      <div className="flex gap-8" style={{ paddingTop: 180, marginBottom: 32 }}>
+      <div className="flex flex-col md:flex-row gap-6" style={{ paddingTop: 80, marginBottom: 80 }}>
         {['w-24', 'w-20', 'w-28'].map((w, i) => (
           <Bone key={i} className={`h-12 ${w}`} />
         ))}
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-6">
-        {Array.from({ length: 8 }).map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i}>
             <Bone className="w-full aspect-[4/5] mb-2.5" />
             <Bone className="h-4 w-3/4 mb-1" />
@@ -47,7 +47,7 @@ export function CateringCardSkeleton() {
 /** Full page skeleton wrapper */
 export function OrderPageSkeleton({ variant = 'grid' }: { variant?: 'grid' | 'catering' }) {
   return (
-    <main className="pt-20 pb-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+    <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
       {variant === 'catering' ? <CateringCardSkeleton /> : <ProductGridSkeleton />}
     </main>
   );

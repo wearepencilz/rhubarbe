@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useCakeCart } from '@/contexts/CakeCartContext';
@@ -194,7 +193,7 @@ function CakeProductCard({ product, locale, brandColor, earliestDateStr }: {
         {!showOverlay && (
           <>
             {product.image
-              ? <Image src={product.image} alt={product.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
+              ? <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover" />
               : <div className="w-full h-full" style={{ backgroundColor: brandColor }} />}
             {allergens.length > 0 && (
               <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
@@ -291,9 +290,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
           </h1>
           {displayProducts.length === 0
             ? <p className="text-[16px] text-center py-20">{T.cakeOrder?.noProducts || 'No products available'}</p>
-            : <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-6">
+            : <div className="grid grid-cols-1 md:grid-cols-3" style={{ columnGap: 24, rowGap: 56 }}>
                 {displayProducts.map((p, i) => (
-                  <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.06 }}>
+                  <motion.div key={p.id} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: i * 0.08 }}>
                     <CakeProductCard product={p} locale={locale} brandColor={brandColor} earliestDateStr={earliestDateStr} />
                   </motion.div>
                 ))}
