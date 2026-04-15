@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useCakeCart } from '@/contexts/CakeCartContext';
@@ -193,7 +194,7 @@ function CakeProductCard({ product, locale, brandColor, earliestDateStr }: {
         {!showOverlay && (
           <>
             {product.image
-              ? <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover" />
+              ? <Image src={product.image} alt={product.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
               : <div className="w-full h-full" style={{ backgroundColor: brandColor }} />}
             {allergens.length > 0 && (
               <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">

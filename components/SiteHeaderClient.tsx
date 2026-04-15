@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCartDrawer } from '@/contexts/CartDrawerContext';
@@ -65,7 +66,7 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
           <div className="flex items-center gap-6">
             <Link href="/" aria-label={`${companyName} home`} onClick={closeMenu}>
               {logo ? (
-                <img src={logo} alt={companyName} className="h-[24px] w-auto object-contain" />
+                <Image src={logo} alt={companyName} width={80} height={24} className="h-[24px] w-auto object-contain" priority />
               ) : (
                 <span className="text-[16px] lowercase" style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}>
                   {companyName}

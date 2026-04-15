@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import * as settingsQueries from '@/lib/db/queries/settings';
 
 export default async function StorySection() {
@@ -10,7 +11,7 @@ export default async function StorySection() {
 
   return (
     <section className="relative w-full min-h-[500px] md:h-[804px] overflow-hidden" style={{ backgroundColor: bg }}>
-      {image && <img src={image} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+      {image && <Image src={image} alt="" fill className="object-cover" sizes="100vw" />}
 
       <div
         className="relative z-10 px-6 md:px-[44px] pt-12 md:pt-[66px] pb-12 md:pb-16 max-w-[400px] text-white text-[15px] md:text-[16px] leading-normal [&_p]:mb-4 [&_p:last-child]:mb-0"

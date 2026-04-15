@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { useWeeklyCart } from '@/contexts/WeeklyCartContext';
@@ -174,7 +176,7 @@ function ProductCard({
         <div className="aspect-[4/5] overflow-hidden bg-gray-100 relative">
           {!showOverlay && (
             <>
-              <img src={product.image} alt={displayName} className="w-full h-full object-cover" loading="lazy" />
+              <Image src={product.image} alt={displayName} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
               {allergens.length > 0 && (
                 <div className="absolute top-4 left-4 flex flex-wrap gap-1 z-10">
                   {allergens.map((a) => (
@@ -771,8 +773,8 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
               {cart.map((item) => (
                 <div key={item.productId} className="flex items-center gap-3 py-3">
                   {item.image && (
-                    <div className="w-12 h-12 rounded bg-gray-100 overflow-hidden shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="w-12 h-12 rounded bg-gray-100 overflow-hidden shrink-0 relative">
+                      <Image src={item.image} alt={item.name} fill className="object-cover" sizes="48px" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -997,9 +999,9 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                       </h2>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-3 gap-y-6">
-                      {group.products.map((product) => (
+                      {group.products.map((product, pi) => (
+                        <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: pi * 0.06 }}>
                         <ProductCard
-                          key={product.id}
                           product={product}
                           locale={locale}
                           quantity={(() => {
@@ -1022,6 +1024,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                             setSelectedVariants((prev) => ({ ...prev, [product.productId]: variantId }))
                           }
                         />
+                        </motion.div>
                       ))}
                     </div>
                   </section>

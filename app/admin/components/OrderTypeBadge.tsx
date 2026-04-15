@@ -1,4 +1,4 @@
-'use client';
+// Pure rendering — no client interactivity needed
 
 import Badge, { type BadgeVariant } from './ui/badge';
 

@@ -269,8 +269,14 @@ export default function UnifiedCartPanel({ open, onClose }: UnifiedCartPanelProp
         </div>
 
         {/* Content */}
-        <div id={`cart-tab-${activeTab}`} role="tabpanel" className="flex-1 overflow-y-auto px-6 pb-4" style={{ paddingTop: 56 }}>
-          {renderers[activeTab]?.content()}
+        <div className="flex-1 overflow-y-auto px-6 pb-4" style={{ paddingTop: 56 }}>
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} id={`cart-tab-${activeTab}`} role="tabpanel"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}>
+              {renderers[activeTab]?.content()}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Footer */}

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import type { DateValue } from 'react-aria-components';
 import { today, getLocalTimeZone } from '@internationalized/date';
@@ -82,12 +83,12 @@ export default function CartFulfillmentSection({
 
       {/* Delivery address */}
       {showDeliveryAddress && fulfillmentType === 'delivery' && onDeliveryAddressChange && (
-        <div className="flex flex-col gap-1">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="flex flex-col gap-1">
           <label>{isFr ? 'Adresse de livraison' : 'Delivery address'}</label>
           <textarea value={deliveryAddress ?? ''} onChange={(e) => onDeliveryAddressChange(e.target.value)} rows={2}
             className="w-full px-4 py-2 border border-white rounded-lg focus:outline-none resize-none bg-transparent text-white placeholder:text-white/30"
             placeholder={isFr ? "Entrez l'adresse de livraison" : 'Enter delivery address'} />
-        </div>
+        </motion.div>
       )}
 
       {/* Date — label+hint left, picker right */}

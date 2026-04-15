@@ -62,6 +62,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
                       alt={product.images[0].altText || product.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform"
+                      sizes="(max-width: 768px) 100vw, 33vw"
                     />
                     {/* Availability Badge */}
                     {product.availability === 'preorder' && (

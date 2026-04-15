@@ -36,6 +36,7 @@ export default async function AllProductsPage() {
                       alt={product.images[0].altText || product.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">

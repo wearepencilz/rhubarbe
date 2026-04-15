@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import * as settingsQueries from '@/lib/db/queries/settings';
 
 const defaultColumns = [
@@ -26,8 +27,8 @@ export default async function EditorialColumns() {
     <section className="flex flex-col gap-4 px-4 md:px-[252px] py-12 md:py-16">
       {columns.map((col, i) => (
         <div key={i} className="flex flex-col md:flex-row gap-8 md:gap-16">
-          <div className="w-full md:flex-none md:w-[578px] h-[280px] md:h-[702px] overflow-hidden bg-[#dad5bb]">
-            {col.image && <img src={col.image} alt="" className="w-full h-full object-cover" />}
+          <div className="w-full md:flex-none md:w-[578px] h-[280px] md:h-[702px] overflow-hidden bg-[#dad5bb] relative">
+            {col.image && <Image src={col.image} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 578px" />}
           </div>
           <div className="flex items-start md:items-center">
             <div

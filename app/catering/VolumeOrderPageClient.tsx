@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useT } from '@/lib/i18n/useT';
 import { useOrderItems } from '@/contexts/OrderItemsContext';
 import { usePersistedState, mapSerializer } from '@/lib/hooks/use-persisted-state';
@@ -180,7 +181,7 @@ function VolumeProductCard({
         {!showOverlay && (
           <>
             {displayImage ? (
-              <img src={displayImage} alt={displayName} loading="lazy" className="w-full h-full object-cover" />
+              <Image src={displayImage} alt={displayName} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
             ) : (
               <div className="w-full h-full" style={{ backgroundColor: brandColor }} />
             )}

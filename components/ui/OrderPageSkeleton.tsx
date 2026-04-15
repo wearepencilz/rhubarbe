@@ -1,4 +1,4 @@
-'use client';
+// Pure rendering — no client interactivity needed
 
 function Bone({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return <div className={`animate-pulse ${className || ''}`} style={{ backgroundColor: 'rgba(26,56,33,0.08)', ...style }} />;

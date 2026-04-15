@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import * as settingsQueries from '@/lib/db/queries/settings';
 
 export default async function AboutSection() {
@@ -27,9 +28,9 @@ export default async function AboutSection() {
         </div>
 
         {/* Right image */}
-        <div className="w-full md:w-1/2 h-[300px] md:h-auto overflow-hidden">
+        <div className="w-full md:w-1/2 h-[300px] md:h-auto overflow-hidden relative">
           {image ? (
-            <img src={image} alt="" className="w-full h-full object-cover" />
+            <Image src={image} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
           ) : (
             <div className="w-full h-full opacity-60" style={{ backgroundColor: bg }} />
           )}
