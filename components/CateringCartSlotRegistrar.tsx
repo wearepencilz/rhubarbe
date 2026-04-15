@@ -29,9 +29,10 @@ export default function CateringCartSlotRegistrar() {
         variantId: v.variantId, variantLabel: v.variantLabel || g.productName,
         shopifyVariantId: v.shopifyVariantId, quantity: v.quantity, price: v.price,
       })));
+      const cateringTypes = [...new Set(s.cartGroups.map((g) => g.cateringType).filter(Boolean))];
       const res = await fetch('/api/checkout/volume', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, fulfillmentDate: isoDate, fulfillmentType: s.fulfillment.type, allergenNote: s.fulfillment.allergenNote.trim() || null, locale: s.locale }),
+        body: JSON.stringify({ items, fulfillmentDate: isoDate, fulfillmentType: s.fulfillment.type, allergenNote: s.fulfillment.allergenNote.trim() || null, locale: s.locale, cateringTypes }),
       });
       const data = await res.json();
       if (!res.ok) { setCheckoutError(data.error || 'Checkout failed'); return; }

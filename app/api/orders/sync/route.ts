@@ -146,6 +146,10 @@ export async function POST(request: NextRequest) {
         status: (isFulfilled ? 'fulfilled' : isPaid ? 'confirmed' : 'pending') as any,
         paymentStatus: (isPaid ? 'paid' : 'pending') as any,
         orderDate: new Date(so.createdAt),
+        orderType: orderType as any,
+        fulfillmentDate: attrs.get('Fulfillment Date') ? new Date(attrs.get('Fulfillment Date')!) : null,
+        allergenNotes: attrs.get('Allergen Note') || null,
+        cateringType: attrs.get('Catering Types')?.split(',')[0] || null,
       };
 
       const lineItems = (so.lineItems?.edges || []).map((e: any) => e.node);

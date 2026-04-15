@@ -152,12 +152,14 @@ export async function POST(request: NextRequest) {
     }
 
     const volumeProductId = items[0].productId;
+    const cateringTypes: string[] = (body as any).cateringTypes || [];
     const attributes: Array<{ key: string; value: string }> = [
       { key: 'Order Type', value: 'volume' },
       { key: 'Volume Product', value: volumeProductId },
       { key: 'Fulfillment Date', value: fulfillmentDate },
       { key: 'Fulfillment Type', value: fulfillmentType || 'pickup' },
     ];
+    if (cateringTypes.length) attributes.push({ key: 'Catering Types', value: cateringTypes.join(',') });
     if (allergenNote) attributes.push({ key: 'Allergen Note', value: allergenNote });
     if (fulfillmentType === 'delivery' && body.deliveryAddress) {
       const addr = body.deliveryAddress;

@@ -3,6 +3,39 @@ import { orders, orderItems } from '@/lib/db/schema';
 import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 import { parseCakeMetadata } from '@/lib/utils/parse-cake-metadata';
 
+/** Infer all catering types present in an order from item names or specialInstructions */
+/** Infer all catering types present in an order from item names or specialInstructions */
+function inferCateringTypes(items: Array<{ productName: string; quantity: number }>, specialInstructions: string | null): string[] {
+  return Object.keys(inferCateringTypeQuantities(items, specialInstructions));
+}
+
+/** Infer per-type quantities from item names */
+function inferCateringTypeQuantities(items: Array<{ productName: string; quantity: number }>, specialInstructions: string | null): Record<string, number> {
+  const qtys: Record<string, number> = {};
+
+  // Parse line items from specialInstructions: "4× Product name"
+  const lines = (specialInstructions ?? '').split('\n');
+  const lineItems: Array<{ name: string; qty: number }> = [];
+  for (const line of lines) {
+    const m = line.match(/^(\d+)[×x]\s+(.+)/);
+    if (m) lineItems.push({ qty: parseInt(m[1]), name: m[2].toLowerCase() });
+  }
+
+  // Use parsed lines if available, otherwise fall back to items array
+  const source = lineItems.length > 0
+    ? lineItems
+    : items.map((i) => ({ name: i.productName.toLowerCase(), qty: i.quantity }));
+
+  for (const { name, qty } of source) {
+    let type: string | null = null;
+    if (name.includes('petit-déjeuner') || name.includes('breakfast') || name.includes('brunch') || name.includes('buffet')) type = 'brunch';
+    else if (name.includes('lunch box') || name.includes('lunch')) type = 'lunch';
+    else type = 'dinatoire'; // default for cocktail/finger food items
+    qtys[type] = (qtys[type] ?? 0) + qty;
+  }
+  return qtys;
+}
+
 type OrderStatus = 'pending' | 'confirmed' | 'fulfilled' | 'cancelled';
 
 /**
@@ -61,6 +94,15 @@ export async function list(filters?: { status?: string; orderType?: string }) {
       numberOfPeople: cakeMetadata.numberOfPeople,
       eventType: cakeMetadata.eventType,
       leadTimeDays: row.leadTimeDays ?? null,
+      cateringType: row.cateringType ?? inferCateringTypes(itemsByOrder.get(row.id) || [], row.specialInstructions)[0] ?? null,
+      cateringTypes: row.orderType === 'volume'
+        ? (row.cateringType
+            ? [row.cateringType]
+            : inferCateringTypes(itemsByOrder.get(row.id) || [], row.specialInstructions))
+        : [],
+      cateringTypeQuantities: row.orderType === 'volume'
+        ? inferCateringTypeQuantities(itemsByOrder.get(row.id) || [], row.specialInstructions)
+        : {},
     };
   });
 }

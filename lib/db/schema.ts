@@ -346,6 +346,7 @@ export const orders = pgTable('orders', {
   fulfillmentDate: timestamp('fulfillment_date'),
   allergenNotes: text('allergen_notes'),
   leadTimeDays: integer('lead_time_days'),
+  cateringType: text('catering_type'),  // 'brunch' | 'lunch' | 'dinatoire' (primary type for volume orders)
 
   orderDate: timestamp('order_date').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
