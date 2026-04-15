@@ -85,7 +85,9 @@ export async function GET(request: NextRequest) {
       cursor.setDate(cursor.getDate() + 1);
     }
 
-    return NextResponse.json({ maxCakes, blockedDates });
+    const res = NextResponse.json({ maxCakes, blockedDates });
+    res.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+    return res;
   } catch (error) {
     console.error('[Cake Capacity] Error:', error);
     return NextResponse.json({ error: 'Failed to check capacity' }, { status: 500 });

@@ -10,7 +10,7 @@ export async function getShop(): Promise<Shop | null> {
   try {
     const res = await shopifyFetch<{ shop: Shop }>({
       query: getShopQuery,
-      cache: 'no-store',
+      next: { revalidate: 30 },
     });
 
     return res.data.shop;
@@ -25,7 +25,7 @@ export async function getCollection(handle: string): Promise<ShopifyCollection |
     const res = await shopifyFetch<{ collection: ShopifyCollection }>({
       query: getCollectionQuery,
       variables: { handle },
-      cache: 'no-store',
+      next: { revalidate: 30 },
     });
 
     return res.data.collection;
@@ -39,7 +39,7 @@ export async function getCollections(): Promise<ShopifyCollection[]> {
   try {
     const res = await shopifyFetch<{ collections: { edges: Array<{ node: ShopifyCollection }> } }>({
       query: getCollectionsQuery,
-      cache: 'no-store',
+      next: { revalidate: 30 },
     });
 
     return res.data.collections.edges.map((edge) => edge.node);
@@ -54,7 +54,7 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
     const res = await shopifyFetch<{ product: ShopifyProduct }>({
       query: getProductQuery,
       variables: { handle },
-      cache: 'no-store',
+      next: { revalidate: 30 },
     });
 
     return res.data.product;
@@ -107,7 +107,7 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
   try {
     const res = await shopifyFetch<{ products: { edges: Array<{ node: ShopifyProduct }> } }>({
       query: getProductsQuery,
-      cache: 'no-store',
+      next: { revalidate: 30 },
     });
 
     return res.data.products.edges.map((edge) => edge.node);

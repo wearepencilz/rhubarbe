@@ -7,10 +7,12 @@ export async function shopifyFetch<T>({
   query,
   variables,
   cache = 'force-cache',
+  next,
 }: {
   query: string;
   variables?: Record<string, any>;
   cache?: RequestCache;
+  next?: NextFetchRequestConfig;
 }): Promise<{ data: T; errors?: any[] }> {
   if (!domain || !storefrontAccessToken) {
     throw new Error('Shopify environment variables are not configured');
@@ -27,7 +29,7 @@ export async function shopifyFetch<T>({
         query,
         variables,
       }),
-      cache,
+      ...(next ? { next } : { cache }),
     });
 
     if (!result.ok) {

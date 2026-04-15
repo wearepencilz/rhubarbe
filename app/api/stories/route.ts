@@ -5,7 +5,9 @@ import { auth } from '@/lib/auth';
 export async function GET() {
   try {
     const data = await storiesQuery.list();
-    return NextResponse.json(data);
+    const res = NextResponse.json(data);
+    res.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+    return res;
   } catch {
     return NextResponse.json([]);
   }

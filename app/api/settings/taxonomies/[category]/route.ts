@@ -9,7 +9,9 @@ export async function GET(
 ) {
   try {
     const values = await getByCategory(params.category)
-    return NextResponse.json({ values })
+    const res = NextResponse.json({ values })
+    res.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300')
+    return res
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

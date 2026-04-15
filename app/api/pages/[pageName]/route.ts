@@ -8,7 +8,9 @@ export async function GET(
 ) {
   try {
     const page = await pageQueries.getByName(params.pageName);
-    return NextResponse.json(page?.content ?? {});
+    const res = NextResponse.json(page?.content ?? {});
+    res.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+    return res;
   } catch (error) {
     return NextResponse.json({});
   }

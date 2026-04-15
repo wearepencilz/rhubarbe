@@ -6,7 +6,9 @@ import { auth } from '@/lib/auth'
 export async function GET() {
   try {
     const taxonomies = await getAllGroupedByCategory()
-    return NextResponse.json({ taxonomies })
+    const res = NextResponse.json({ taxonomies })
+    res.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300')
+    return res
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
