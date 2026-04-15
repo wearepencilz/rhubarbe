@@ -875,7 +875,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
     <main className="pt-20 pb-10 px-4 md:px-8 max-w-[1600px] mx-auto">
           {/* Menu selector (if multiple) */}
           {launches.length > 1 && (
-            <div className="flex flex-col md:flex-row md:items-baseline" style={{ paddingTop: 80, gap: '16px', marginBottom: 32 }}>
+            <div className="flex flex-col md:flex-row md:items-baseline" style={{ paddingTop: 80, gap: '16px', marginBottom: 80 }}>
               {launches.map((l, i) => {
                 const isActive = i === activeLaunchIdx;
                 const count = (l.products || []).length;
@@ -889,7 +889,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
                     onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
                   >
                     {isFr ? l.title?.fr : l.title?.en}
-                    <sup style={{ fontSize: 14, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em', opacity: isActive ? 1 : 1 }}>({count})</sup>
+                    <sup style={{ fontSize: 24, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em', opacity: isActive ? 1 : 1 }}>({count})</sup>
                   </button>
                 );
               })}
@@ -900,9 +900,9 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
             <>
               {/* Menu title (single launch) */}
               {launches.length <= 1 && (
-                <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 80 }}>
+                <h1 className="leading-none mb-20" style={{ fontSize: 48, color: '#1A3821', paddingTop: 80 }}>
                   {isFr ? launch.title?.fr : launch.title?.en}
-                  <sup style={{ fontSize: 14, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em' }}>({(launch.products || []).length})</sup>
+                  <sup style={{ fontSize: 24, marginLeft: 2, verticalAlign: 'super', position: 'relative', top: '-0.2em' }}>({(launch.products || []).length})</sup>
                 </h1>
               )}
 
@@ -955,29 +955,28 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
               {/* Category filter */}
               {categories.length > 1 && (
-                <div className="flex items-baseline mb-8" style={{ gap: '32px' }}>
+                <div className="flex flex-wrap items-center gap-2 mb-8">
                   <button
                     onClick={() => setCategoryFilter('all')}
-                    className="text-[48px] leading-none transition-colors"
-                    style={{ color: categoryFilter === 'all' ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                    onMouseEnter={(e) => { if (categoryFilter !== 'all') e.currentTarget.style.color = '#D49BCB'; }}
-                    onMouseLeave={(e) => { if (categoryFilter !== 'all') e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                    className="text-[16px] leading-none rounded-full transition-colors"
+                    style={categoryFilter === 'all'
+                      ? { backgroundColor: '#1A3821', color: '#fff', padding: '4px 12px' }
+                      : { border: '1px solid rgba(26,56,33,0.5)', color: 'rgba(26,56,33,0.5)', padding: '3px 11px' }}
                   >
-                    {isFr ? 'Tout' : 'All'}<sup className="text-[16px] ml-[2px]">{(launch.products || []).length}</sup>
+                    {isFr ? 'Tout' : 'All'}
                   </button>
                   {categories.map(([slug, label]) => {
-                    const count = (launch.products || []).filter((p) => p.category === slug).length;
                     const isActive = categoryFilter === slug;
                     return (
                       <button
                         key={slug}
                         onClick={() => setCategoryFilter(slug)}
-                        className="text-[48px] leading-none transition-colors"
-                        style={{ color: isActive ? '#1A3821' : 'rgba(26,56,33,0.4)' }}
-                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#D49BCB'; }}
-                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                        className="text-[16px] leading-none rounded-full transition-colors"
+                        style={isActive
+                          ? { backgroundColor: '#1A3821', color: '#fff', padding: '4px 12px' }
+                          : { border: '1px solid rgba(26,56,33,0.5)', color: 'rgba(26,56,33,0.5)', padding: '3px 11px' }}
                       >
-                        {label}<sup className="text-[16px] ml-[2px]">{count}</sup>
+                        {label}
                       </button>
                     );
                   })}

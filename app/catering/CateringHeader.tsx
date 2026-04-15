@@ -82,7 +82,7 @@ export default function CateringHeader({
                 {t.label}
                 <sup
                   className="ml-[2px]"
-                  style={{ fontSize: 14, verticalAlign: 'super', position: 'relative', top: '-0.2em', opacity: isActive && showSubs ? 0 : 1 }}
+                  style={{ fontSize: 24, verticalAlign: 'super', position: 'relative', top: '-0.2em', opacity: isActive && showSubs ? 0 : 1 }}
                 >
                   ({t.count})
                 </sup>
@@ -112,7 +112,7 @@ export default function CateringHeader({
                           onMouseLeave={(e) => { if (!isSubActive && !disabled) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
                         >
                           {s.label}
-                          <sup className="ml-[2px]" style={{ fontSize: 11, verticalAlign: 'super', position: 'relative', top: '-0.1em' }}>
+                          <sup className="ml-[2px]" style={{ fontSize: 14, verticalAlign: 'super', position: 'relative', top: '-0.1em' }}>
                             ({s.count})
                           </sup>
                         </button>
@@ -120,7 +120,7 @@ export default function CateringHeader({
                     })}
                   </div>
                   {temperatureFilters?.length > 0 && (
-                    <div className="flex flex-col" style={{ gap: 8 }}>
+                    <div className="flex flex-wrap gap-2">
                       {temperatureFilters.map((tf) => {
                         const isTempActive = activeTemperature.includes(tf.value);
                         const disabled = tf.count === 0 && !isTempActive;
@@ -132,20 +132,12 @@ export default function CateringHeader({
                               if (disabled) return;
                               onTemperatureChange(isTempActive ? [] : [tf.value]);
                             }}
-                            className="transition-colors leading-none text-left"
-                            style={{
-                              color: isTempActive ? '#1A3821' : 'rgba(26,56,33,0.4)',
-                              fontSize: 24, fontWeight: 400, background: 'none', border: 'none', padding: 0,
-                              cursor: disabled ? 'default' : 'pointer',
-                              opacity: disabled ? 0.25 : 1,
-                            }}
-                            onMouseEnter={(e) => { if (!isTempActive && !disabled) e.currentTarget.style.color = '#D49BCB'; }}
-                            onMouseLeave={(e) => { if (!isTempActive && !disabled) e.currentTarget.style.color = 'rgba(26,56,33,0.4)'; }}
+                            className="text-[16px] leading-none rounded-full transition-colors"
+                            style={isTempActive
+                              ? { backgroundColor: '#1A3821', color: '#fff', padding: '4px 12px', opacity: disabled ? 0.25 : 1 }
+                              : { border: '1px solid rgba(26,56,33,0.5)', color: 'rgba(26,56,33,0.5)', padding: '3px 11px', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.25 : 1 }}
                           >
                             {tf.label}
-                            <sup className="ml-[2px]" style={{ fontSize: 11, verticalAlign: 'super', position: 'relative', top: '-0.1em' }}>
-                              ({tf.count})
-                            </sup>
                           </button>
                         );
                       })}
@@ -160,7 +152,7 @@ export default function CateringHeader({
 
       {/* Ordering rules */}
       {config && (
-        <div style={{ marginTop: 80, marginBottom: 32 }}>
+        <div style={{ marginTop: 24, marginBottom: 80 }}>
           <p className="text-[14px]" style={{ color: hasMinViolation ? '#EF4444' : 'rgba(26,56,33,0.4)' }}>
             {formatRules(config, isFr)}
           </p>

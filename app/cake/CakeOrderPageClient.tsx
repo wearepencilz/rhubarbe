@@ -281,9 +281,9 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
       {error && <div className="text-center py-20"><p className="text-sm text-red-600">{error}</p></div>}
       {!loading && !error && (
         <>
-          <h1 className="leading-none mb-8" style={{ fontSize: 48, color: '#1A3821', paddingTop: 80 }}>
+          <h1 className="leading-none mb-20" style={{ fontSize: 48, color: '#1A3821', paddingTop: 80 }}>
             {isFr ? 'Gâteaux' : 'Cakes'}
-            <sup style={{ fontSize: 14, verticalAlign: 'super', position: 'relative', top: '-0.2em', marginLeft: 2 }}>
+            <sup style={{ fontSize: 24, verticalAlign: 'super', position: 'relative', top: '-0.2em', marginLeft: 2 }}>
               ({displayProducts.length})
             </sup>
           </h1>
