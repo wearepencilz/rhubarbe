@@ -450,22 +450,6 @@ export function VolumeInlineCart({
               <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
               <span className="font-medium">{subtotal > 0 ? `$${(subtotal / 100).toFixed(2)}` : '\u2014'}</span>
             </div>
-            {/* Contains */}
-            {(() => {
-              const allAllergens = Array.from(new Set(groups.flatMap((g) => g.allergens || [])));
-              if (allAllergens.length === 0) return null;
-              return (
-                <div className="flex items-center gap-3">
-                  <p className="text-[12px] shrink-0">{isFr ? 'Peut contenir' : 'May contain'}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {allAllergens.map((a) => (
-                      <span key={a} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] border border-white">{a}</span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
             {/* Fulfillment section */}
             <CartFulfillmentSection
               locale={locale}
@@ -500,6 +484,7 @@ export function VolumeInlineCart({
               allergenPlaceholder={V.allergenPlaceholder}
               checkoutError={checkoutError}
             />
+
           </div>
         </>
       )}

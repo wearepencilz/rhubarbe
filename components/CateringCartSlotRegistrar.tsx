@@ -57,18 +57,27 @@ export default function CateringCartSlotRegistrar() {
       renderFooter: () => {
         const s = stateRef.current;
         if (!s.totalQuantity) return null;
+        const allAllergens = Array.from(new Set(s.cartGroups.flatMap((g: any) => g.allergens || [])));
         return (
-          <button onClick={handleCheckoutRef.current}
-            disabled={s.checkoutLoading || !s.fulfillment.date || !!s.dateWarning || s.hasMinViolation}
-            className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[16px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
-            <span>{s.checkoutLoading ? (s.isFr ? 'Chargement…' : 'Loading…') : (s.isFr ? 'Passer à la caisse' : 'Checkout')}</span>
-            <span>{s.subtotal > 0 ? `$${(s.subtotal/100).toFixed(2)}` : ''}</span>
-          </button>
+          <div>
+            {allAllergens.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                <span className="text-[12px] shrink-0">{s.isFr ? 'Peut contenir' : 'May contain'}</span>
+                {allAllergens.map((a: string) => <span key={a} className="px-2 py-0.5 rounded-full text-[11px] border border-white">{a}</span>)}
+              </div>
+            )}
+            <button onClick={handleCheckoutRef.current}
+              disabled={s.checkoutLoading || !s.fulfillment.date || !!s.dateWarning || s.hasMinViolation}
+              className="w-full py-3 rounded-full bg-white text-[#0065B6] text-[14px] font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between px-6">
+              <span>{s.checkoutLoading ? (s.isFr ? 'Chargement…' : 'Loading…') : (s.isFr ? 'Passer à la caisse' : 'Checkout')}</span>
+              <span>{s.subtotal > 0 ? `$${(s.subtotal/100).toFixed(2)}` : ''}</span>
+            </button>
+          </div>
         );
       },
     });
     return () => unregisterSlot('catering');
-  }, []);
+  }, [fulfillment.date, totalQuantity, hasMinViolation, dateWarning, checkoutLoading]);
 
   return null;
 }

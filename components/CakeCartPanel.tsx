@@ -112,9 +112,18 @@ export function computeItemPrice(item: CakeCartItem, product: CakeProduct): numb
       if (any) base = any.priceInCents;
     }
   } else {
-    if (!item.flavourHandles.length) return null;
-    const r = resolvePricingGridPrice(product.pricingGrid, resolvedSize, item.flavourHandles[0]);
-    if (r) base = r.priceInCents;
+    if (!item.flavourHandles.length) {
+      // Try default flavour
+      const r = resolvePricingGridPrice(product.pricingGrid, resolvedSize, 'default');
+      if (r) base = r.priceInCents;
+      else {
+        const any = product.pricingGrid.find((row) => row.sizeValue === resolvedSize);
+        if (any) base = any.priceInCents;
+      }
+    } else {
+      const r = resolvePricingGridPrice(product.pricingGrid, resolvedSize, item.flavourHandles[0]);
+      if (r) base = r.priceInCents;
+    }
   }
   if (base == null) return null;
 
@@ -192,7 +201,7 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
   }, [product, item.flavourHandles]);
 
   return (
-    <div className="space-y-3 pb-4 border-b border-white last:border-b-0">
+    <div className="space-y-3">
       {/* Name + remove */}
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -269,68 +278,92 @@ function CakeCartItemRow({ item, product, locale, isFr, onUpdate, onRemove, earl
         const sheetAddon = addons.find((a) => a.cakeProductType === 'sheet-cake')!;
         const sheetEnabled = item.addonIds.includes(sheetAddon.id);
         const sheetSize = item.addonSizes[sheetAddon.id] || '';
-        const sheetResolved = sheetSize ? resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), parseInt(sheetSize)) : null;
+        const sheetSizeNum = parseInt(sheetSize) || 0;
+        const sheetResolved = sheetSize ? resolveNearestSize(getAvailableSizes(sheetAddon.pricingGrid), sheetSizeNum) : null;
         const sheetFlavours = (sheetAddon as any).cakeFlavourConfig as CakeFlavourEntry[] | undefined;
         const sheetPrice = (sheetResolved && item.sheetCakeFlavour) ? resolvePricingGridPrice(sheetAddon.pricingGrid, sheetResolved, item.sheetCakeFlavour) : null;
+        const sheetMinSize = (() => { const s = getAvailableSizes(sheetAddon.pricingGrid).map(Number).filter(Boolean); return s.length ? Math.min(...s) : 0; })();
+        const sheetMaxSize = (sheetAddon as any).cakeMaxPeople ?? null;
+        const sheetBelowMin = sheetSizeNum > 0 && sheetSizeNum < sheetMinSize;
         const regularAddons = addons.filter((a) => a.cakeProductType !== 'sheet-cake');
         return (
           <>
             <hr className="border-white/40" />
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Name + toggle */}
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[12px] flex-1">{tr(sheetAddon.title, locale)}</p>
+                <p className="text-[14px] font-medium">{tr(sheetAddon.title, locale)}</p>
                 <button type="button"
-                  onClick={() => { const next = sheetEnabled ? item.addonIds.filter((id) => id !== sheetAddon.id) : [...item.addonIds, sheetAddon.id]; onUpdate({ addonIds: next, ...(sheetEnabled ? { sheetCakeAddonIds: [], sheetCakeFlavour: '', addonSizes: { ...item.addonSizes, [sheetAddon.id]: '' } } : {}) }); }}
+                  onClick={() => {
+                    if (sheetEnabled) {
+                      onUpdate({ addonIds: item.addonIds.filter((id) => id !== sheetAddon.id), sheetCakeAddonIds: [], sheetCakeFlavour: '', addonSizes: { ...item.addonSizes, [sheetAddon.id]: '' } });
+                    } else {
+                      const defaultSize = String(sheetMinSize || '');
+                      const defaultFlavour = item.flavourHandles[0] || '';
+                      onUpdate({ addonIds: [...item.addonIds, sheetAddon.id], addonSizes: { ...item.addonSizes, [sheetAddon.id]: defaultSize }, sheetCakeFlavour: defaultFlavour });
+                    }
+                  }}
                   className={`px-3 py-1 text-[11px] rounded-full transition-colors shrink-0 ${sheetEnabled ? 'bg-white/20 text-white border border-white' : 'bg-white text-[#0065B6]'}`}
                   aria-pressed={sheetEnabled}>
                   {sheetEnabled ? (isFr ? 'Retirer' : 'Remove') : (isFr ? 'Ajouter' : 'Add')}
                 </button>
               </div>
               {sheetEnabled && (
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  {/* Flavour pills */}
                   {sheetFlavours && sheetFlavours.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 items-center">
-                      <span className="text-[12px] uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</span>
-                      <select value={item.sheetCakeFlavour} onChange={(e) => onUpdate({ sheetCakeFlavour: e.target.value })}
-                        className="w-full px-2 py-1.5 text-xs border border-white rounded bg-transparent text-white focus:outline-none">
-                        <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
-                        {sheetFlavours.filter((f) => f.active).map((f) => <option key={f.handle} value={f.handle}>{tr(f.label, locale)}</option>)}
-                      </select>
+                    <div className="space-y-1">
+                      <p className="text-[12px] uppercase tracking-wide">{isFr ? 'Saveur' : 'Flavour'}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sheetFlavours.filter((f) => f.active).map((f) => {
+                          const isSel = item.sheetCakeFlavour === f.handle;
+                          return (
+                            <button key={f.handle} type="button" onClick={() => onUpdate({ sheetCakeFlavour: isSel ? '' : f.handle })}
+                              className={`px-2 py-1 text-[10px] rounded-full border transition-colors ${isSel ? 'bg-white text-[#0065B6] border-white' : 'border-white text-white hover:bg-white/10'}`}>
+                              {tr(f.label, locale)}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-2 items-center">
-                    <span className="text-[12px] uppercase tracking-wide">{isFr ? 'Invités' : 'Guests'}</span>
-                    <input type="number" min={sheetAddon.cakeMinPeople ?? 1} value={sheetSize} placeholder=""
-                      onChange={(e) => { const v = e.target.value; onUpdate({ addonSizes: { ...item.addonSizes, [sheetAddon.id]: v === '' ? '' : String(Math.max(0, Math.floor(Number(v)||0))) } }); }}
-                      className="w-full px-2 py-1.5 text-xs border border-white rounded bg-transparent text-white focus:outline-none" />
+                  {/* Guests + price */}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[14px] shrink-0">{isFr ? 'Invités' : 'Guests'}</span>
+                    <div className="flex items-center gap-2">
+                      {sheetPrice && <span className="text-[12px]">${(sheetPrice.priceInCents/100).toFixed(2)}</span>}
+                      <input type="number" min={1} value={sheetSize} placeholder=""
+                        onChange={(e) => { const v = e.target.value; onUpdate({ addonSizes: { ...item.addonSizes, [sheetAddon.id]: v === '' ? '' : String(Math.max(0, Math.floor(Number(v)||0))) } }); }}
+                        className={`px-3 py-1.5 text-[14px] border rounded-full focus:outline-none bg-transparent w-24 text-right ${sheetBelowMin ? 'border-red-300' : 'border-white focus:border-white'}`} />
+                    </div>
                   </div>
-                  {sheetPrice && sheetSize && (
-                    <div className="flex justify-between text-[12px]">
-                      <span>{sheetSize} {isFr ? 'invités' : 'guests'}</span>
-                      <span>${(sheetPrice.priceInCents/100).toFixed(2)}</span>
-                    </div>
-                  )}
+                  {sheetBelowMin && <p className="text-[11px] text-[#EBE000]">{isFr ? `Minimum ${sheetMinSize}` : `Minimum ${sheetMinSize}`}</p>}
+                  {sheetMaxSize && sheetSizeNum > sheetMaxSize && <p className="text-[11px] text-[#EBE000]">{isFr ? `Maximum ${sheetMaxSize}` : `Maximum ${sheetMaxSize}`}</p>}
+                  {/* Sheet addons */}
                   {regularAddons.length > 0 && sheetResolved && (
-                    <div className="space-y-1.5">
-                      {regularAddons.map((addon) => {
-                        const isOn = item.sheetCakeAddonIds.includes(addon.id);
-                        const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
-                        return (
-                          <div key={addon.id} className="flex items-center justify-between gap-2">
-                            <p className="text-[12px] flex-1">{tr(addon.title, locale)}</p>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {ap && ap.priceInCents > 0 && <span className="text-[12px]">+${(ap.priceInCents/100).toFixed(2)}</span>}
-                              <button type="button"
-                                onClick={() => onUpdate({ sheetCakeAddonIds: isOn ? item.sheetCakeAddonIds.filter((id) => id !== addon.id) : [...item.sheetCakeAddonIds, addon.id] })}
-                                className={`px-3 py-1 text-[11px] rounded-full transition-colors ${isOn ? 'bg-white/20 text-white border border-white' : 'bg-white text-[#0065B6]'}`}
-                                aria-pressed={isOn}>
-                                {isOn ? (isFr ? 'Retirer' : 'Remove') : (isFr ? 'Ajouter' : 'Add')}
-                              </button>
+                    <>
+                      <hr className="border-white/40" />
+                      <div className="space-y-2">
+                        {regularAddons.map((addon) => {
+                          const isOn = item.sheetCakeAddonIds.includes(addon.id);
+                          const ap = resolvePricingGridPrice(addon.pricingGrid, sheetResolved!, 'default');
+                          return (
+                            <div key={addon.id} className="flex items-center justify-between gap-2">
+                              <p className="text-[12px] flex-1">{tr(addon.title, locale)}</p>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {ap && ap.priceInCents > 0 && <span className="text-[12px]">+${(ap.priceInCents/100).toFixed(2)}</span>}
+                                <button type="button"
+                                  onClick={() => onUpdate({ sheetCakeAddonIds: isOn ? item.sheetCakeAddonIds.filter((id) => id !== addon.id) : [...item.sheetCakeAddonIds, addon.id] })}
+                                  className={`px-3 py-1 text-[11px] rounded-full transition-colors ${isOn ? 'bg-white/20 text-white border border-white' : 'bg-white text-[#0065B6]'}`}
+                                  aria-pressed={isOn}>
+                                  {isOn ? (isFr ? 'Retirer' : 'Remove') : (isFr ? 'Ajouter' : 'Add')}
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -351,15 +384,14 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
   checkoutError: string | null;
   locale: string;
 }) {
-  const { items, fulfillment, updateItem, removeItem, setFulfillment } = useCakeCart();
+  const { items, fulfillment, products: ctxProducts, updateItem, removeItem, setFulfillment } = useCakeCart();
   const isFr = locale === 'fr';
-  const [products, setProducts] = useState<CakeProduct[]>([]);
+  const products = ctxProducts as CakeProduct[];
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [deliveryMinForAnyday, setDeliveryMinForAnyday] = useState(200000);
   const [closedPickupDays, setClosedPickupDays] = useState<number[]>([0]);
 
   useEffect(() => {
-    fetch('/api/storefront/cake-products').then((r) => r.json()).then(setProducts).catch(() => {});
     fetch('/api/settings').then((r) => r.json()).then((d) => {
       if (d.deliveryMinForAnyday != null) setDeliveryMinForAnyday(d.deliveryMinForAnyday);
       if (d.closedPickupDays) setClosedPickupDays(d.closedPickupDays);
@@ -443,6 +475,14 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
     );
   }
 
+  if (!products.length) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-[14px] opacity-60">{isFr ? 'Chargement…' : 'Loading…'}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Items */}
@@ -454,7 +494,8 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
             return (
               <motion.div key={item.cartId}
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}>
+                exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
+                className="border-b border-white pb-4">
                 <CakeCartItemRow item={item} product={product} locale={locale} isFr={isFr}
                   onUpdate={(patch) => updateItem(item.cartId, patch)}
                   onRemove={() => removeItem(item.cartId)}
@@ -467,32 +508,11 @@ export default function CakeCartPanel({ onCheckout, checkoutLoading, checkoutErr
 
       {/* Est total */}
       {totalPrice > 0 && (
-        <div className="flex justify-between text-[14px] pt-2 border-t border-white mb-16">
+        <div className="flex justify-between text-[14px] pt-2 mb-16">
           <span>{isFr ? 'Total estimé' : 'Est. total'}</span>
           <span className="font-medium">${(totalPrice / 100).toFixed(2)}</span>
         </div>
       )}
-
-      {/* Consolidated allergens */}
-      {(() => {
-        const all = new Set<string>();
-        for (const item of items) {
-          const product = products.find((p) => p.id === item.productId);
-          if (!product) continue;
-          (product.allergens ?? []).forEach((a) => all.add(a));
-          for (const h of item.flavourHandles) {
-            const f = product.cakeFlavourConfig.find((fl) => fl.handle === h);
-            f?.allergens?.forEach((a) => all.add(a));
-          }
-        }
-        if (!all.size) return null;
-        return (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[12px] shrink-0">{isFr ? 'Peut contenir' : 'May contain'}</span>
-            {Array.from(all).map((a) => <span key={a} className="px-2 py-0.5 rounded-full text-[11px] border border-white">{a}</span>)}
-          </div>
-        );
-      })()}
 
       {/* Shared fulfillment */}
       <CartFulfillmentSection

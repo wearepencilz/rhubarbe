@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { getLocalTimeZone, today } from '@internationalized/date';
 import type { DatePickerProps as AriaDatePickerProps, DateValue } from 'react-aria-components';
 import {
@@ -28,12 +29,14 @@ interface DatePickerFieldProps extends AriaDatePickerProps<DateValue> {
 export default function DatePickerField({ label, variant = 'default', ...props }: DatePickerFieldProps) {
   const ariaLabel = label || 'Date';
   const isWhite = variant === 'white';
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <AriaDatePicker {...props} aria-label={ariaLabel} className="flex flex-col gap-1" shouldForceLeadingZeros>
+    <AriaDatePicker {...props} isOpen={isOpen} onOpenChange={setIsOpen} aria-label={ariaLabel} className="flex flex-col gap-1" shouldForceLeadingZeros>
       {label && variant === 'default' && (
         <AriaLabel className="text-xs text-gray-500 uppercase tracking-wide">{label}</AriaLabel>
       )}
-      <AriaGroup className={`flex items-center cursor-pointer ${isWhite ? '' : 'border-b border-gray-300 focus-within:border-gray-900 transition-colors'}`}>
+      <AriaGroup className={`flex items-center cursor-pointer ${isWhite ? '' : 'border-b border-gray-300 focus-within:border-gray-900 transition-colors'}`}
+        onClick={() => setIsOpen(true)}>
         <AriaButton className="flex flex-1 items-center outline-none">
           <AriaDateInput className={`flex flex-1 py-1.5 text-sm bg-transparent ${isWhite ? 'text-white' : ''}`}>
             {(segment) => (

@@ -241,7 +241,7 @@ function CakeProductCard({ product, locale, brandColor, earliestDateStr }: {
 export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }) {
   const { T, locale } = useT();
   const isFr = locale === 'fr';
-  const { items } = useCakeCart();
+  const { items, products: ctxProducts } = useCakeCart();
   const { setDefaultTab } = useCartDrawer();
   const { setCakeCount } = useOrderItems();
 
@@ -262,12 +262,13 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
     fetch('/api/settings').then((r) => r.json()).then((d) => { if (d.brandColor) setBrandColor(d.brandColor); }).catch(() => {});
   }, []);
 
+  // Use products from context instead of fetching independently
   useEffect(() => {
-    fetch('/api/storefront/cake-products')
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(setProducts).catch(() => setError(T.cakeOrder?.loadError || 'Failed to load'))
-      .finally(() => setLoading(false));
-  }, [isFr]);
+    if (ctxProducts.length > 0) {
+      setProducts(ctxProducts as CakeProduct[]);
+      setLoading(false);
+    }
+  }, [ctxProducts]);
 
   const earliestDateStr = useMemo(() => {
     const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+7);

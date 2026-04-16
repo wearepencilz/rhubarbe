@@ -28,6 +28,7 @@ export interface CakeFulfillment {
 interface CakeCartContextType {
   items: CakeCartItem[];
   fulfillment: CakeFulfillment;
+  products: any[];
   addItem: (item: Omit<CakeCartItem, 'cartId'>) => void;
   updateItem: (cartId: string, patch: Partial<CakeCartItem>) => void;
   removeItem: (cartId: string) => void;
@@ -46,6 +47,7 @@ const DEFAULT_FULFILLMENT: CakeFulfillment = {
 const CakeCartContext = createContext<CakeCartContextType>({
   items: [],
   fulfillment: DEFAULT_FULFILLMENT,
+  products: [],
   addItem: () => {},
   updateItem: () => {},
   removeItem: () => {},
@@ -75,12 +77,17 @@ export function CakeCartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CakeCartItem[]>([]);
   const [fulfillment, setFulfillmentState] = useState<CakeFulfillment>(DEFAULT_FULFILLMENT);
   const [hydrated, setHydrated] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     const saved = load();
     setItems(saved.items);
     setFulfillmentState(saved.fulfillment);
     setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/storefront/cake-products').then((r) => r.json()).then(setProducts).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -109,7 +116,7 @@ export function CakeCartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <CakeCartContext.Provider value={{ items, fulfillment, addItem, updateItem, removeItem, setFulfillment, clearCart }}>
+    <CakeCartContext.Provider value={{ items, fulfillment, products, addItem, updateItem, removeItem, setFulfillment, clearCart }}>
       {children}
     </CakeCartContext.Provider>
   );

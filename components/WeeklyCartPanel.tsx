@@ -44,10 +44,21 @@ export default function WeeklyCartPanel({ onCheckout, checkoutLoading, checkoutE
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
+  const getMax = (productId: string): number | null => {
+    if (!activeLaunch) return null;
+    const baseId = productId.includes('::') ? productId.split('::')[0] : productId;
+    const lp = activeLaunch.products.find((p: any) => p.productId === baseId);
+    return lp?.maxQuantityOverride ?? null;
+  };
+
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.productId !== productId));
   const updateQty = (productId: string, qty: number) => {
     if (qty <= 0) removeFromCart(productId);
-    else setCart((prev) => prev.map((i) => i.productId === productId ? { ...i, quantity: qty } : i));
+    else {
+      const max = getMax(productId);
+      const clamped = max != null ? Math.min(qty, max) : qty;
+      setCart((prev) => prev.map((i) => i.productId === productId ? { ...i, quantity: clamped } : i));
+    }
   };
 
   if (!cart.length) return (
@@ -59,7 +70,10 @@ export default function WeeklyCartPanel({ onCheckout, checkoutLoading, checkoutE
   return (
     <div className="space-y-4">
       <div>
-        {cart.map((item) => (
+        {cart.map((item) => {
+          const max = getMax(item.productId);
+          const atMax = max != null && item.quantity >= max;
+          return (
           <div key={item.productId} className="flex items-center gap-3 py-3">
             {item.image && <div className="w-12 h-12 rounded overflow-hidden shrink-0 bg-white/10"><img src={item.image} alt={item.name} className="w-full h-full object-cover" /></div>}
             <div className="flex-1 min-w-0">
@@ -72,12 +86,13 @@ export default function WeeklyCartPanel({ onCheckout, checkoutLoading, checkoutE
                 className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">
                 {item.quantity <= 1 ? '×' : '−'}
               </button>
-              <span className="text-white text-[14px] w-6 text-center">{item.quantity}</span>
-              <button onClick={() => updateQty(item.productId, item.quantity + 1)}
-                className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20">+</button>
+              <span className="text-white text-[14px] w-6 text-center">{item.quantity}{max != null ? `/${max}` : ''}</span>
+              <button onClick={() => updateQty(item.productId, item.quantity + 1)} disabled={atMax}
+                className="w-7 h-7 rounded-full border border-white text-white flex items-center justify-center text-sm hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {activeLaunch && (
