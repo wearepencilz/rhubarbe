@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { useClerk } from '@clerk/nextjs';
 
 export default function AdminNav() {
   const pathname = usePathname();
+  const { signOut } = useClerk();
 
   const navItems = [
     { href: '/admin', label: 'Dashboard' },
@@ -47,7 +48,7 @@ export default function AdminNav() {
           </div>
           <div className="flex items-center">
             <button
-              onClick={() => signOut({ callbackUrl: '/admin/login' })}
+              onClick={() => signOut({ redirectUrl: '/admin/login' })}
               className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
             >
               Sign Out

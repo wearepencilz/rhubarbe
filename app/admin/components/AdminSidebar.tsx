@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import { NavSections } from './ui/nav/nav-sections';
 import { NavUserBlock } from './ui/nav/nav-user-block';
 import AdminLocaleSwitcher from './AdminLocaleSwitcher';
@@ -53,9 +53,8 @@ const sections: NavSectionType[] = [
 
 export default function AdminSidebar() {
     const pathname = usePathname();
-    const { data: session } = useSession();
-    const user = session?.user;
-    const role = ((user as any)?.role ?? 'super_admin') as string;
+    const { user } = useUser();
+    const role = ((user?.publicMetadata as any)?.role ?? 'admin') as string;
     const [logoError, setLogoError] = useState(false);
 
     const activeUrl = pathname === '/admin'
@@ -90,8 +89,8 @@ export default function AdminSidebar() {
             <div className="border-t border-gray-200 p-3">
                 {user && (
                     <NavUserBlock
-                        name={user.name ?? 'Admin'}
-                        username={(user as any).username ?? 'admin'}
+                        name={user.fullName ?? 'Admin'}
+                        username={user.username ?? user.primaryEmailAddress?.emailAddress ?? 'admin'}
                         role={role}
                     />
                 )}

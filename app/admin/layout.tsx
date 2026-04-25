@@ -1,7 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import AdminSidebar from './components/AdminSidebar';
 import { ToastProvider } from './components/ToastContainer';
@@ -12,16 +11,8 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const pathname = usePathname();
   const isLoginPage = pathname === '/admin/login';
-
-  useEffect(() => {
-    if (status === 'unauthenticated' && !isLoginPage) {
-      router.push('/admin/login');
-    }
-  }, [status, router, isLoginPage]);
 
   // Prevent scroll-to-change on number inputs
   useEffect(() => {
@@ -36,18 +27,6 @@ export default function AdminLayout({
 
   if (isLoginPage) {
     return <>{children}</>;
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return null;
   }
 
   return (

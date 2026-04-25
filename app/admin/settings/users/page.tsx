@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/app/admin/components/ui/button';
 import type { PublicUser, UserRole } from '@/lib/db/queries/users';
 
@@ -74,9 +74,9 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 export default function UsersPage() {
-  const { data: session } = useSession();
-  const sessionRole = ((session?.user as any)?.role ?? 'super_admin') as UserRole;
-  const sessionId = session?.user?.id;
+  const { user: clerkUser } = useUser();
+  const sessionRole = ((clerkUser?.publicMetadata as any)?.role ?? 'admin') as UserRole;
+  const sessionId = clerkUser?.id;
 
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [loading, setLoading] = useState(true);

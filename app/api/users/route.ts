@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { list, create, ensureDefaultUser, type UserRole } from '@/lib/db/queries/users';
+import { list, create, type UserRole } from '@/lib/db/queries/users';
 
 // GET /api/users
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Ensure default user exists (handles first-run)
-  await ensureDefaultUser();
-
   const role = (session.user as any)?.role;
-  // If role is missing (old session pre-user-system), treat as super_admin for backward compat
   if (role && role !== 'super_admin' && role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -32,10 +28,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, email, username, password, role: newRole } = body;
+    const { name, email, username, role: newRole } = body;
 
-    if (!name || !email || !username || !password || !newRole) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    if (!name || !email || !username || !newRole) {
+      return NextResponse.json({ error: 'Name, email, username, and role are required' }, { status: 400 });
     }
 
     // Only super_admin can create other super_admins
@@ -43,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only super admins can create super admin accounts' }, { status: 403 });
     }
 
-    const user = await create({ name, email, username, password, role: newRole as UserRole });
+    const user = await create({ name, email, username, role: newRole as UserRole });
     return NextResponse.json(user, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import AdminSidebar from './AdminSidebar';
@@ -10,22 +10,22 @@ export default function AdminLayoutClient({
 }: {
   children: ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const { isLoaded, isSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
-    if (status === 'unauthenticated' && !isLoginPage) {
+    if (isLoaded && !isSignedIn && !isLoginPage) {
       router.push('/admin/login');
     }
-  }, [status, router, isLoginPage]);
+  }, [isLoaded, isSignedIn, router, isLoginPage]);
 
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  if (status === 'loading') {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -33,7 +33,7 @@ export default function AdminLayoutClient({
     );
   }
 
-  if (!session) {
+  if (!isSignedIn) {
     return null;
   }
 

@@ -35,3 +35,4 @@ out/
 # Test fixtures (generated during test runs)
 tests/fixtures/data/
 .next/
+.kiro/settings/

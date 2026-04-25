@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { signOut } from "next-auth/react";
+import { useClerk } from "@clerk/nextjs";
 import { LogOut01, Settings01, ChevronSelectorVertical } from "@untitledui/icons";
 import { cx } from "@/app/admin/components/utils/cx";
 import Link from "next/link";
@@ -30,6 +30,7 @@ function Avatar({ name }: { name: string }) {
 interface PopoverPos { top: number; left: number; width: number }
 
 export function NavUserBlock({ name, username, role }: NavUserBlockProps) {
+  const { signOut } = useClerk();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -116,7 +117,7 @@ export function NavUserBlock({ name, username, role }: NavUserBlockProps) {
 
       <div className="border-t border-gray-100 p-1">
         <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => signOut({ redirectUrl: "/admin/login" })}
           className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
         >
           <LogOut01 className="size-4 shrink-0 text-gray-400" />

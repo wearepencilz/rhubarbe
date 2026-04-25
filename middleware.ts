@@ -1,46 +1,22 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+const isAdminRoute = createRouteMatcher(['/admin(.*)']);
+const isLoginRoute = createRouteMatcher(['/admin/login(.*)']);
 
-  if (!pathname.startsWith('/admin')) {
-    return NextResponse.next();
+export default clerkMiddleware(async (auth, req) => {
+  // Don't protect the login page itself
+  if (isLoginRoute(req)) return;
+
+  if (isAdminRoute(req)) {
+    await auth.protect();
   }
-
-  // Auth.js v5 uses 'authjs' cookie prefix
-  // On HTTPS (production): __Secure-authjs.session-token
-  // On HTTP (localhost): authjs.session-token
-  const isSecure = request.url.startsWith('https');
-  const cookieName = isSecure
-    ? '__Secure-authjs.session-token'
-    : 'authjs.session-token';
-
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-    salt: cookieName,
-    cookieName,
-  });
-
-  if (pathname === '/admin/login') {
-    if (token) {
-      const callbackUrl = request.nextUrl.searchParams.get('callbackUrl') || '/admin';
-      return NextResponse.redirect(new URL(callbackUrl, request.url));
-    }
-    return NextResponse.next();
-  }
-
-  if (!token) {
-    const loginUrl = new URL('/admin/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    // Skip Next.js internals and static files
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
 };
