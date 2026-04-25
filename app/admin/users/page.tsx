@@ -3,7 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/app/admin/components/ui/buttons/button';
-import type { PublicUser, UserRole } from '@/lib/db/queries/users';
+
+type UserRole = 'super_admin' | 'admin' | 'editor';
+
+interface ClerkUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  imageUrl?: string;
+  createdAt: number;
+  lastSignInAt: number | null;
+}
 
 const ROLES: { value: UserRole; label: string }[] = [
   { value: 'super_admin', label: 'Super Admin' },
@@ -23,36 +34,11 @@ const ROLE_LABELS: Record<UserRole, string> = {
   editor: 'Editor',
 };
 
-type ModalState =
-  | { type: 'create' }
-  | { type: 'edit'; user: PublicUser }
-  | { type: 'password'; user: PublicUser }
-  | { type: 'delete'; user: PublicUser }
+type Modal =
+  | { type: 'invite' }
+  | { type: 'editRole'; user: ClerkUser }
+  | { type: 'delete'; user: ClerkUser }
   | null;
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function TextInput({ value, onChange, type = 'text', placeholder, autoComplete }: {
-  value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string;
-}) {
-  return (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      autoComplete={autoComplete}
-      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-    />
-  );
-}
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -78,16 +64,16 @@ export default function UsersPage() {
   const sessionRole = ((clerkUser?.publicMetadata as any)?.role ?? 'admin') as UserRole;
   const sessionId = clerkUser?.id;
 
-  const [users, setUsers] = useState<PublicUser[]>([]);
+  const [users, setUsers] = useState<ClerkUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
-  const [modal, setModal] = useState<ModalState>(null);
+  const [modal, setModal] = useState<Modal>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const [form, setForm] = useState({ name: '', email: '', username: '', password: '', role: 'editor' as UserRole });
-  const [editActive, setEditActive] = useState(true);
-  const [newPassword, setNewPassword] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<UserRole>('editor');
+  const [editRole, setEditRole] = useState<UserRole>('editor');
 
   const fetchUsers = useCallback(async () => {
     setLoading(true); setFetchError('');
@@ -101,53 +87,44 @@ export default function UsersPage() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const openCreate = () => {
-    setForm({ name: '', email: '', username: '', password: '', role: 'editor' });
-    setError(''); setModal({ type: 'create' });
+  const openInvite = () => {
+    setInviteEmail(''); setInviteRole('editor'); setError(''); setModal({ type: 'invite' });
   };
 
-  const openEdit = (user: PublicUser) => {
-    setForm({ name: user.name, email: user.email, username: user.username, password: '', role: user.role });
-    setEditActive(user.active); setError(''); setModal({ type: 'edit', user });
+  const openEditRole = (user: ClerkUser) => {
+    setEditRole(user.role); setError(''); setModal({ type: 'editRole', user });
   };
 
-  const openPassword = (user: PublicUser) => { setNewPassword(''); setError(''); setModal({ type: 'password', user }); };
-  const openDelete = (user: PublicUser) => { setError(''); setModal({ type: 'delete', user }); };
+  const openDelete = (user: ClerkUser) => {
+    setError(''); setModal({ type: 'delete', user });
+  };
 
-  const handleCreate = async () => {
+  const handleInvite = async () => {
     setSaving(true); setError('');
     try {
-      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+      });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
       await fetchUsers(); setModal(null);
     } finally { setSaving(false); }
   };
 
-  const handleEdit = async () => {
-    if (modal?.type !== 'edit') return;
+  const handleEditRole = async () => {
+    if (modal?.type !== 'editRole') return;
     setSaving(true); setError('');
     try {
       const res = await fetch(`/api/users/${modal.user.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, username: form.username, role: form.role, active: editActive }),
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: editRole }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
       await fetchUsers(); setModal(null);
-    } finally { setSaving(false); }
-  };
-
-  const handlePassword = async () => {
-    if (modal?.type !== 'password') return;
-    setSaving(true); setError('');
-    try {
-      const res = await fetch(`/api/users/${modal.user.id}/password`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error); return; }
-      setModal(null);
     } finally { setSaving(false); }
   };
 
@@ -172,7 +149,7 @@ export default function UsersPage() {
           <p className="text-sm text-gray-500 mt-0.5">Manage CMS user accounts and roles</p>
         </div>
         {canManage && (
-          <Button color="primary" size="sm" onClick={openCreate}>Add user</Button>
+          <Button color="primary" size="sm" onClick={openInvite}>Invite user</Button>
         )}
       </div>
 
@@ -183,48 +160,52 @@ export default function UsersPage() {
       ) : fetchError ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <p className="text-sm text-red-600 font-medium">{fetchError}</p>
-          <p className="text-xs text-red-400 mt-1">Try signing out and back in to refresh your session.</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Name</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Username</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">User</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Email</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Role</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Last sign in</th>
                 <th className="px-6 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {user.name}
-                    {user.id === sessionId && <span className="ml-2 text-xs text-gray-400">(you)</span>}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {user.imageUrl ? (
+                        <img src={user.imageUrl} alt="" className="w-8 h-8 rounded-full" />
+                      ) : (
+                        <span className="flex w-8 h-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">
+                          {user.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="font-medium text-gray-900">
+                        {user.name}
+                        {user.id === sessionId && <span className="ml-2 text-xs text-gray-400">(you)</span>}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 font-mono text-xs">{user.username}</td>
                   <td className="px-6 py-4 text-gray-600">{user.email}</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${ROLE_BADGE[user.role]}`}>
-                      {ROLE_LABELS[user.role]}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${ROLE_BADGE[user.role] ?? ROLE_BADGE.editor}`}>
+                      {ROLE_LABELS[user.role] ?? user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${user.active ? 'text-green-700' : 'text-gray-400'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${user.active ? 'bg-green-500' : 'bg-gray-300'}`} />
-                      {user.active ? 'Active' : 'Inactive'}
-                    </span>
+                  <td className="px-6 py-4 text-gray-500 text-xs">
+                    {user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString() : 'Never'}
                   </td>
                   <td className="px-6 py-4">
                     {canManage && (
                       <div className="flex items-center justify-end gap-3">
-                        <button onClick={() => openEdit(user)} className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Edit</button>
-                        <button onClick={() => openPassword(user)} className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Reset password</button>
+                        <button onClick={() => openEditRole(user)} className="text-xs text-gray-500 hover:text-gray-900 transition-colors">Change role</button>
                         {sessionRole === 'super_admin' && user.id !== sessionId && (
-                          <button onClick={() => openDelete(user)} className="text-xs text-red-500 hover:text-red-700 transition-colors">Delete</button>
+                          <button onClick={() => openDelete(user)} className="text-xs text-red-500 hover:text-red-700 transition-colors">Remove</button>
                         )}
                       </div>
                     )}
@@ -233,83 +214,85 @@ export default function UsersPage() {
               ))}
             </tbody>
           </table>
-          {users.length === 0 && <p className="text-center text-sm text-gray-400 py-12">No users found.</p>}
+          {users.length === 0 && <p className="text-center text-sm text-gray-400 py-12">No users yet. Invite someone to get started.</p>}
         </div>
       )}
 
-      {modal?.type === 'create' && (
-        <ModalShell title="Add user" onClose={() => setModal(null)}>
+      {/* Invite */}
+      {modal?.type === 'invite' && (
+        <ModalShell title="Invite user" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <Field label="Name"><TextInput value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Full name" /></Field>
-            <Field label="Username"><TextInput value={form.username} onChange={(v) => setForm({ ...form, username: v })} placeholder="username" autoComplete="off" /></Field>
-            <Field label="Email"><TextInput value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" placeholder="email@example.com" /></Field>
-            <Field label="Password"><TextInput value={form.password} onChange={(v) => setForm({ ...form, password: v })} type="password" placeholder="Min. 6 characters" autoComplete="new-password" /></Field>
-            <Field label="Role">
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="colleague@example.com"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">They'll receive an email invitation to create their account.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as UserRole)}
+                className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 {ROLES.filter((r) => r.value !== 'super_admin' || sessionRole === 'super_admin').map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
-            </Field>
+            </div>
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>}
             <div className="flex justify-end gap-3 pt-2">
               <Button color="secondary" size="sm" onClick={() => setModal(null)}>Cancel</Button>
-              <Button color="primary" size="sm" onClick={handleCreate} isLoading={saving} isDisabled={saving || !form.name || !form.username || !form.email || !form.password}>Create user</Button>
+              <Button color="primary" size="sm" onClick={handleInvite} isLoading={saving} isDisabled={saving || !inviteEmail}>Send invite</Button>
             </div>
           </div>
         </ModalShell>
       )}
 
-      {modal?.type === 'edit' && (
-        <ModalShell title="Edit user" onClose={() => setModal(null)}>
+      {/* Edit role */}
+      {modal?.type === 'editRole' && (
+        <ModalShell title={`Change role — ${modal.user.name}`} onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <Field label="Name"><TextInput value={form.name} onChange={(v) => setForm({ ...form, name: v })} /></Field>
-            <Field label="Username"><TextInput value={form.username} onChange={(v) => setForm({ ...form, username: v })} autoComplete="off" /></Field>
-            <Field label="Email"><TextInput value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" /></Field>
-            <Field label="Role">
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={modal.user.id === sessionId}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+              <select
+                value={editRole}
+                onChange={(e) => setEditRole(e.target.value as UserRole)}
+                className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={modal.user.id === sessionId}
+              >
                 {ROLES.filter((r) => r.value !== 'super_admin' || sessionRole === 'super_admin').map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
               {modal.user.id === sessionId && <p className="text-xs text-gray-400 mt-1">You cannot change your own role.</p>}
-            </Field>
-            <Field label="Status">
-              <select value={String(editActive)} onChange={(e) => setEditActive(e.target.value === 'true')} className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={modal.user.id === sessionId}>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </Field>
+            </div>
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>}
             <div className="flex justify-end gap-3 pt-2">
               <Button color="secondary" size="sm" onClick={() => setModal(null)}>Cancel</Button>
-              <Button color="primary" size="sm" onClick={handleEdit} isLoading={saving} isDisabled={saving}>Save changes</Button>
+              <Button color="primary" size="sm" onClick={handleEditRole} isLoading={saving} isDisabled={saving}>Save</Button>
             </div>
           </div>
         </ModalShell>
       )}
 
-      {modal?.type === 'password' && (
-        <ModalShell title={`Reset password — ${modal.user.name}`} onClose={() => setModal(null)}>
-          <div className="space-y-4">
-            <Field label="New password"><TextInput value={newPassword} onChange={setNewPassword} type="password" placeholder="Min. 6 characters" autoComplete="new-password" /></Field>
-            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>}
-            <div className="flex justify-end gap-3 pt-2">
-              <Button color="secondary" size="sm" onClick={() => setModal(null)}>Cancel</Button>
-              <Button color="primary" size="sm" onClick={handlePassword} isLoading={saving} isDisabled={saving || newPassword.length < 6}>Set password</Button>
-            </div>
-          </div>
-        </ModalShell>
-      )}
-
+      {/* Delete */}
       {modal?.type === 'delete' && (
-        <ModalShell title="Delete user" onClose={() => setModal(null)}>
+        <ModalShell title="Remove user" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Are you sure you want to delete <span className="font-medium text-gray-900">{modal.user.name}</span>? This cannot be undone.</p>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to remove <span className="font-medium text-gray-900">{modal.user.name}</span>?
+              They will lose access to the CMS immediately.
+            </p>
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>}
             <div className="flex justify-end gap-3 pt-2">
               <Button color="secondary" size="sm" onClick={() => setModal(null)}>Cancel</Button>
-              <Button color="primary-destructive" size="sm" onClick={handleDelete} isLoading={saving} isDisabled={saving}>Delete user</Button>
+              <Button color="primary-destructive" size="sm" onClick={handleDelete} isLoading={saving} isDisabled={saving}>Remove user</Button>
             </div>
           </div>
         </ModalShell>
