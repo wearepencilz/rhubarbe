@@ -90,7 +90,7 @@ const nextConfig = {
       level: 'error',
     };
     
-    // Fix for next-auth module resolution on mobile/different networks
+    // Polyfill fallbacks for client-side bundles
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
