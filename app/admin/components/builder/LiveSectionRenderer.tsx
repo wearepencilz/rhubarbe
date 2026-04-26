@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import EditableText from './EditableText';
 import EditableImage from './EditableImage';
 import FaqLivePreview from './FaqLivePreview';
+import MediaPicker from '@/app/admin/components/MediaPicker';
 import ContactFormClient from '@/components/sections/ContactFormClient';
 import type { Section, Bilingual, SectionImage } from '@/lib/types/sections';
 import { localize } from '@/lib/types/sections';
@@ -45,32 +47,42 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
       );
 
     case 'image-carousel': {
-      const [img1, img2, img3] = s.images;
-      const setImg = (idx: number, v: SectionImage) => { const imgs = [...s.images]; imgs[idx] = v; set({ images: imgs }); };
+      const addImages = (urls: string[]) => {
+        const newImgs = urls.map((url) => ({ url, alt: { en: '', fr: '' } } as SectionImage));
+        set({ images: [...s.images, ...newImgs] });
+      };
+      const removeImg = (idx: number) => set({ images: s.images.filter((_, i) => i !== idx) });
+      const moveImg = (from: number, to: number) => {
+        if (to < 0 || to >= s.images.length) return;
+        const imgs = [...s.images];
+        const [moved] = imgs.splice(from, 1);
+        imgs.splice(to, 0, moved);
+        set({ images: imgs });
+      };
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row md:justify-center md:items-center gap-6 md:gap-20" style={{ ...solar, backgroundColor: clr.bg }}>
-          <div className="flex-1 space-y-4 md:space-y-7">
-            <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-2xl md:text-[28px] font-semibold" style={{ color: clr.primary }} />
-            <ET value={s.description} onChange={(description) => set({ description })} locale={locale} className="text-lg md:text-2xl font-semibold" style={{ color: clr.primary }} multiline />
+        <CarouselEditor images={s.images} onAdd={addImages} onRemove={removeImg} onMove={moveImg} locale={locale}>
+          <div className="space-y-3 px-6 py-4" style={{ backgroundColor: clr.bg }}>
+            <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-xl font-semibold" style={{ color: clr.primary }} />
+            <ET value={s.description} onChange={(description) => set({ description })} locale={locale} className="text-sm" style={{ color: clr.primary }} multiline />
           </div>
-          <div className="flex flex-col md:flex-row gap-2 flex-1">
-            {img3 && <EI value={img3} onChange={(v) => setImg(2, v)} className="flex-1 order-first md:order-last aspect-[4/3] md:aspect-auto" />}
-            <div className="flex md:flex-col gap-2 md:w-[97px]">
-              {img1 && <EI value={img1} onChange={(v) => setImg(0, v)} className="w-24 md:w-full h-20 md:h-[116px]" />}
-              {img2 && <EI value={img2} onChange={(v) => setImg(1, v)} className="w-24 md:w-full h-20 md:h-[114px]" />}
-            </div>
-          </div>
-        </section>
+        </CarouselEditor>
       );
     }
 
-    case 'image-2up':
+    case 'image-2up': {
+      const setImagesFromPicker = (urls: string[]) => {
+        const imgs = urls.map((url, i) => s.images[i] ? { ...s.images[i], url } : { url, alt: { en: '', fr: '' } });
+        set({ images: imgs.length >= 2 ? imgs.slice(0, 2) : [...imgs, ...s.images.slice(imgs.length)] });
+      };
       return (
-        <section className="flex flex-col md:flex-row gap-6 md:gap-8 p-6 md:p-[60px]" style={{ backgroundColor: clr.bg }}>
-          <EI value={s.images[0]} onChange={(v) => set({ images: [v, s.images[1]] })} className="w-full md:flex-1 h-[442px] md:h-[805px]" />
-          <EI value={s.images[1]} onChange={(v) => set({ images: [s.images[0], v] })} className="w-full md:flex-1 h-[442px] md:h-[805px]" />
-        </section>
+        <ImageSectionWithPicker images={s.images} onPickerSelect={setImagesFromPicker} count={2}>
+          <section className="flex flex-col md:flex-row gap-6 md:gap-8 p-6 md:p-[60px]" style={{ backgroundColor: clr.bg }}>
+            <EI value={s.images[0]} onChange={(v) => set({ images: [v, s.images[1]] })} className="w-full md:flex-1 h-[442px] md:h-[805px]" />
+            <EI value={s.images[1]} onChange={(v) => set({ images: [s.images[0], v] })} className="w-full md:flex-1 h-[442px] md:h-[805px]" />
+          </section>
+        </ImageSectionWithPicker>
       );
+    }
 
     case 'image-hero':
       return <EI value={s.image} onChange={(image) => set({ image })} className="w-full h-[500px] md:h-[828px]" />;
@@ -248,4 +260,54 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
     default:
       return <div className="p-8 text-center text-gray-400">Unknown section type: {(s as any).type}</div>;
   }
+}
+
+function ImageSectionWithPicker({ images, onPickerSelect, count, children }: { images: SectionImage[]; onPickerSelect: (urls: string[]) => void; count: number; children: React.ReactNode }) {
+  const [showPicker, setShowPicker] = useState(false);
+  const hasImages = images.some((img) => img.url);
+  return (
+    <div className="relative group/multi">
+      {children}
+      <button
+        onClick={() => setShowPicker(true)}
+        className={`absolute top-2 right-2 z-10 text-[11px] font-medium px-2.5 py-1 rounded-full shadow transition-opacity ${hasImages ? 'opacity-0 group-hover/multi:opacity-100 bg-white text-gray-700 border border-gray-200' : 'opacity-100 bg-blue-600 text-white'}`}
+      >
+        {hasImages ? 'Replace from library' : `Select ${count} images`}
+      </button>
+      {showPicker && <MediaPicker mode="multi" currentUrls={images.map((img) => img.url).filter(Boolean)} onSelect={onPickerSelect} onClose={() => setShowPicker(false)} />}
+    </div>
+  );
+}
+
+function CarouselEditor({ images, onAdd, onRemove, onMove, locale, children }: { images: SectionImage[]; onAdd: (urls: string[]) => void; onRemove: (idx: number) => void; onMove: (from: number, to: number) => void; locale: string; children: React.ReactNode }) {
+  const [showPicker, setShowPicker] = useState(false);
+  return (
+    <div style={{ backgroundColor: '#F7F6F3' }}>
+      {children}
+      <div className="px-6 pb-4 space-y-2">
+        {images.map((img, i) => (
+          <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 p-2">
+            {img.url ? (
+              <img src={img.url} alt="" className="w-14 h-14 rounded object-cover shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded bg-gray-100 shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-700 truncate">{img.url ? img.url.split('/').pop() : 'No image'}</p>
+              <p className="text-[10px] text-gray-400">{i === 0 ? 'Main image' : `Thumbnail ${i}`}</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => onMove(i, i - 1)} disabled={i === 0} className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs p-1">↑</button>
+              <button onClick={() => onMove(i, i + 1)} disabled={i === images.length - 1} className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs p-1">↓</button>
+              <button onClick={() => onRemove(i)} className="text-gray-400 hover:text-red-500 text-xs p-1">✕</button>
+            </div>
+          </div>
+        ))}
+        <button onClick={() => setShowPicker(true)} className="w-full text-center text-xs font-medium text-blue-600 hover:text-blue-700 border border-dashed border-blue-200 rounded-lg py-2.5 hover:bg-blue-50 transition-colors">
+          + Add images from library
+        </button>
+      </div>
+      {showPicker && <MediaPicker mode="multi" onSelect={(urls) => { onAdd(urls); setShowPicker(false); }} onClose={() => setShowPicker(false)} />}
+    </div>
+  );
 }

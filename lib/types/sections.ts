@@ -252,7 +252,7 @@ export function createSection(type: SectionType): Section {
     case 'faq-grouped':
       return { id, type, title: emptyBilingual(), topics: [], groups: [] };
     case 'image-carousel':
-      return { id, type, title: emptyBilingual(), description: emptyBilingual(), images: [emptyImage(), emptyImage(), emptyImage()] };
+      return { id, type, title: emptyBilingual(), description: emptyBilingual(), images: [] };
     case 'image-2up':
       return { id, type, images: [emptyImage(), emptyImage()] };
     case 'image-hero':

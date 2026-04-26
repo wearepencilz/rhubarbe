@@ -92,7 +92,7 @@ When making a decision that changes architecture, introduces a dependency, or se
 
 ### ADR-002: Flavour Archive as Core Brand Asset
 **Date:** 2026-03 | **Status:** accepted
-**Context:** Most ice cream shops treat flavours as just product variants. Rhubarbe's identity is built on the history of flavour experimentation.
+**Context:** Most pastry shops treat flavours as just product variants. Rhubarbe's identity is built on the history of flavour experimentation.
 **Decision:** The flavour archive is a first-class CMS entity, independent of Shopify products. Flavours have their own lifecycle (active, seasonal, archived, test-kitchen, coming-soon), ingredient relationships, batch history, and editorial content. An archived flavour can still have an active Shopify product.
 **Consequences:** Flavour status and Shopify product status are decoupled. The CMS model (`cms-model.md`) documents all entity relationships. Batches belong to flavours, not products.
 

@@ -26,10 +26,18 @@ export default function PagesIndex() {
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, name: '' });
+  const [homePage, setHomePage] = useState('home');
 
   useEffect(() => {
     fetch('/api/pages').then((r) => r.json()).then(setPages).catch(() => {}).finally(() => setLoading(false));
+    fetch('/api/settings/homePage').then((r) => r.json()).then((d) => { if (d.value) setHomePage(d.value); }).catch(() => {});
   }, []);
+
+  const setAsHomePage = async (pageName: string) => {
+    const res = await fetch('/api/settings/homePage', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: pageName }) });
+    if (res.ok) { setHomePage(pageName); toast.success('Homepage set', `"${pageName}" is now the homepage`); }
+    else toast.error('Failed to set homepage');
+  };
 
   // Section-based pages (have sections array in content)
   const sectionPages = pages.filter((p) => p.content?.sections);
@@ -79,7 +87,10 @@ export default function PagesIndex() {
         {sectionPages.map((page) => (
           <div key={page.pageName} className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-gray-300 transition-all group">
             <Link href={`/admin/pages/${page.pageName}`} className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900">{(page as any).title?.en || page.pageName}</p>
+              <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                {(page as any).title?.en || page.pageName}
+                {homePage === page.pageName && <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded">Homepage</span>}
+              </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {(page.content as any)?.sections?.length || 0} sections · 
                 <span className="text-gray-400"> /en/</span>{(page as any).slugEn || page.pageName}
@@ -88,7 +99,7 @@ export default function PagesIndex() {
             </Link>
             <div className="flex items-center gap-1">
               <Link href={`/admin/pages/${page.pageName}`} className="p-1.5 text-gray-400 hover:text-blue-600" title="Edit sections"><Edit01 className="w-4 h-4" /></Link>
-              <a href={`/p/${page.pageName}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600" title="View on site">
+              <a href={`/fr/${page.pageName}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600" title="View on site">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
               </a>
               <button onClick={() => setDeleteConfirm({ show: true, name: page.pageName })} className="p-1.5 text-gray-400 hover:text-red-500" title="Delete"><Trash01 className="w-4 h-4" /></button>

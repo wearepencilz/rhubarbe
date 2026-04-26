@@ -1,14 +1,14 @@
 /* Untitled UI Theme - Based on official Next.js integration */
 @theme {
     /* FONT FAMILY */
-    --font-body: "Solar Display", var(--font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --font-display: "Solar Display", var(--font-inter, "Inter"), -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --font-body: "Solar Display", "Solar Display Fallback", "Futura", "Century Gothic", "Avenir", sans-serif;
+    --font-display: "Solar Display", "Solar Display Fallback", "Futura", "Century Gothic", "Avenir", sans-serif;
 
     /* JANINE BRAND FONTS */
-    --font-neue-montreal: "PP Neue Montreal", "Helvetica Neue", Arial, sans-serif;
-    --font-diatype-mono: "ABC Diatype Mono", "Courier New", monospace;
-    --font-solar-display: "Solar Display", "Helvetica Neue", Arial, sans-serif;
-    --font-rank: "Rank", "Helvetica Neue", Arial, sans-serif;
+    --font-neue-montreal: "Solar Display", "Solar Display Fallback", "Futura", "Century Gothic", "Avenir", sans-serif;
+    --font-diatype-mono: "Solar Display", "Solar Display Fallback", "Futura", "Century Gothic", "Avenir", sans-serif;
+    --font-solar-display: "Solar Display", "Solar Display Fallback", "Futura", "Century Gothic", "Avenir", sans-serif;
+    --font-rank: "Rank", "Solar Display", "Solar Display Fallback", "Futura", "Century Gothic", sans-serif;
 
     /* JANINE BRAND COLORS */
     --color-janine-dark: #333112;

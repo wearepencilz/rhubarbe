@@ -3,6 +3,7 @@
 import { useState, useRef, DragEvent } from 'react';
 import { Button } from '@/app/admin/components/ui/button';
 import { Input } from '@/app/admin/components/ui/input';
+import MediaPicker from '@/app/admin/components/MediaPicker';
 
 interface ImageUploaderProps {
   value?: string;
@@ -26,6 +27,7 @@ export default function ImageUploader({
   required = false,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +83,7 @@ export default function ImageUploader({
       formData.append('image', renamedFile);
       formData.append('altText', altText);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/media', {
         method: 'POST',
         body: formData,
       });
@@ -227,6 +229,9 @@ export default function ImageUploader({
               <p className="text-xs text-gray-500">
                 Recommended: under 2MB for optimal performance
               </p>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowPicker(true); }} className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700">
+                or choose from library
+              </button>
             </>
           )}
         </div>
@@ -306,6 +311,7 @@ export default function ImageUploader({
           {aspectRatio === '16:9' && 'Landscape format - ideal for hero banners'}
         </p>
       </div>
+      {showPicker && <MediaPicker mode="single" currentUrls={value ? [value] : []} onSelect={([url]) => { if (url) onChange(url); setShowPicker(false); }} onClose={() => setShowPicker(false)} />}
     </div>
   );
 }

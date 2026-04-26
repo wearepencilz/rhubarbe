@@ -7,7 +7,7 @@ description: System ownership, architecture boundaries, tech stack, and project 
 
 ## What Janine Is
 
-An artisan ice cream shop platform combining:
+An artisan pastry shop platform combining:
 - A Shopify-powered storefront for seasonal commerce
 - A headless CMS for the living flavour archive and editorial content
 - A Next.js app that presents and connects both systems

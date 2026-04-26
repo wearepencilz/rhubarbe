@@ -9,8 +9,18 @@ const FR_SLUGS: Record<string, string> = {
   'accueil': '/',
   'recettes': '/recipes',
   'merci': '/thank-you',
-  // journal and contact are the same in both languages
 };
+
+function detectLocale(req: { cookies: { get(name: string): { value: string } | undefined }; headers: { get(name: string): string | null } }): 'fr' | 'en' {
+  // 1. Cookie (user's explicit choice)
+  const cookie = req.cookies.get('locale')?.value;
+  if (cookie === 'en' || cookie === 'fr') return cookie;
+  // 2. Accept-Language header
+  const accept = req.headers.get('accept-language') || '';
+  if (/^en/i.test(accept)) return 'en';
+  // 3. Default to French
+  return 'fr';
+}
 
 export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname;
@@ -28,13 +38,19 @@ export default clerkMiddleware(async (auth, req) => {
     const locale = localeMatch[1];
     let rest = localeMatch[2] || '/';
 
-    // Set locale cookie
     const setCookie = (res: NextResponse) => {
       res.cookies.set('locale', locale, { path: '/', maxAge: 31536000, sameSite: 'lax' });
       return res;
     };
 
-    // For French locale, check if the slug is a translated slug
+    // /fr/home or /en/home → redirect to /fr or /en (clean URL)
+    if (rest === '/home') {
+      const url = req.nextUrl.clone();
+      url.pathname = `/${locale}`;
+      return setCookie(NextResponse.redirect(url, 301));
+    }
+
+    // For French locale, check translated slugs
     if (locale === 'fr') {
       const slug = rest.replace(/^\//, '').split('/')[0];
       if (FR_SLUGS[slug] !== undefined) {
@@ -44,16 +60,16 @@ export default clerkMiddleware(async (auth, req) => {
       }
     }
 
-    // For any locale, try /p/[slug] for composed pages (e.g. /fr/recettes, /en/recipes)
-    // First strip the locale, then check if it's a known Next.js route
-    const knownRoutes = ['/', '/journal', '/recipes', '/contact', '/thank-you', '/order', '/catering', '/cake'];
-    if (knownRoutes.includes(rest)) {
+    // Known Next.js routes — rewrite without locale prefix
+    const knownRoutes = ['/', '/contact', '/thank-you', '/order', '/catering', '/cake'];
+    const knownPrefixes = ['/journal', '/recipes'];
+    if (knownRoutes.includes(rest) || knownPrefixes.some(p => rest === p || rest.startsWith(p + '/'))) {
       const url = req.nextUrl.clone();
       url.pathname = rest;
       return setCookie(NextResponse.rewrite(url));
     }
 
-    // Otherwise rewrite to /p/[slug] for composed pages
+    // Composed pages → /p/[slug]
     const slug = rest.replace(/^\//, '');
     if (slug) {
       const url = req.nextUrl.clone();
@@ -61,7 +77,7 @@ export default clerkMiddleware(async (auth, req) => {
       return setCookie(NextResponse.rewrite(url));
     }
 
-    // Root with locale
+    // /fr or /en root → rewrite to /
     const url = req.nextUrl.clone();
     url.pathname = '/';
     return setCookie(NextResponse.rewrite(url));
@@ -75,8 +91,7 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // ── Bare URLs → redirect to locale-prefixed ──────────────
-  const cookie = req.cookies.get('locale')?.value;
-  const locale = (cookie === 'en' || cookie === 'fr') ? cookie : 'fr';
+  const locale = detectLocale(req);
   const url = req.nextUrl.clone();
   url.pathname = `/${locale}${path}`;
   return NextResponse.redirect(url, 307);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getAllGroupedByCategory } from '@/lib/db/queries/taxonomies';
 
-const SYSTEM_PROMPT = `You are a culinary expert helping fill in details for an artisan ice cream shop's ingredient database.
+const SYSTEM_PROMPT = `You are a culinary expert helping fill in details for an artisan pastry shop's ingredient database.
 Given an ingredient name (and optional hints), return a JSON object with suggested values.
 Be concise, accurate, and appropriate for a high-quality artisan food context.
 Only return valid JSON — no markdown, no explanation.

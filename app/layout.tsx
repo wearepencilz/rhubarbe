@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
 import '../src/styles/globals.css';
 import { CartProvider } from '@/contexts/CartContext';
 import { OrderItemsProvider } from '@/contexts/OrderItemsContext';
@@ -16,12 +15,6 @@ import UnifiedCartPanelRoot from '@/components/UnifiedCartPanelRoot';
 import CakeCartSlotRegistrar from '@/components/CakeCartSlotRegistrar';
 import WeeklyCartSlotRegistrar from '@/components/WeeklyCartSlotRegistrar';
 import CateringCartSlotRegistrar from '@/components/CateringCartSlotRegistrar';
-
-const inter = Inter({ 
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'Rhubarbe',
@@ -50,11 +43,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={inter.variable}>
+    <html lang="fr">
       <head>
         <link rel="preconnect" href="https://cdn.shopify.com" />
         <link rel="dns-prefetch" href="https://cdn.shopify.com" />
         <link rel="preload" href="/fonts/Solar.woff" as="font" type="font/woff" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/Rank.woff" as="font" type="font/woff" crossOrigin="anonymous" />
       </head>
       <body>
         <DesignTokensStyle />

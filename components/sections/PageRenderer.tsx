@@ -8,6 +8,8 @@ import * as pageQueries from '@/lib/db/queries/pages';
 import ContactFormClient from './ContactFormClient';
 import FaqClient from './FaqClient';
 
+import ImageCarouselClient from './ImageCarouselClient';
+
 function t(field: { en: string; fr: string }, locale = 'fr') {
   return localize(field, locale as 'en' | 'fr');
 }
@@ -24,7 +26,7 @@ export default async function PageRenderer({ pageName, locale: localeProp }: { p
   return <div>{sections.map((s) => isValidSectionType(s.type) ? <SectionRenderer key={s.id} section={s} locale={locale} /> : null)}</div>;
 }
 
-async function SectionRenderer({ section: s, locale }: { section: Section; locale: string }) {
+export async function SectionRenderer({ section: s, locale }: { section: Section; locale: string }) {
   switch (s.type) {
     case 'faq-simple': return <FaqSimple s={s} l={locale} />;
     case 'faq-grouped': return <FaqGrouped s={s} l={locale} />;
@@ -87,27 +89,8 @@ async function FaqGrouped({ s, l }: { s: Extract<Section, { type: 'faq-grouped' 
 
 // ── Image ──────────────────────────────────────────────────
 function ImageCarousel({ s, l }: { s: Extract<Section, { type: 'image-carousel' }>; l: string }) {
-  const [img1, img2, img3] = s.images;
-  return (
-    <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row md:justify-center md:items-center gap-6 md:gap-20" style={{ backgroundColor: clr.bg }}>
-      <div className="flex-1 space-y-4 md:space-y-7">
-        <h2 style={ts('heading-xl')}>{t(s.title, l)}</h2>
-        <p style={ts('heading-md')}>{t(s.description, l)}</p>
-      </div>
-      <div className="flex flex-col md:flex-row gap-2 flex-1">
-        {img3?.url && (
-          <div className="flex-1 order-first md:order-last">
-            <img src={img3.url} alt={t(img3.alt, l)} className="w-full aspect-[4/3] md:aspect-auto md:h-full object-cover" />
-            {img3.caption && <p style={ts('caption-md')} className="mt-1">{t(img3.caption, l)}</p>}
-          </div>
-        )}
-        <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible md:w-[97px]">
-          {img1?.url && <div className="relative shrink-0 w-24 md:w-full"><img src={img1.url} alt={t(img1.alt, l)} className="w-full h-20 md:h-[116px] object-cover opacity-60" /><span style={ts('caption-md')} className="absolute bottom-1 left-1">01</span></div>}
-          {img2?.url && <div className="relative shrink-0 w-24 md:w-full"><img src={img2.url} alt={t(img2.alt, l)} className="w-full h-20 md:h-[114px] object-cover opacity-60" /><span style={ts('caption-md')} className="absolute bottom-1 left-1">02</span></div>}
-        </div>
-      </div>
-    </section>
-  );
+  const images = s.images.filter((img) => img.url).map((img) => ({ url: img.url, alt: t(img.alt, l), caption: img.caption ? t(img.caption, l) : undefined }));
+  return <ImageCarouselClient images={images} title={t(s.title, l)} description={t(s.description, l)} />;
 }
 
 function Image2Up({ s }: { s: Extract<Section, { type: 'image-2up' }> }) {

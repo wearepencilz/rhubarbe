@@ -22,6 +22,7 @@ const sections: NavSectionType[] = [
         { label: 'Recipes', href: '/admin/recipes', icon: '🍳' },
         { label: 'FAQs', href: '/admin/faqs', icon: '❓' },
         { label: 'Pages', href: '/admin/pages', icon: '📄' },
+        { label: 'Media', href: '/admin/media', icon: '🖼️' },
         { label: 'Requests', href: '/admin/requests', icon: '📬' },
     ]},
     { label: 'System', items: [

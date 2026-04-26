@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { SECTION_CATEGORIES, SECTION_META, type SectionType } from '@/lib/types/sections';
 
 const bg = '#F7F6F3';
@@ -110,37 +111,56 @@ interface SectionLibraryProps {
 }
 
 export default function SectionLibrary({ onSelect, onClose }: SectionLibraryProps) {
+  const [search, setSearch] = useState('');
+  const q = search.toLowerCase();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-semibold text-gray-900">Add Section</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10 gap-4">
+          <h2 className="text-lg font-semibold text-gray-900 shrink-0">Add Section</h2>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search sections…"
+            autoFocus
+            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400"
+          />
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none shrink-0">&times;</button>
         </div>
         <div className="p-6 space-y-8">
-          {Object.entries(SECTION_CATEGORIES).map(([key, { label, types }]) => (
-            <div key={key}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{label}</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {types.map((type) => {
-                  const meta = SECTION_META[type];
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => { onSelect(type); onClose(); }}
-                      className="group flex flex-col rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all overflow-hidden text-left"
-                    >
-                      <MiniPreview type={type} />
-                      <div className="p-2.5 border-t border-gray-100">
-                        <p className="text-xs font-medium text-gray-900">{meta.icon} {meta.label}</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">{meta.description}</p>
-                      </div>
-                    </button>
-                  );
-                })}
+          {Object.entries(SECTION_CATEGORIES).map(([key, { label, types }]) => {
+            const filtered = types.filter((type) => {
+              if (!q) return true;
+              const meta = SECTION_META[type];
+              return meta.label.toLowerCase().includes(q) || meta.description.toLowerCase().includes(q) || type.includes(q);
+            });
+            if (!filtered.length) return null;
+            return (
+              <div key={key}>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">{label}</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {filtered.map((type) => {
+                    const meta = SECTION_META[type];
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => { onSelect(type); onClose(); }}
+                        className="group flex flex-col rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all overflow-hidden text-left"
+                      >
+                        <MiniPreview type={type} />
+                        <div className="p-2.5 border-t border-gray-100">
+                          <p className="text-xs font-medium text-gray-900">{meta.icon} {meta.label}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">{meta.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
