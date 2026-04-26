@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
-import { getProductVariantId } from '@/lib/shopify/admin';
+import { getProductVariantId, createDraftOrder } from '@/lib/shopify/admin';
+import { getCheckoutMode } from '@/lib/checkout/checkout-mode';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
 import { findExemptVariant } from '@/lib/tax/find-exempt-variant';
 import { fetchTaxSettings } from '@/lib/tax/tax-settings';
@@ -205,6 +206,33 @@ export async function POST(request: NextRequest) {
     }
     const note = noteLines.join('\n');
 
+    const mode = getCheckoutMode('volume');
+
+    if (mode === 'draft') {
+      // Draft order path — hard-fail on unresolvable items (already checked above)
+      const resolvedType = fulfillmentType || 'pickup';
+      const draftLineItems = items.map((item, i) => ({
+        variantId: lines[i].merchandiseId,
+        quantity: item.quantity,
+        customAttributes: [
+          { key: 'Catering Type', value: item.variantLabel },
+        ],
+      }));
+
+      const draft = await createDraftOrder({
+        lineItems: draftLineItems,
+        customAttributes: [
+          { key: 'Checkout Mode', value: 'draft' },
+          ...attributes,
+        ],
+        note,
+        tags: ['volume', resolvedType, ...(cateringTypes.length ? cateringTypes : [])],
+      });
+
+      return NextResponse.json({ invoiceUrl: draft.invoiceUrl, draftOrderId: draft.id });
+    }
+
+    // Cart path (legacy)
     const cart = await createCart({ lines, attributes, note });
 
     return NextResponse.json({ checkoutUrl: cart.checkoutUrl, cartId: cart.id });
