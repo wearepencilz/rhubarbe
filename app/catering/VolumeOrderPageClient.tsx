@@ -685,7 +685,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       });
       const data = await res.json();
       if (!res.ok) { setCheckoutError(data.error || V.checkoutError); return; }
-      window.location.href = data.checkoutUrl;
+      window.location.href = data.checkoutUrl || data.invoiceUrl;
     } catch { setCheckoutError(V.checkoutError); }
     finally { setCheckoutLoading(false); }
   }, [checkoutItems, fulfillmentDate, fulfillmentTime, fulfillmentType, allergenNote, locale]);

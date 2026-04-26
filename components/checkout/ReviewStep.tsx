@@ -56,7 +56,9 @@ export default function ReviewStep({
 
       const data = await res.json();
 
-      if (res.ok && data.checkoutUrl) {
+      const redirectUrl = data.checkoutUrl || data.invoiceUrl;
+
+      if (res.ok && redirectUrl) {
         // Warn if some items were skipped (not linked to Shopify)
         if (data.skippedItems?.length > 0) {
           const names = data.skippedItems.join(', ');
@@ -68,12 +70,12 @@ export default function ReviewStep({
           setLoading(false);
           // Still redirect after a short delay so user can see the warning
           setTimeout(() => {
-            window.location.href = data.checkoutUrl;
+            window.location.href = redirectUrl;
           }, 3000);
           return;
         }
 
-        window.location.href = data.checkoutUrl;
+        window.location.href = redirectUrl;
         return;
       }
 
