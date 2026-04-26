@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/app/admin/components/ui/button';
 import { Input } from '@/app/admin/components/ui/input';
@@ -23,6 +23,14 @@ interface TaxonomyCategory {
   group: string;
 }
 
+export default function TaxonomiesPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-8 text-gray-400">Loading…</div>}>
+      <TaxonomiesPage />
+    </Suspense>
+  );
+}
+
 const TAXONOMY_CATEGORIES: TaxonomyCategory[] = [
   // Products
   { key: 'productCategories', label: 'Categories', description: 'Product categories for menu grouping (e.g. Gelato, Sorbet, Pastry)', group: 'Products' },
@@ -37,7 +45,7 @@ const TAXONOMY_CATEGORIES: TaxonomyCategory[] = [
 
 const GROUPS = ['Products', 'Catering', 'Journal'];
 
-export default function TaxonomiesPage() {
+function TaxonomiesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeTab = searchParams?.get('tab') || 'productCategories';
