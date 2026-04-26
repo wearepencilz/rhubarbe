@@ -7,10 +7,11 @@ export async function list() {
 }
 
 export async function getByIdOrSlug(idOrSlug: string) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
   const [row] = await db
     .select()
     .from(journal)
-    .where(or(eq(journal.id, idOrSlug), eq(journal.slug, idOrSlug)));
+    .where(isUuid ? or(eq(journal.id, idOrSlug), eq(journal.slug, idOrSlug)) : or(eq(journal.slug, idOrSlug), eq(journal.slugFr, idOrSlug), eq(journal.slugEn, idOrSlug)));
   return row ?? null;
 }
 

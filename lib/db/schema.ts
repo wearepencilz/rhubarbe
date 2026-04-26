@@ -510,6 +510,8 @@ export const journal = pgTable('journal', {
   id: uuid('id').primaryKey().defaultRandom(),
   legacyId: text('legacy_id'),
   slug: text('slug').unique(),
+  slugFr: text('slug_fr').unique(),
+  slugEn: text('slug_en').unique(),
   title: customJsonb<{ en: string; fr: string }>('title'),
   subtitle: customJsonb<{ en: string; fr: string }>('subtitle'),
   content: customJsonb<unknown>('content'),
@@ -531,7 +533,9 @@ export const recipes = pgTable('recipes', {
   id: uuid('id').primaryKey().defaultRandom(),
   legacyId: text('legacy_id'),
   slug: text('slug').unique(),
-  title: text('title'),
+  slugFr: text('slug_fr').unique(),
+  slugEn: text('slug_en').unique(),
+  title: customJsonb<{ en: string; fr: string }>('title'),
   content: customJsonb<unknown>('content'),
   category: text('category'),
   coverImage: text('cover_image'),
@@ -600,3 +604,20 @@ export const emailLogs = pgTable('email_logs', {
   errorMessage: text('error_message'),
   sentAt: timestamp('sent_at').notNull().defaultNow(),
 });
+
+// Media library — centralized image registry
+export const media = pgTable('media', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  url: text('url').notNull(),
+  filename: text('filename').notNull(),
+  alt: customJsonb<{ en: string; fr: string }>('alt'),
+  width: integer('width'),
+  height: integer('height'),
+  size: integer('size'),
+  mimeType: text('mime_type'),
+  tags: customJsonb<string[]>('tags'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  filenameIdx: index('media_filename_idx').on(table.filename),
+}));

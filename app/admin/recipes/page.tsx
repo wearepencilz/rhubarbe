@@ -10,11 +10,20 @@ import { useToast } from '@/app/admin/components/ToastContainer';
 import { Edit01, Trash01 } from '@untitledui/icons';
 
 interface RecipeItem {
-  id: number;
-  title: string;
-  content: string;
-  date: string;
-  image?: string;
+  id: string;
+  title: { en: string; fr: string } | string | null;
+  slug: string | null;
+  content: unknown;
+  category: string | null;
+  coverImage: string | null;
+  status: string | null;
+  updatedAt: string | null;
+}
+
+function getTitle(t: RecipeItem['title']): string {
+  if (!t) return '';
+  if (typeof t === 'string') return t;
+  return t.fr || t.en || '';
 }
 
 export default function RecipesPage() {
@@ -22,7 +31,7 @@ export default function RecipesPage() {
   const toast = useToast();
   const [recipes, setRecipes] = useState<RecipeItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: 0, title: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', title: '' });
 
   useEffect(() => {
     fetch('/api/recipes')
@@ -40,7 +49,7 @@ export default function RecipesPage() {
     } else {
       toast.error('Delete failed', 'Failed to delete article');
     }
-    setDeleteConfirm({ show: false, id: 0, title: '' });
+    setDeleteConfirm({ show: false, id: '', title: '' });
   };
 
   return (
@@ -85,10 +94,10 @@ export default function RecipesPage() {
                   <Table.Cell>
                     <div className="flex items-center gap-3">
                       {item.coverImage && (
-                        <img src={item.coverImage} alt={item.title} className="h-10 w-10 rounded-lg object-cover" />
+                        <img src={item.coverImage} alt={getTitle(item.title)} className="h-10 w-10 rounded-lg object-cover" />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-primary">{item.title}</p>
+                        <p className="text-sm font-medium text-primary">{getTitle(item.title)}</p>
                         <p className="text-xs text-tertiary line-clamp-1">{item.category || 'No category'} · {(item.content as any)?.sections?.length || 0} sections</p>
                       </div>
                     </div>
@@ -99,7 +108,7 @@ export default function RecipesPage() {
                   <Table.Cell>
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       {item.slug && (
-                        <a href={`/recipes/${item.slug}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Preview">
+                        <a href={`/fr/recipes/${item.slug}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Preview">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         </a>
                       )}
@@ -111,7 +120,7 @@ export default function RecipesPage() {
                       <button
                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded"
                         title="Delete"
-                        onClick={() => setDeleteConfirm({ show: true, id: item.id, title: item.title })}
+                        onClick={() => setDeleteConfirm({ show: true, id: item.id, title: getTitle(item.title) })}
                       >
                         <Trash01 className="w-4 h-4" />
                       </button>
@@ -132,7 +141,7 @@ export default function RecipesPage() {
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={handleDelete}
-        onCancel={() => setDeleteConfirm({ show: false, id: 0, title: '' })}
+        onCancel={() => setDeleteConfirm({ show: false, id: '', title: '' })}
       />
     </>
   );

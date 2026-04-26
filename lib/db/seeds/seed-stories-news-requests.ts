@@ -116,7 +116,7 @@ async function seedStoriesNewsRequests() {
   if (newsData.length > 0) {
     const newsRows = newsData.map((n) => ({
       legacyId: n.id != null ? String(n.id) : null,
-      title: n.title ?? null,
+      title: n.title ? { en: '', fr: n.title } : null,
       content: n.content ?? null,
       ...(n.createdAt ? { createdAt: new Date(n.createdAt) } : {}),
       ...(n.updatedAt ? { updatedAt: new Date(n.updatedAt) } : {}),

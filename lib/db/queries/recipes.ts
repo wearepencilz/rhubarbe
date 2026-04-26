@@ -7,10 +7,11 @@ export async function list() {
 }
 
 export async function getByIdOrSlug(idOrSlug: string) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
   const [row] = await db
     .select()
     .from(recipes)
-    .where(or(eq(recipes.id, idOrSlug), eq(recipes.slug, idOrSlug)));
+    .where(isUuid ? or(eq(recipes.id, idOrSlug), eq(recipes.slug, idOrSlug)) : or(eq(recipes.slug, idOrSlug), eq(recipes.slugFr, idOrSlug), eq(recipes.slugEn, idOrSlug)));
   return row ?? null;
 }
 

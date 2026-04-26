@@ -18,6 +18,7 @@ export function ShopifyProductView({ product }: { product: any }) {
     }
   }
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(initialSelections);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Find the matching variant based on selected options
   const selectedVariant = useMemo(() => {
@@ -46,18 +47,26 @@ export function ShopifyProductView({ product }: { product: any }) {
     <main className="min-h-screen pt-20 pb-16 px-4 md:px-8">
       <div className="max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {product.images.length > 0 ? (
               <>
                 <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
-                  <img src={product.images[0].url} alt={product.images[0].altText || product.title} className="w-full h-full object-cover" />
+                  <img src={product.images[selectedImageIndex].url} alt={product.images[selectedImageIndex].altText || product.title} className="w-full h-full object-cover" />
                 </div>
                 {product.images.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
-                    {product.images.slice(1, 5).map((image: any, i: number) => (
-                      <div key={i} className="aspect-square bg-gray-100 rounded overflow-hidden">
+                    {product.images.map((image: any, i: number) => (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedImageIndex(i)}
+                        className={`aspect-square bg-gray-100 rounded overflow-hidden ring-2 transition-all ${
+                          i === selectedImageIndex
+                            ? 'ring-black'
+                            : 'ring-transparent hover:ring-gray-300'
+                        }`}
+                      >
                         <img src={image.url} alt={image.altText || product.title} className="w-full h-full object-cover" />
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}

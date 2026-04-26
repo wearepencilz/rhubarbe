@@ -20,7 +20,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const created = await recipesQuery.create({
-      slug: body.slug,
+      slug: body.slug || null,
+      slugFr: body.slugFr || null,
+      slugEn: body.slugEn || null,
       title: body.title,
       content: body.content,
       category: body.category,

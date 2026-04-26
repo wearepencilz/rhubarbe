@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const created = await journalQuery.create({
       slug: body.slug,
+      slugFr: body.slugFr,
+      slugEn: body.slugEn,
       title: body.title,
       subtitle: body.subtitle,
       content: body.content,

@@ -34,12 +34,20 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: '', title: '' });
 
-  useEffect(() => {
+  const fetchEntries = () => {
     fetch('/api/journal')
       .then((r) => r.json())
       .then(setEntries)
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchEntries();
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchEntries(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', fetchEntries);
+    return () => { document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('focus', fetchEntries); };
   }, []);
 
   const handleDelete = async () => {
@@ -125,7 +133,7 @@ export default function JournalPage() {
                   <Table.Cell>
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       {item.status === 'published' && (
-                        <a href={`/journal/${item.slug}`} target="_blank" rel="noopener noreferrer">
+                        <a href={`/fr/journal/${item.slug}`} target="_blank" rel="noopener noreferrer">
                           <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="View">
                             <Link01 className="w-4 h-4" />
                           </button>

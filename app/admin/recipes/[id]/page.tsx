@@ -15,8 +15,8 @@ import { Select } from '@/app/admin/components/ui/select';
 import { BadgeWithDot } from '@/app/admin/components/ui/nav/badges';
 import { createSection, type Section, type SectionType } from '@/lib/types/sections';
 
-interface Meta { slug: string; title: string; status: 'draft' | 'published'; category: string; coverImage: string; }
-const emptyMeta: Meta = { slug: '', title: '', status: 'draft', category: '', coverImage: '' };
+interface Meta { slug: string; slugFr: string; slugEn: string; titleFr: string; titleEn: string; status: 'draft' | 'published'; category: string; coverImage: string; }
+const emptyMeta: Meta = { slug: '', slugFr: '', slugEn: '', titleFr: '', titleEn: '', status: 'draft', category: '', coverImage: '' };
 function slugify(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 
 export default function RecipeEditPage() {
@@ -45,7 +45,7 @@ export default function RecipeEditPage() {
         .then((r) => r.json())
         .then((data) => {
           const content = data.content || {};
-          setMeta({ slug: data.slug || '', title: data.title || '', status: data.status || 'draft', category: data.category || '', coverImage: data.coverImage || '' });
+          setMeta({ slug: data.slug || '', slugFr: data.slugFr || data.slug || '', slugEn: data.slugEn || '', titleFr: typeof data.title === 'object' ? data.title?.fr || '' : data.title || '', titleEn: typeof data.title === 'object' ? data.title?.en || '' : '', status: data.status || 'draft', category: data.category || '', coverImage: data.coverImage || '' });
           setSections(content.sections || []);
         })
         .catch(() => router.push('/admin/recipes'))
@@ -54,12 +54,12 @@ export default function RecipeEditPage() {
   }, [id]);
 
   const set = useCallback((patch: Partial<Meta>) => setMeta((m) => ({ ...m, ...patch })), []);
-  const handleTitleChange = (title: string) => { set({ title, ...(!slugTouched ? { slug: slugify(title) } : {}) }); };
+  const handleTitleChange = (field: 'titleFr' | 'titleEn', value: string) => { const patch: Partial<Meta> = { [field]: value }; if (!slugTouched) { if (field === 'titleFr') { patch.slugFr = slugify(value); patch.slug = slugify(value); } if (field === 'titleEn') patch.slugEn = slugify(value); } set(patch); };
 
   const handleSave = async () => {
-    if (!meta.title) { toast.error('Title is required'); return; }
+    if (!meta.titleFr && !meta.titleEn) { toast.error('Title is required'); return; }
     setSaving(true);
-    const body = { slug: meta.slug, title: meta.title, status: meta.status, category: meta.category, coverImage: meta.coverImage, content: { sections } };
+    const body = { slug: meta.slugFr || meta.slug, slugFr: meta.slugFr, slugEn: meta.slugEn, title: { fr: meta.titleFr, en: meta.titleEn }, status: meta.status, category: meta.category, coverImage: meta.coverImage, content: { sections } };
     try {
       const url = isNew ? '/api/recipes' : `/api/recipes/${id}`;
       const res = await fetch(url, { method: isNew ? 'POST' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -92,7 +92,7 @@ export default function RecipeEditPage() {
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 shadow-sm">
         <button onClick={() => router.push('/admin/recipes')} className="text-sm text-gray-500 hover:text-gray-800">← Recipes</button>
         <div className="h-5 w-px bg-gray-200" />
-        <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{meta.title || 'New Recipe'}</span>
+        <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{meta.titleFr || meta.titleEn || 'New Recipe'}</span>
         {meta.status && <BadgeWithDot color={meta.status === 'published' ? 'success' : 'gray'}>{meta.status}</BadgeWithDot>}
         <div className="flex-1" />
         <div className="flex bg-gray-100 rounded-lg p-0.5 text-xs font-medium">
@@ -101,19 +101,26 @@ export default function RecipeEditPage() {
         <button onClick={() => setSettingsOpen(!settingsOpen)} className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${settingsOpen ? 'bg-gray-200 text-gray-900' : 'text-gray-500'}`}>⚙ Settings</button>
         <button onClick={() => { setInsertAt(null); setLibraryOpen(true); }} className="text-sm text-blue-600 font-medium">+ Section</button>
         {!isNew && <button onClick={() => setShowDelete(true)} className="text-sm text-red-500">Delete</button>}
+        {!isNew && (meta.slugFr || meta.slugEn) && <button onClick={() => window.open(`/${locale}/recipes/${locale === 'fr' ? meta.slugFr : meta.slugEn || meta.slugFr}`, '_blank')} className="text-sm text-gray-500 hover:text-gray-800">Preview ↗</button>}
         <button onClick={handleSave} disabled={saving} className="text-sm font-medium px-4 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
       </div>
 
       <div className="flex-1 flex">
         {settingsOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSettingsOpen(false)}>
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Recipe Settings</h2>
                 <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
               </div>
-              <Input label="Title" value={meta.title} onChange={handleTitleChange} isRequired />
-              <Input label="Slug" value={meta.slug} onChange={(v) => { setSlugTouched(true); set({ slug: slugify(v) }); }} helperText={meta.slug ? `/recipes/${meta.slug}` : undefined} />
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Title (FR)" value={meta.titleFr} onChange={(v) => handleTitleChange('titleFr', v)} isRequired />
+                <Input label="Title (EN)" value={meta.titleEn} onChange={(v) => handleTitleChange('titleEn', v)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Slug (FR)" value={meta.slugFr} onChange={(v) => { setSlugTouched(true); set({ slugFr: slugify(v), slug: slugify(v) }); }} helperText={meta.slugFr ? `/fr/recipes/${meta.slugFr}` : undefined} />
+                <Input label="Slug (EN)" value={meta.slugEn} onChange={(v) => { setSlugTouched(true); set({ slugEn: slugify(v) }); }} helperText={meta.slugEn ? `/en/recipes/${meta.slugEn}` : undefined} />
+              </div>
               <Select label="Status" value={meta.status} onChange={(v) => set({ status: v as 'draft' | 'published' })} options={[{ id: 'draft', label: 'Draft' }, { id: 'published', label: 'Published' }]} />
               <Input label="Category" value={meta.category} onChange={(v) => set({ category: v })} placeholder="dessert, main, etc." />
               <ImageUploader value={meta.coverImage} onChange={(url) => set({ coverImage: url })} onDelete={() => set({ coverImage: '' })} label="Cover image" />
@@ -144,7 +151,7 @@ export default function RecipeEditPage() {
       </div>
 
       {libraryOpen && <SectionLibrary onSelect={addSection} onClose={() => { setLibraryOpen(false); setInsertAt(null); }} />}
-      <ConfirmModal isOpen={showDelete} variant="danger" title="Delete Recipe" message={`Delete "${meta.title}"?`} confirmLabel="Delete" cancelLabel="Cancel" onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />
+      <ConfirmModal isOpen={showDelete} variant="danger" title="Delete Recipe" message={`Delete "${meta.titleFr || meta.titleEn}"?`} confirmLabel="Delete" cancelLabel="Cancel" onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-ki
 import SectionWrapper from './SectionWrapper';
 import LiveSectionRenderer from './LiveSectionRenderer';
 import SectionLibrary from '@/app/admin/components/SectionLibrary';
+import ConfirmModal from '@/app/admin/components/ConfirmModal';
 import { useToast } from '@/app/admin/components/ToastContainer';
 import { createSection, type Section, type SectionType } from '@/lib/types/sections';
 
@@ -31,16 +32,20 @@ export default function PageBuilderLive() {
   const [scale, setScale] = useState(1);
   const [pageSettings, setPageSettings] = useState<{ title: { en: string; fr: string }; slugEn: string; slugFr: string }>({ title: { en: '', fr: '' }, slugEn: '', slugFr: '' });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isHomePage, setIsHomePage] = useState(false);
+  const [confirmHome, setConfirmHome] = useState(false);
+  const [settingHome, setSettingHome] = useState(false);
+  const [discardConfirm, setDiscardConfirm] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
     fetch(`/api/pages/${pageName}`).then((r) => r.json()).then((d) => setSections(d?.sections ?? [])).catch(() => {});
-    // Load page metadata
     fetch('/api/pages').then((r) => r.json()).then((all: any[]) => {
       const p = all.find((pg: any) => pg.pageName === pageName);
       if (p) setPageSettings({ title: p.title || { en: '', fr: '' }, slugEn: p.slugEn || pageName, slugFr: p.slugFr || pageName });
     }).catch(() => {});
+    fetch('/api/settings/homePage').then((r) => r.json()).then((d) => setIsHomePage(d.value === pageName)).catch(() => {});
     setLoading(false);
   }, [pageName]);
 
@@ -58,6 +63,15 @@ export default function PageBuilderLive() {
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
   }, [viewport]);
+
+  // Warn on tab close / refresh when dirty
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
+  const navigateBack = () => { if (dirty) setDiscardConfirm(true); else router.push('/admin/pages'); };
 
   const update = useCallback((idx: number, s: Section) => { setSections((p) => { const n = [...p]; n[idx] = s; return n; }); setDirty(true); }, []);
   const remove = useCallback((idx: number) => { setSections((p) => p.filter((_, i) => i !== idx)); setDirty(true); }, []);
@@ -79,7 +93,7 @@ export default function PageBuilderLive() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Toolbar */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 shadow-sm">
-        <button onClick={() => router.push('/admin/pages')} className="text-sm text-gray-500 hover:text-gray-800">← Pages</button>
+        <button onClick={navigateBack} className="text-sm text-gray-500 hover:text-gray-800">← Pages</button>
         <div className="h-5 w-px bg-gray-200" />
         <span className="text-sm font-medium text-gray-900">{pageName}</span>
         <div className="flex-1" />
@@ -92,7 +106,7 @@ export default function PageBuilderLive() {
         <div className="h-5 w-px bg-gray-200" />
         <button onClick={() => { setInsertAt(null); setLibraryOpen(true); }} className="text-sm text-blue-600 font-medium">+ Add section</button>
         <button onClick={() => setSettingsOpen(true)} className="text-sm text-gray-500 hover:text-gray-800">⚙ Settings</button>
-        <button onClick={() => window.open(`/${locale}/${locale === 'fr' ? pageSettings.slugFr : pageSettings.slugEn}`, '_blank')} className="text-sm text-gray-500 hover:text-gray-800">Preview</button>
+        <button onClick={() => { const slug = locale === 'fr' ? pageSettings.slugFr : pageSettings.slugEn; window.open(isHomePage ? `/${locale}` : `/${locale}/${slug}`, '_blank'); }} className="text-sm text-gray-500 hover:text-gray-800">Preview ↗</button>
         <button onClick={handleSave} disabled={saving || !dirty} className={`text-sm font-medium px-4 py-1.5 rounded-lg ${dirty ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400'}`}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
 
@@ -123,19 +137,41 @@ export default function PageBuilderLive() {
 
       {libraryOpen && <SectionLibrary onSelect={addSection} onClose={() => { setLibraryOpen(false); setInsertAt(null); }} />}
 
+      <ConfirmModal isOpen={discardConfirm} variant="warning" title="Unsaved changes" message="You have unsaved changes. Discard them and leave?" confirmLabel="Discard" cancelLabel="Keep editing" onConfirm={() => { setDiscardConfirm(false); router.push('/admin/pages'); }} onCancel={() => setDiscardConfirm(false)} />
+
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSettingsOpen(false)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-gray-900">Page Settings</h2>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs font-medium text-gray-500">🇬🇧 Title</label><input value={pageSettings.title.en} onChange={(e) => { setPageSettings({ ...pageSettings, title: { ...pageSettings.title, en: e.target.value } }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" /></div>
               <div><label className="text-xs font-medium text-gray-500">🇫🇷 Titre</label><input value={pageSettings.title.fr} onChange={(e) => { setPageSettings({ ...pageSettings, title: { ...pageSettings.title, fr: e.target.value } }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" /></div>
+              <div><label className="text-xs font-medium text-gray-500">🇬🇧 Title</label><input value={pageSettings.title.en} onChange={(e) => { setPageSettings({ ...pageSettings, title: { ...pageSettings.title, en: e.target.value } }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs font-medium text-gray-500">🇬🇧 Slug</label><input value={pageSettings.slugEn} onChange={(e) => { setPageSettings({ ...pageSettings, slugEn: e.target.value }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" placeholder={pageName} /><p className="text-[10px] text-gray-400 mt-1">/en/{pageSettings.slugEn || pageName}</p></div>
               <div><label className="text-xs font-medium text-gray-500">🇫🇷 Slug</label><input value={pageSettings.slugFr} onChange={(e) => { setPageSettings({ ...pageSettings, slugFr: e.target.value }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" placeholder={pageName} /><p className="text-[10px] text-gray-400 mt-1">/fr/{pageSettings.slugFr || pageName}</p></div>
+              <div><label className="text-xs font-medium text-gray-500">🇬🇧 Slug</label><input value={pageSettings.slugEn} onChange={(e) => { setPageSettings({ ...pageSettings, slugEn: e.target.value }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" placeholder={pageName} /><p className="text-[10px] text-gray-400 mt-1">/en/{pageSettings.slugEn || pageName}</p></div>
             </div>
-            <div className="flex justify-end"><button onClick={() => setSettingsOpen(false)} className="text-sm text-gray-500 hover:text-gray-800">Done</button></div>
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+              <div>
+                {isHomePage ? (
+                  <span className="text-xs text-green-600">✓ This is the site homepage</span>
+                ) : confirmHome ? (
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Set this page as the site homepage?</span>
+                    <button disabled={settingHome} onClick={async () => {
+                      setSettingHome(true);
+                      const res = await fetch('/api/settings/homePage', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: pageName }) });
+                      if (res.ok) { setIsHomePage(true); setConfirmHome(false); }
+                      setSettingHome(false);
+                    }} className="text-xs font-medium text-blue-600 hover:text-blue-700">{settingHome ? 'Setting…' : 'Confirm'}</button>
+                    <button onClick={() => setConfirmHome(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                  </span>
+                ) : (
+                  <button onClick={() => setConfirmHome(true)} className="text-xs text-gray-400 hover:text-blue-600">Set as homepage</button>
+                )}
+              </div>
+              <button onClick={() => setSettingsOpen(false)} className="text-sm text-gray-500 hover:text-gray-800">Done</button>
+            </div>
           </div>
         </div>
       )}

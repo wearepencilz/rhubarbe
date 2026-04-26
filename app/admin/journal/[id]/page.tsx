@@ -20,18 +20,23 @@ import { createSection, type Section, type SectionType } from '@/lib/types/secti
 
 interface Meta {
   slug: string;
-  title: string;
-  subtitle: string;
+  slugFr: string;
+  slugEn: string;
+  titleFr: string;
+  titleEn: string;
+  subtitleFr: string;
+  subtitleEn: string;
   status: 'draft' | 'published';
   category: string;
   tags: string[];
   coverImage: string;
-  intro: string;
+  introFr: string;
+  introEn: string;
   wordBy: string;
   wordByRole: string;
 }
 
-const emptyMeta: Meta = { slug: '', title: '', subtitle: '', status: 'draft', category: '', tags: [], coverImage: '', intro: '', wordBy: '', wordByRole: '' };
+const emptyMeta: Meta = { slug: '', slugFr: '', slugEn: '', titleFr: '', titleEn: '', subtitleFr: '', subtitleEn: '', status: 'draft', category: '', tags: [], coverImage: '', introFr: '', introEn: '', wordBy: '', wordByRole: '' };
 
 function slugify(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 
@@ -52,52 +57,79 @@ export default function JournalEditPage() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [discardConfirm, setDiscardConfirm] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
-    if (!isNew) {
-      fetch(`/api/journal/${id}`)
-        .then((r) => r.json())
-        .then((data) => {
-          const content = data.content || {};
-          setMeta({
-            slug: data.slug || '',
-            title: typeof data.title === 'object' ? data.title.fr || data.title.en || '' : data.title || '',
-            subtitle: typeof data.subtitle === 'object' ? data.subtitle.fr || '' : '',
-            status: data.status || 'draft',
-            category: data.category || '',
-            tags: data.tags || [],
-            coverImage: data.coverImage || '',
-            intro: content.intro || '',
-            wordBy: content.wordBy || '',
-            wordByRole: content.wordByRole || '',
-          });
-          setSections(content.sections || []);
-        })
-        .catch(() => router.push('/admin/journal'))
-        .finally(() => setLoading(false));
-    }
+    const handler = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
+  const navigateBack = () => { if (dirty) setDiscardConfirm(true); else router.push('/admin/journal'); };
+
+  useEffect(() => {
+    if (!id || isNew) return;
+    fetch(`/api/journal/${id}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        const content = data.content || {};
+        setMeta({
+          slug: data.slug || '',
+          slugFr: data.slugFr || data.slug || '',
+          slugEn: data.slugEn || '',
+          titleFr: data.title?.fr || '',
+          titleEn: data.title?.en || '',
+          subtitleFr: data.subtitle?.fr || '',
+          subtitleEn: data.subtitle?.en || '',
+          status: data.status || 'draft',
+          category: data.category || '',
+          tags: data.tags || [],
+          coverImage: data.coverImage || '',
+          introFr: typeof content.intro === 'object' ? content.intro?.fr || '' : content.intro || '',
+          introEn: typeof content.intro === 'object' ? content.intro?.en || '' : '',
+          wordBy: content.wordBy || '',
+          wordByRole: content.wordByRole || '',
+        });
+        setSections(content.sections || []);
+      })
+      .catch((err) => {
+        console.error('Failed to load journal entry:', err);
+        router.push('/admin/journal');
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
-  const set = useCallback((patch: Partial<Meta>) => setMeta((m) => ({ ...m, ...patch })), []);
+  const set = useCallback((patch: Partial<Meta>) => { setMeta((m) => ({ ...m, ...patch })); setDirty(true); }, []);
 
-  const handleTitleChange = (title: string) => {
-    set({ title, ...(!slugTouched ? { slug: slugify(title) } : {}) });
+  const handleTitleChange = (field: 'titleFr' | 'titleEn', value: string) => {
+    const patch: Partial<Meta> = { [field]: value };
+    if (!slugTouched) {
+      if (field === 'titleFr') { patch.slugFr = slugify(value); patch.slug = slugify(value); }
+      if (field === 'titleEn') patch.slugEn = slugify(value);
+    }
+    set(patch);
   };
 
   const handleSave = async () => {
-    if (!meta.title) { toast.error('Title is required'); return; }
+    if (!meta.titleFr && !meta.titleEn) { toast.error('Title is required'); return; }
     setSaving(true);
     const body = {
-      slug: meta.slug,
-      title: { en: meta.title, fr: meta.title },
-      subtitle: { en: meta.subtitle, fr: meta.subtitle },
+      slug: meta.slugFr || meta.slug,
+      slugFr: meta.slugFr,
+      slugEn: meta.slugEn,
+      title: { en: meta.titleEn, fr: meta.titleFr },
+      subtitle: { en: meta.subtitleEn, fr: meta.subtitleFr },
       status: meta.status,
       category: meta.category,
       tags: meta.tags,
       coverImage: meta.coverImage,
-      content: { intro: meta.intro, wordBy: meta.wordBy, wordByRole: meta.wordByRole, sections },
+      content: { intro: { en: meta.introEn, fr: meta.introFr }, wordBy: meta.wordBy, wordByRole: meta.wordByRole, sections },
     };
     try {
       const url = isNew ? '/api/journal' : `/api/journal/${id}`;
@@ -105,6 +137,7 @@ export default function JournalEditPage() {
       if (res.ok) {
         const saved = await res.json();
         toast.success(isNew ? 'Created' : 'Saved');
+        setDirty(false);
         if (isNew) router.push(`/admin/journal/${saved.id}`);
       } else toast.error('Failed to save');
     } catch { toast.error('Failed to save'); }
@@ -118,16 +151,17 @@ export default function JournalEditPage() {
     setShowDelete(false);
   };
 
-  const updateSection = (idx: number, s: Section) => setSections((prev) => { const n = [...prev]; n[idx] = s; return n; });
-  const removeSection = (idx: number) => setSections((prev) => prev.filter((_, i) => i !== idx));
+  const updateSection = (idx: number, s: Section) => { setSections((prev) => { const n = [...prev]; n[idx] = s; return n; }); setDirty(true); };
+  const removeSection = (idx: number) => { setSections((prev) => prev.filter((_, i) => i !== idx)); setDirty(true); };
   const addSection = (type: SectionType) => {
     const s = createSection(type);
     setSections((prev) => { if (insertAt !== null) { const n = [...prev]; n.splice(insertAt, 0, s); return n; } return [...prev, s]; });
     setInsertAt(null);
+    setDirty(true);
   };
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
-    if (over && active.id !== over.id) setSections((prev) => arrayMove(prev, prev.findIndex((s) => s.id === active.id), prev.findIndex((s) => s.id === over.id)));
+    if (over && active.id !== over.id) setSections((prev) => { setDirty(true); return arrayMove(prev, prev.findIndex((s) => s.id === active.id), prev.findIndex((s) => s.id === over.id)); });
   };
   const openLibraryAt = (pos: 'above' | 'below', sectionId: string) => {
     const idx = sections.findIndex((s) => s.id === sectionId);
@@ -141,9 +175,9 @@ export default function JournalEditPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Toolbar */}
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 shadow-sm">
-        <button onClick={() => router.push('/admin/journal')} className="text-sm text-gray-500 hover:text-gray-800">← Journal</button>
+        <button onClick={navigateBack} className="text-sm text-gray-500 hover:text-gray-800">← Journal</button>
         <div className="h-5 w-px bg-gray-200" />
-        <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{meta.title || 'New Entry'}</span>
+        <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{meta.titleFr || meta.titleEn || 'New Entry'}</span>
         {meta.status && <BadgeWithDot color={meta.status === 'published' ? 'success' : 'gray'}>{meta.status}</BadgeWithDot>}
         <div className="flex-1" />
         <div className="flex bg-gray-100 rounded-lg p-0.5 text-xs font-medium">
@@ -154,6 +188,7 @@ export default function JournalEditPage() {
         <button onClick={() => setSettingsOpen(!settingsOpen)} className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${settingsOpen ? 'bg-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}>⚙ Settings</button>
         <button onClick={() => { setInsertAt(null); setLibraryOpen(true); }} className="text-sm text-blue-600 hover:text-blue-800 font-medium">+ Section</button>
         {!isNew && <button onClick={() => setShowDelete(true)} className="text-sm text-red-500 hover:text-red-700">Delete</button>}
+        {!isNew && (meta.slugFr || meta.slugEn) && <button onClick={() => window.open(`/${locale}/journal/${locale === 'fr' ? meta.slugFr : meta.slugEn || meta.slugFr}`, '_blank')} className="text-sm text-gray-500 hover:text-gray-800">Preview ↗</button>}
         <button onClick={handleSave} disabled={saving} className="text-sm font-medium px-4 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
       </div>
 
@@ -161,18 +196,31 @@ export default function JournalEditPage() {
         {/* Settings modal */}
         {settingsOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSettingsOpen(false)}>
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Entry Settings</h2>
                 <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
               </div>
-              <Input label="Title" value={meta.title} onChange={handleTitleChange} isRequired placeholder="The First Strawberries" />
-              <Input label="Slug" value={meta.slug} onChange={(v) => { setSlugTouched(true); set({ slug: slugify(v) }); }} placeholder="the-first-strawberries" helperText={meta.slug ? `/journal/${meta.slug}` : undefined} />
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Title (FR)" value={meta.titleFr} onChange={(v) => handleTitleChange('titleFr', v)} isRequired placeholder="Les premières fraises" />
+                <Input label="Title (EN)" value={meta.titleEn} onChange={(v) => handleTitleChange('titleEn', v)} placeholder="The First Strawberries" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Subtitle (FR)" value={meta.subtitleFr} onChange={(v) => set({ subtitleFr: v })} placeholder="Sous-titre" />
+                <Input label="Subtitle (EN)" value={meta.subtitleEn} onChange={(v) => set({ subtitleEn: v })} placeholder="Subtitle" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Slug (FR)" value={meta.slugFr} onChange={(v) => { setSlugTouched(true); set({ slugFr: slugify(v), slug: slugify(v) }); }} placeholder="les-premieres-fraises" helperText={meta.slugFr ? `/fr/journal/${meta.slugFr}` : undefined} />
+                <Input label="Slug (EN)" value={meta.slugEn} onChange={(v) => { setSlugTouched(true); set({ slugEn: slugify(v) }); }} placeholder="the-first-strawberries" helperText={meta.slugEn ? `/en/journal/${meta.slugEn}` : undefined} />
+              </div>
               <Select label="Status" value={meta.status} onChange={(v) => set({ status: v as 'draft' | 'published' })} options={[{ id: 'draft', label: 'Draft' }, { id: 'published', label: 'Published' }]} />
               <TaxonomySelect label="Category" category="journalCategories" value={meta.category} onChange={(v) => set({ category: v })} placeholder="Select…" />
               <TaxonomyMultiSelect label="Tags" category="journalTags" values={meta.tags} onChange={(v) => set({ tags: v })} />
               <ImageUploader value={meta.coverImage} onChange={(url) => set({ coverImage: url })} onDelete={() => set({ coverImage: '' })} label="Cover image" aspectRatio="16:9" />
-              <Textarea label="Intro" value={meta.intro} onChange={(v) => set({ intro: v })} rows={2} placeholder="A short intro line" />
+              <div className="grid grid-cols-2 gap-3">
+                <Textarea label="Intro (FR)" value={meta.introFr} onChange={(v) => set({ introFr: v })} rows={2} placeholder="Une courte intro" />
+                <Textarea label="Intro (EN)" value={meta.introEn} onChange={(v) => set({ introEn: v })} rows={2} placeholder="A short intro line" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Word by" value={meta.wordBy} onChange={(v) => set({ wordBy: v })} placeholder="Name" />
                 <Input label="Role" value={meta.wordByRole} onChange={(v) => set({ wordByRole: v })} placeholder="Role" />
@@ -205,7 +253,8 @@ export default function JournalEditPage() {
       </div>
 
       {libraryOpen && <SectionLibrary onSelect={addSection} onClose={() => { setLibraryOpen(false); setInsertAt(null); }} />}
-      <ConfirmModal isOpen={showDelete} variant="danger" title="Delete Entry" message={`Delete "${meta.title}"? This cannot be undone.`} confirmLabel="Delete" cancelLabel="Cancel" onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />
+      <ConfirmModal isOpen={showDelete} variant="danger" title="Delete Entry" message={`Delete "${meta.titleFr || meta.titleEn}"? This cannot be undone.`} confirmLabel="Delete" cancelLabel="Cancel" onConfirm={handleDelete} onCancel={() => setShowDelete(false)} />
+      <ConfirmModal isOpen={discardConfirm} variant="warning" title="Unsaved changes" message="You have unsaved changes. Discard them and leave?" confirmLabel="Discard" cancelLabel="Keep editing" onConfirm={() => { setDiscardConfirm(false); router.push('/admin/journal'); }} onCancel={() => setDiscardConfirm(false)} />
     </div>
   );
 }

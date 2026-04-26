@@ -9,7 +9,7 @@ const id = (n: number) => `r-${Date.now()}-${n}`;
 
 const RECIPES = [
   {
-    title: 'Paris-Brest', slug: 'paris-brest', category: 'Pastry',
+    title: bi('Paris-Brest', 'Paris-Brest'), slug: 'paris-brest', category: 'Pastry',
     coverImage: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=500&fit=crop',
     sections: [
       { id: id(1), type: 'heading-content', title: bi('Paris-Brest', 'Paris-Brest'), category: bi('Pastry', 'Pâtisserie'), date: 'Serves 4–6 · 3 hours · Intermediate' },
@@ -20,7 +20,7 @@ const RECIPES = [
     ],
   },
   {
-    title: 'Financier', slug: 'financier', category: 'Cake',
+    title: bi('Financier', 'Financier'), slug: 'financier', category: 'Cake',
     coverImage: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=800&h=500&fit=crop',
     sections: [
       { id: id(10), type: 'heading-content', title: bi('Financier', 'Financier'), category: bi('Cake', 'Gâteau'), date: 'Makes 12 · 45 min · Easy' },
@@ -31,7 +31,7 @@ const RECIPES = [
     ],
   },
   {
-    title: 'Tropézienne', slug: 'tropezienne', category: 'Pastry',
+    title: bi('Tropézienne', 'Tropézienne'), slug: 'tropezienne', category: 'Pastry',
     coverImage: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=800&h=500&fit=crop',
     sections: [
       { id: id(20), type: 'heading-content', title: bi('Tropézienne', 'Tropézienne'), category: bi('Pastry', 'Pâtisserie'), date: 'Serves 6–8 · 4 hours · Intermediate' },
@@ -42,7 +42,7 @@ const RECIPES = [
     ],
   },
   {
-    title: 'Macarons', slug: 'macarons', category: 'Pastry',
+    title: bi('Macarons', 'Macarons'), slug: 'macarons', category: 'Pastry',
     coverImage: 'https://images.unsplash.com/photo-1569864358642-9d1684040f43?w=800&h=500&fit=crop',
     sections: [
       { id: id(30), type: 'heading-content', title: bi('Macarons', 'Macarons'), category: bi('Pastry', 'Pâtisserie'), date: 'Makes 30 pairs · 2 hours · Fiddly but doable' },
@@ -53,7 +53,7 @@ const RECIPES = [
     ],
   },
   {
-    title: 'Zucchini Flan', slug: 'zucchini-flan', category: 'Savoury',
+    title: bi('Zucchini Flan', 'Flan aux courgettes'), slug: 'zucchini-flan', category: 'Savoury',
     coverImage: 'https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=800&h=500&fit=crop',
     sections: [
       { id: id(40), type: 'heading-content', title: bi('Zucchini Flan', 'Flan aux courgettes'), category: bi('Savoury', 'Salé'), date: 'Serves 6–8 · 1.5 hours · Easy' },

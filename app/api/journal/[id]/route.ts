@@ -26,7 +26,9 @@ export async function PUT(
   try {
     const body = await request.json();
     const updated = await journalQuery.update(params.id, {
-      slug: body.slug,
+      slug: body.slug || null,
+      slugFr: body.slugFr || null,
+      slugEn: body.slugEn || null,
       title: body.title,
       subtitle: body.subtitle,
       content: body.content,
