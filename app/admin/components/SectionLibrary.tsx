@@ -25,6 +25,11 @@ function MiniPreview({ type }: { type: SectionType }) {
         <div style={{ width: '50%' }}>{bar('60%', dark)}</div>
         <div style={{ width: '50%' }} className="space-y-2">{bar('40%', dark)}<div className="space-y-1">{[1,2].map(i => <div key={i}>{bar('80%')}</div>)}</div>{bar('50%', dark)}<div className="space-y-1">{[1,2].map(i => <div key={i}>{bar('75%')}</div>)}</div></div>
       </div>;
+    case 'faq-image':
+      return <div className={box} style={{ backgroundColor: accent, padding: 8, gap: 8 }}>
+        {block('45%', '60px', '#999')}
+        <div style={{ width: '50%' }} className="space-y-1.5">{[1,2,3,4,5].map(i => <div key={i} className="flex justify-between items-center"><div>{bar('70%')}</div><span style={{ fontSize: 8, color: dark }}>+</span></div>)}</div>
+      </div>;
     case 'image-carousel':
       return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 6 }}>
         <div className="flex-1 space-y-1">{bar('60%', dark)}{bar('90%')}{bar('70%')}</div>

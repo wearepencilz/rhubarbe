@@ -16,6 +16,7 @@ export interface SectionImage {
 export const SECTION_TYPES = [
   'faq-simple',
   'faq-grouped',
+  'faq-image',
   'image-carousel',
   'image-2up',
   'image-hero',
@@ -58,6 +59,14 @@ export interface FaqGroupedSection extends SectionBase {
   title: Bilingual;
   topics: string[]; // list of FAQ topics to render as groups
   groups: { heading: Bilingual; items: { question: Bilingual; answer: Bilingual }[] }[]; // fallback
+}
+
+export interface FaqImageSection extends SectionBase {
+  type: 'faq-image';
+  image: SectionImage;
+  topic: string;
+  items: { question: Bilingual; answer: Bilingual }[];
+  backgroundColor: string;
 }
 
 // ── Image ──────────────────────────────────────────────────
@@ -181,6 +190,7 @@ export interface ContactFormSection extends SectionBase {
 export type Section =
   | FaqSimpleSection
   | FaqGroupedSection
+  | FaqImageSection
   | ImageCarouselSection
   | Image2UpSection
   | ImageHeroSection
@@ -202,7 +212,7 @@ export type Section =
 // ── Category registry ──────────────────────────────────────
 
 export const SECTION_CATEGORIES: Record<string, { types: SectionType[]; label: string }> = {
-  faq: { label: 'FAQ', types: ['faq-simple', 'faq-grouped'] },
+  faq: { label: 'FAQ', types: ['faq-simple', 'faq-grouped', 'faq-image'] },
   image: { label: 'Image', types: ['image-carousel', 'image-2up', 'image-hero', 'image-with-icons'] },
   dynamic: { label: 'Dynamic Content', types: ['content-journal', 'content-brief', 'content-2up'] },
   heading: { label: 'Heading', types: ['heading-articles', 'heading-page', 'heading-content'] },
@@ -213,6 +223,7 @@ export const SECTION_CATEGORIES: Record<string, { types: SectionType[]; label: s
 export const SECTION_META: Record<SectionType, { label: string; icon: string; description: string }> = {
   'faq-simple': { label: 'FAQ Simple', icon: '❓', description: 'Accordion Q&A list' },
   'faq-grouped': { label: 'FAQ Grouped', icon: '❓', description: 'Q&A grouped by topic' },
+  'faq-image': { label: 'FAQ with Image', icon: '❓', description: 'Image + FAQ accordion side by side' },
   'image-carousel': { label: 'Image Carousel', icon: '🖼️', description: 'Title + numbered image grid' },
   'image-2up': { label: 'Image 2-Up', icon: '🖼️', description: 'Two side-by-side images' },
   'image-hero': { label: 'Image Hero', icon: '🖼️', description: 'Full-width hero image' },
@@ -251,6 +262,8 @@ export function createSection(type: SectionType): Section {
       return { id, type, title: emptyBilingual(), topic: '', items: [] };
     case 'faq-grouped':
       return { id, type, title: emptyBilingual(), topics: [], groups: [] };
+    case 'faq-image':
+      return { id, type, image: emptyImage(), topic: '', items: [], backgroundColor: '#D49BCB' };
     case 'image-carousel':
       return { id, type, title: emptyBilingual(), description: emptyBilingual(), images: [] };
     case 'image-2up':

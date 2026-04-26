@@ -30,6 +30,7 @@ export async function SectionRenderer({ section: s, locale }: { section: Section
   switch (s.type) {
     case 'faq-simple': return <FaqSimple s={s} l={locale} />;
     case 'faq-grouped': return <FaqGrouped s={s} l={locale} />;
+    case 'faq-image': return <FaqImage s={s} l={locale} />;
     case 'image-carousel': return <ImageCarousel s={s} l={locale} />;
     case 'image-2up': return <Image2Up s={s} />;
     case 'image-hero': return <ImageHero s={s} />;
@@ -83,6 +84,19 @@ async function FaqGrouped({ s, l }: { s: Extract<Section, { type: 'faq-grouped' 
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+async function FaqImage({ s, l }: { s: Extract<Section, { type: 'faq-image' }>; l: string }) {
+  const dbItems = s.topic ? await faqQueries.listByTopic(s.topic).catch(() => []) : [];
+  const items = dbItems.length > 0
+    ? dbItems.map((f: any) => ({ q: t(f.question, l), a: t(f.answer, l) }))
+    : s.items.map((i) => ({ q: t(i.question, l), a: t(i.answer, l) }));
+  return (
+    <section className="flex flex-col md:flex-row gap-6 md:gap-[80px] p-6 md:px-[60px] md:py-[90px]" style={{ backgroundColor: s.backgroundColor || '#D49BCB' }}>
+      {s.image.url && <img src={s.image.url} alt={t(s.image.alt, l)} className="w-full md:flex-1 h-[300px] md:h-auto object-cover" />}
+      <div className="flex-1"><FaqClient items={items} defaultOpen={false} /></div>
     </section>
   );
 }

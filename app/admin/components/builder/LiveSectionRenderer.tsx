@@ -46,6 +46,20 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
         </section>
       );
 
+    case 'faq-image':
+      return (
+        <section className="flex flex-col md:flex-row gap-6 md:gap-[80px] p-6 md:px-[60px] md:py-[90px]" style={{ ...solar, backgroundColor: s.backgroundColor || '#D49BCB' }}>
+          <EI value={s.image} onChange={(image) => set({ image })} className="w-full md:flex-1 h-[300px] md:h-[744px]" />
+          <div className="flex-1">
+            <FaqLivePreview topic={s.topic} onTopicChange={(topic) => set({ topic })} />
+            <div className="mt-4">
+              <label className="text-xs text-gray-500">Background</label>
+              <input type="color" value={s.backgroundColor || '#D49BCB'} onChange={(e) => set({ backgroundColor: e.target.value })} className="ml-2 w-8 h-6 cursor-pointer" />
+            </div>
+          </div>
+        </section>
+      );
+
     case 'image-carousel': {
       const addImages = (urls: string[]) => {
         const newImgs = urls.map((url) => ({ url, alt: { en: '', fr: '' } } as SectionImage));
