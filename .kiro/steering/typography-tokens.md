@@ -1,16 +1,38 @@
 ---
 inclusion: fileMatch
 fileMatchPattern: "{app/**,components/**,lib/design/**,src/styles/**}"
-description: Typography token system — all font styles must be linked to a token in lib/design/tokens.ts.
+description: Typography token system — all storefront font styles must use typeStyle() or token CSS vars from lib/design/tokens.ts.
 ---
 
 # Typography Token System
 
-## Rule
+## Rule (Non-Negotiable)
 
-Every font size, weight, line height, and font family used on any storefront page MUST be tracked in `lib/design/tokens.ts` as part of the consolidated type scale.
+Every font size, weight, line height, and font family on any **storefront** page MUST reference a token from `lib/design/tokens.ts`. Do not use arbitrary pixel values, raw Tailwind `text-*` classes, or inline font sizes without a token link.
 
-## Token Scale (20 tokens)
+Full documentation: `docs/typography-system.md`
+
+## Enforcement
+
+When creating or modifying any storefront component or page:
+
+1. **Use `typeStyle(tokenName)`** from `@/lib/design/tokens` for all text styling. This is the preferred API.
+2. **Never use** `text-[Xpx]`, `fontSize: 'Xpx'`, or Tailwind `text-sm/lg/xl` for storefront type. Find the matching token instead.
+3. **Font families** must come from tokens (`typeStyle()` includes it) or `var(--type-font-display|body|mono)`. Do not use `var(--font-solar-display)` directly for new code — use the token layer.
+4. **Update `usedIn`** in `lib/design/tokens.ts` when adding a component that uses a token.
+5. **Admin pages are exempt** — they use Untitled UI's own type system.
+
+## Quick Reference: Picking a Token
+
+| Need | Token | Desktop Size |
+|---|---|---|
+| Hero / splash text | `display-xxl` to `display-sm` | 90–36px |
+| Section heading | `heading-xl` to `heading-xs` | 28–20px |
+| Body paragraph | `body-lg` or `body-sm` | 17px / 15px |
+| UI text (nav, labels, prices) | `body-md` or `body-xs` | 16px / 14px |
+| Small labels, tags, meta | `caption-lg` to `caption-xs` | 13–10px |
+
+## Token Scale (19 tokens)
 
 | Token | Desktop | Mobile | Font Stack |
 |---|---|---|---|
@@ -34,35 +56,32 @@ Every font size, weight, line height, and font family used on any storefront pag
 | `caption-sm` | 11px | 10px | mono |
 | `caption-xs` | 10px | 10px | mono |
 
-## When adding or editing font styles
+## Usage Pattern
 
-1. **Check if an existing token covers the size.** Use the closest token from the scale above.
+```tsx
+import { typeStyle } from '@/lib/design/tokens';
+
+<h2 style={typeStyle('display-lg')}>Title</h2>
+<p style={typeStyle('body-lg')}>Paragraph</p>
+<span style={typeStyle('caption-sm')}>LABEL</span>
+```
+
+Mobile responsiveness is automatic — CSS vars swap at 767px.
+
+## When Adding or Editing Font Styles
+
+1. **Check if an existing token covers the size.** Use the closest token.
 2. **If no token fits**, add the usage to the `usedIn` array of the nearest token, or create a new token only if the size is genuinely new and distinct.
 3. **Never use arbitrary font sizes** (`text-[17px]`, `fontSize: '19px'`) without mapping them to a token.
 4. **Update the `usedIn` array** when adding a new component or page that uses a token.
-5. **Font stacks**: Use `display` for section headings, `body` for paragraphs, `mono` for labels/tags. Don't introduce new font families without adding them to `FONT_STACKS`.
-
-## CSS Variables
-
-Tokens are injected as CSS custom properties by `DesignTokensStyle` in the root layout:
-- `--type-{name}-size` — desktop font size
-- `--type-{name}-size-mobile` — mobile font size
-- `--type-{name}-line` / `--type-{name}-line-mobile` — line heights
-- `--type-{name}-weight` / `--type-{name}-weight-mobile` — font weights
-- `--type-{name}-font` — font family reference
-
-## Font stack overrides
-
-The admin can override font stacks at `/admin/design`. When set, these update the original theme.css vars:
-- `--font-solar-display` (display)
-- `--font-neue-montreal` (body)
-- `--font-diatype-mono` (mono)
-
-Existing code using `var(--font-solar-display)` etc. automatically picks up changes.
+5. **Font stacks**: Use `display` for headings, `body` for paragraphs, `mono` for labels/tags. Don't introduce new font families without adding them to `FONT_STACKS`.
 
 ## Files
 
-- `lib/design/tokens.ts` — Token definitions and CSS generation
-- `components/DesignTokensStyle.tsx` — Server component injecting CSS vars
-- `app/admin/design/page.tsx` — Admin typography editor
-- `src/styles/theme.css` — Original font stack definitions (DO NOT modify directly)
+| File | Role |
+|---|---|
+| `lib/design/tokens.ts` | Token definitions, `typeStyle()`, CSS generation |
+| `components/DesignTokensStyle.tsx` | Server component injecting CSS vars |
+| `app/admin/design/page.tsx` | Admin typography editor |
+| `src/styles/theme.css` | Base font-face definitions (DO NOT modify) |
+| `docs/typography-system.md` | Full documentation |

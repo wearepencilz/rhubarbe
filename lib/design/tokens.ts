@@ -1,7 +1,7 @@
 /**
  * Typography Token System — Consolidated Scale
  *
- * 25 canonical styles. Every text usage on the site maps to one of these.
+ * 19 canonical styles. Every text usage on the site maps to one of these.
  * Each token has desktop + mobile values. The admin Design page lets owners edit them.
  * CSS vars: --type-{name}-size, --type-{name}-line, --type-{name}-weight, etc.
  */
