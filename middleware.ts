@@ -1,5 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 const isLoginRoute = createRouteMatcher(['/admin/login(.*)']);
@@ -22,13 +22,11 @@ function detectLocale(req: { cookies: { get(name: string): { value: string } | u
   return 'fr';
 }
 
-export default clerkMiddleware(async (auth, req) => {
+function handleRouting(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // Skip static/api/admin
   if (path.startsWith('/api') || path.startsWith('/admin') || path.startsWith('/_next') || path.includes('.')) {
-    if (isLoginRoute(req)) return;
-    if (isAdminRoute(req)) { await auth.protect(); }
     return;
   }
 
@@ -95,7 +93,25 @@ export default clerkMiddleware(async (auth, req) => {
   const url = req.nextUrl.clone();
   url.pathname = `/${locale}${path}`;
   return NextResponse.redirect(url, 307);
-});
+}
+
+const hasClerkKeys = !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
+
+export default hasClerkKeys
+  ? clerkMiddleware(async (auth, req) => {
+      const path = req.nextUrl.pathname;
+
+      // Admin auth
+      if (path.startsWith('/admin') && !isLoginRoute(req) && isAdminRoute(req)) {
+        await auth.protect();
+        return;
+      }
+
+      return handleRouting(req);
+    })
+  : function fallbackMiddleware(req: NextRequest) {
+      return handleRouting(req);
+    };
 
 export const config = {
   matcher: [
