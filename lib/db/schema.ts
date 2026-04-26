@@ -477,6 +477,9 @@ export const users = pgTable('users', {
 export const pages = pgTable('pages', {
   id: uuid('id').primaryKey().defaultRandom(),
   pageName: text('page_name').notNull().unique(),
+  title: customJsonb<{ en: string; fr: string }>('title'),
+  slugEn: text('slug_en'),
+  slugFr: text('slug_fr'),
   content: customJsonb<Record<string, unknown>>('content').notNull(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

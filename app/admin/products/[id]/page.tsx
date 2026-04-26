@@ -70,7 +70,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     shopifyProductHandle: '',
     image: '',
     keyNotes: [] as string[],
-    tastingNotes: '',
     ingredients: [] as FlavourIngredient[],
     allergens: [] as string[],
     titleFr: '',
@@ -149,7 +148,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           shopifyProductHandle: offeringData.shopifyProductHandle || '',
           image: offeringData.image || '',
           keyNotes: offeringData.keyNotes || [],
-          tastingNotes: offeringData.tastingNotes || '',
           ingredients: offeringData.ingredients || [],
           allergens: offeringData.allergens || [],
           titleFr: offeringData.translations?.fr?.title || '',
@@ -199,7 +197,6 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         shopifyProductHandle: formData.shopifyProductHandle || null,
         image: formData.image || undefined,
         keyNotes: formData.keyNotes,
-        tastingNotes: formData.tastingNotes,
         ingredients: formData.ingredients,
         allergens: formData.allergens,
         translations: (formData.titleFr || formData.descriptionFr || formData.shortCardCopyFr)

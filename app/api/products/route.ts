@@ -61,7 +61,6 @@ export async function POST(request: NextRequest) {
       onlineOrderable: body.onlineOrderable || false,
       pickupOnly: body.pickupOnly || false,
       keyNotes: body.keyNotes || [],
-      tastingNotes: body.tastingNotes ?? null,
       allergens: body.allergens || [],
       category: body.category ?? null,
       serves: body.serves ?? null,

@@ -203,8 +203,8 @@ function HeadingArticles({ s, l }: { s: Extract<Section, { type: 'heading-articl
 
 function HeadingPage({ s, l }: { s: Extract<Section, { type: 'heading-page' }>; l: string }) {
   return (
-    <section className="px-6 pt-20 pb-6 md:px-[60px] md:pt-[200px] md:pb-[60px] flex flex-col items-end" style={{ backgroundColor: clr.bg }}>
-      <h1 style={{ ...ts('display-lg'), textAlign: 'right' }}>{t(s.title, l)}</h1>
+    <section className="px-6 pt-20 pb-6 md:px-[60px] md:pt-[200px] md:pb-[60px]" style={{ backgroundColor: clr.bg }}>
+      <h1 style={ts('display-lg')}>{t(s.title, l)}</h1>
     </section>
   );
 }

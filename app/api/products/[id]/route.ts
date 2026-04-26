@@ -99,7 +99,6 @@ export async function PUT(
     const allowedFields = new Set([
       'name', 'slug', 'shopifyProductId', 'shopifyProductHandle',
       'legacyId', 'title', 'description', 'category', 'price', 'currency',
-      'image', 'serves', 'shortCardCopy', 'tastingNotes', 'status',
       'allergens', 'tags', 'keyNotes', 'variants', 'translations',
       'inventoryTracked', 'availabilityMode', 'dateSelectionType',
       'slotSelectionType', 'variantType',

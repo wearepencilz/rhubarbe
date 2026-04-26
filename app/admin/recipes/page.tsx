@@ -84,20 +84,25 @@ export default function RecipesPage() {
                 >
                   <Table.Cell>
                     <div className="flex items-center gap-3">
-                      {item.image && (
-                        <img src={item.image} alt={item.title} className="h-10 w-10 rounded-lg object-cover" />
+                      {item.coverImage && (
+                        <img src={item.coverImage} alt={item.title} className="h-10 w-10 rounded-lg object-cover" />
                       )}
                       <div>
                         <p className="text-sm font-medium text-primary">{item.title}</p>
-                        <p className="text-xs text-tertiary line-clamp-1">{item.content}</p>
+                        <p className="text-xs text-tertiary line-clamp-1">{item.category || 'No category'} · {(item.content as any)?.sections?.length || 0} sections</p>
                       </div>
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className="text-sm text-secondary">{new Date(item.date).toLocaleDateString()}</span>
+                    <span className="text-sm text-secondary">{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'}</span>
                   </Table.Cell>
                   <Table.Cell>
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      {item.slug && (
+                        <a href={`/recipes/${item.slug}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Preview">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </a>
+                      )}
                       <Link href={`/admin/recipes/${item.id}`}>
                         <button className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors rounded" title="Edit">
                           <Edit01 className="w-4 h-4" />

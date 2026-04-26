@@ -19,7 +19,6 @@ export interface ContentTranslations {
     shortDescription?: string;
     shortCardCopy?: string;
     story?: string;
-    tastingNotes?: string;
     // Ingredient-specific
     latinName?: string;
     // Story-specific
@@ -196,7 +195,6 @@ export interface Ingredient {
   imageAlt?: string;                // Image alt text
   description?: string;             // Additional information
   story?: string;                   // Provenance story
-  tastingNotes?: string[];          // Tasting notes array
   supplier?: string;                // Supplier name
   farm?: string;                    // Farm name
   isOrganic?: boolean;              // Organic certification
@@ -253,7 +251,6 @@ export interface Flavour {
   description: string;           // Full description
   shortDescription: string;      // Card copy
   story?: string;                // Flavour story/narrative
-  tastingNotes?: string;         // Tasting notes
   ingredients: FlavourIngredient[]; // Ordered ingredient list
   keyNotes: string[];            // Flavor notes (e.g., "nutty", "floral")
   
@@ -335,7 +332,6 @@ export interface Offering {
   shortCardCopy: string;         // Brief card text
   image?: string;                // Offering-specific image (overrides flavour image)
   keyNotes?: string[];           // Tasting tags (e.g. "smoky", "floral")
-  tastingNotes?: string;         // Optional prose tasting notes
   ingredients?: FlavourIngredient[]; // Ordered ingredient list
   
   // Pricing

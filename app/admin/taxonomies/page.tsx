@@ -24,31 +24,23 @@ interface TaxonomyCategory {
 }
 
 const TAXONOMY_CATEGORIES: TaxonomyCategory[] = [
-  // Ingredients
-  { key: 'ingredientCategories', label: 'Categories', description: 'Categories for ingredient classification', group: 'Ingredients' },
-  { key: 'ingredientRoles', label: 'Roles', description: 'How an ingredient contributes to a recipe (primary, supporting, accent)', group: 'Ingredients' },
-  { key: 'ingredientTextures', label: 'Textures', description: 'Mouthfeel and texture descriptors', group: 'Ingredients' },
-  { key: 'ingredientProcesses', label: 'Process / Preparation', description: 'How ingredients are transformed before use', group: 'Ingredients' },
-  { key: 'ingredientAttributes', label: 'Attributes', description: 'Provenance and dietary characteristics', group: 'Ingredients' },
-  { key: 'ingredientUsedAs', label: 'Used As', description: 'How an ingredient is used in a recipe', group: 'Ingredients' },
-  { key: 'allergens', label: 'Allergens', description: 'Common allergen tags', group: 'Ingredients' },
   // Products
   { key: 'productCategories', label: 'Categories', description: 'Product categories for menu grouping (e.g. Gelato, Sorbet, Pastry)', group: 'Products' },
-  { key: 'tastingNotes', label: 'Tasting Notes', description: 'Common tasting note descriptors', group: 'Products' },
+  { key: 'allergens', label: 'Allergens', description: 'Common allergen tags', group: 'Products' },
   // Catering
   { key: 'cateringTemperature', label: 'Temperature', description: 'Serving temperature filters (e.g. Hot, Cold)', group: 'Catering' },
   { key: 'cateringDietary', label: 'Dietary', description: 'Dietary filters for catering products (e.g. Vegetarian, Vegan, Meat, Fish)', group: 'Catering' },
   // Journal
-  { key: 'storyCategories', label: 'Categories', description: 'Journal sections — The Lab, Flavour Notes, Core Idea, etc.', group: 'Journal' },
-  { key: 'storyTags', label: 'Tags', description: 'Ingredient, place, theme, and season tags for journal entries', group: 'Journal' },
+  { key: 'journalCategories', label: 'Categories', description: 'Journal sections — The Lab, Flavour Notes, Core Idea, etc.', group: 'Journal' },
+  { key: 'journalTags', label: 'Tags', description: 'Ingredient, place, theme, and season tags for journal entries', group: 'Journal' },
 ];
 
-const GROUPS = ['Ingredients', 'Products', 'Catering', 'Journal'];
+const GROUPS = ['Products', 'Catering', 'Journal'];
 
 export default function TaxonomiesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const activeTab = searchParams?.get('tab') || 'ingredientCategories';
+  const activeTab = searchParams?.get('tab') || 'productCategories';
 
   const [taxonomies, setTaxonomies] = useState<Record<string, TaxonomyValue[]>>({});
   const [loading, setLoading] = useState(true);

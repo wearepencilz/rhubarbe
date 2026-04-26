@@ -35,7 +35,7 @@ export default function RecipeEditPage() {
   const [locale, setLocale] = useState<'en' | 'fr'>('fr');
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 

@@ -1,9 +1,11 @@
-import SiteFooter from '@/components/home/SiteFooter';
+import PageRenderer from '@/components/sections/PageRenderer';
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
   return (
     <main className="bg-white min-h-screen">
-      <SiteFooter />
+      <PageRenderer pageName="home" />
     </main>
   );
 }

@@ -16,13 +16,13 @@ function MiniPreview({ type }: { type: SectionType }) {
   switch (type) {
     case 'faq-simple':
       return <div className={box} style={{ backgroundColor: accent, padding: 8, gap: 8 }}>
-        <div style={{ width: '30%' }}>{bar('80%', dark)}</div>
-        <div className="flex-1 space-y-1.5">{[1,2,3,4].map(i => <div key={i} className="flex justify-between items-center"><div>{bar('60%')}</div><span style={{ fontSize: 8, color: dark }}>+</span></div>)}</div>
+        <div style={{ width: '50%' }}>{bar('60%', dark)}</div>
+        <div style={{ width: '50%' }} className="space-y-1.5">{[1,2,3,4].map(i => <div key={i} className="flex justify-between items-center"><div>{bar('70%')}</div><span style={{ fontSize: 8, color: dark }}>+</span></div>)}</div>
       </div>;
     case 'faq-grouped':
       return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 8 }}>
-        <div style={{ width: '30%' }}>{bar('80%', dark)}</div>
-        <div className="flex-1 space-y-2">{bar('40%', dark)}<div className="space-y-1">{[1,2,3].map(i => <div key={i}>{bar('70%')}</div>)}</div>{bar('50%', dark)}<div className="space-y-1">{[1,2].map(i => <div key={i}>{bar('65%')}</div>)}</div></div>
+        <div style={{ width: '50%' }}>{bar('60%', dark)}</div>
+        <div style={{ width: '50%' }} className="space-y-2">{bar('40%', dark)}<div className="space-y-1">{[1,2].map(i => <div key={i}>{bar('80%')}</div>)}</div>{bar('50%', dark)}<div className="space-y-1">{[1,2].map(i => <div key={i}>{bar('75%')}</div>)}</div></div>
       </div>;
     case 'image-carousel':
       return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 6 }}>
@@ -58,7 +58,7 @@ function MiniPreview({ type }: { type: SectionType }) {
         <div className="space-y-2">{bar('50%', dark)}<div className="flex gap-2">{bar('30%')}{bar('30%', '#aaa')}{bar('30%', '#aaa')}</div></div>
       </div>;
     case 'heading-page':
-      return <div className={box} style={{ backgroundColor: bg, padding: '24px 8px 8px', justifyContent: 'flex-end' }}>
+      return <div className={box} style={{ backgroundColor: bg, padding: '24px 8px 8px' }}>
         {bar('40%', dark)}
       </div>;
     case 'heading-content':
@@ -66,16 +66,19 @@ function MiniPreview({ type }: { type: SectionType }) {
         <div className="space-y-1">{bar('60%', dark)}<div className="flex gap-1">{bar('20%')}{bar('25%')}</div></div>
       </div>;
     case 'quote':
-      return <div className={box} style={{ backgroundColor: bg, padding: 12 }}>
-        <div className="space-y-1 w-full"><span style={{ fontSize: 16, color: dark, lineHeight: 1 }}>&ldquo;</span>{bar('90%', dark)}{bar('70%', dark)}</div>
+      return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 8 }}>
+        <div style={{ width: '50%' }} />
+        <div style={{ width: '50%' }} className="space-y-1"><span style={{ fontSize: 14, color: dark, lineHeight: 1 }}>&ldquo;</span>{bar('90%', dark)}{bar('70%', dark)}</div>
       </div>;
     case 'text':
-      return <div className={box} style={{ backgroundColor: bg, padding: 12 }}>
-        <div className="space-y-1.5 w-full">{bar('40%', dark)}{bar('95%')}{bar('85%')}{bar('60%')}</div>
+      return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 8 }}>
+        <div style={{ width: '50%' }} />
+        <div style={{ width: '50%' }} className="space-y-1.5">{bar('50%', dark)}{bar('95%')}{bar('85%')}{bar('60%')}</div>
       </div>;
     case 'instructions':
-      return <div className={box} style={{ backgroundColor: bg, padding: 12 }}>
-        <div className="space-y-1 w-full">{bar('40%', dark)}{['1.', '2.', '3.'].map(n => <div key={n} className="flex gap-1 items-center"><span style={{ fontSize: 7, color: dark }}>{n}</span>{bar('80%')}</div>)}</div>
+      return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 8 }}>
+        <div style={{ width: '50%' }} />
+        <div style={{ width: '50%' }} className="space-y-1">{bar('50%', dark)}{['1.', '2.', '3.'].map(n => <div key={n} className="flex gap-1 items-center"><span style={{ fontSize: 7, color: dark }}>{n}</span>{bar('80%')}</div>)}</div>
       </div>;
     case 'two-column-text':
       return <div className={box} style={{ backgroundColor: bg, padding: 12 }}>
@@ -83,7 +86,8 @@ function MiniPreview({ type }: { type: SectionType }) {
       </div>;
     case 'steps':
       return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 8 }}>
-        {['01','02','03'].map(n => <div key={n} className="flex-1 space-y-1"><span style={{ fontSize: 18, fontWeight: 600, color: dark, lineHeight: 1 }}>{n}</span>{bar('90%')}</div>)}
+        <div style={{ width: '50%' }} />
+        <div style={{ width: '50%' }} className="space-y-1">{['01','02','03'].map(n => <div key={n} className="flex items-baseline gap-1"><span style={{ fontSize: 14, fontWeight: 600, color: dark, lineHeight: 1 }}>{n}</span>{bar('70%')}</div>)}</div>
       </div>;
     case 'image-with-text':
       return <div className={box} style={{ backgroundColor: accent, padding: 8, gap: 8 }}>
@@ -92,8 +96,8 @@ function MiniPreview({ type }: { type: SectionType }) {
       </div>;
     case 'contact-form':
       return <div className={box} style={{ backgroundColor: bg, padding: 8, gap: 8 }}>
-        <div style={{ width: '30%' }}>{bar('80%', dark)}</div>
-        <div className="flex-1 space-y-1">{[1,2,3].map(i => <div key={i}>{bar('100%', '#ddd')}</div>)}{block('100%', '14px', accent)}</div>
+        <div style={{ width: '50%' }}>{bar('60%', dark)}</div>
+        <div style={{ width: '50%' }} className="space-y-1">{[1,2,3].map(i => <div key={i}>{bar('100%', '#ddd')}</div>)}{block('100%', '14px', accent)}<div className="flex gap-1 mt-1">{bar('40%')}{bar('50%', '#bbb')}</div></div>
       </div>;
     default:
       return <div className={box} style={{ backgroundColor: bg }} />;

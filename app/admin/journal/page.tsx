@@ -12,13 +12,19 @@ import { Edit01, Trash01, Link01 } from '@untitledui/icons';
 
 interface JournalEntry {
   id: string;
-  title: string;
+  title: string | { en: string; fr: string };
   slug: string;
   status: 'draft' | 'published';
   category?: string;
   coverImage?: string;
   intro?: string;
   updatedAt?: string;
+}
+
+function getTitle(t: string | { en: string; fr: string } | null): string {
+  if (!t) return '';
+  if (typeof t === 'string') return t;
+  return t.en || t.fr || '';
 }
 
 export default function JournalPage() {
@@ -95,10 +101,10 @@ export default function JournalPage() {
                   <Table.Cell>
                     <div className="flex items-center gap-3">
                       {item.coverImage && (
-                        <img src={item.coverImage} alt={item.title} className="h-10 w-16 rounded object-cover flex-shrink-0" />
+                        <img src={item.coverImage} alt={getTitle(item.title)} className="h-10 w-16 rounded object-cover flex-shrink-0" />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-primary">{item.title}</p>
+                        <p className="text-sm font-medium text-primary">{getTitle(item.title)}</p>
                         {item.intro && <p className="text-xs text-tertiary line-clamp-1 max-w-xs">{item.intro}</p>}
                       </div>
                     </div>
@@ -133,7 +139,7 @@ export default function JournalPage() {
                       <button
                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded"
                         title="Delete"
-                        onClick={() => setDeleteConfirm({ show: true, id: item.id, title: item.title })}
+                        onClick={() => setDeleteConfirm({ show: true, id: item.id, title: getTitle(item.title) })}
                       >
                         <Trash01 className="w-4 h-4" />
                       </button>

@@ -51,7 +51,7 @@ export default function JournalEditPage() {
   const [locale, setLocale] = useState<'en' | 'fr'>('fr');
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -169,8 +169,8 @@ export default function JournalEditPage() {
               <Input label="Title" value={meta.title} onChange={handleTitleChange} isRequired placeholder="The First Strawberries" />
               <Input label="Slug" value={meta.slug} onChange={(v) => { setSlugTouched(true); set({ slug: slugify(v) }); }} placeholder="the-first-strawberries" helperText={meta.slug ? `/journal/${meta.slug}` : undefined} />
               <Select label="Status" value={meta.status} onChange={(v) => set({ status: v as 'draft' | 'published' })} options={[{ id: 'draft', label: 'Draft' }, { id: 'published', label: 'Published' }]} />
-              <TaxonomySelect label="Category" category="storyCategories" value={meta.category} onChange={(v) => set({ category: v })} placeholder="Select…" />
-              <TaxonomyMultiSelect label="Tags" category="storyTags" values={meta.tags} onChange={(v) => set({ tags: v })} />
+              <TaxonomySelect label="Category" category="journalCategories" value={meta.category} onChange={(v) => set({ category: v })} placeholder="Select…" />
+              <TaxonomyMultiSelect label="Tags" category="journalTags" values={meta.tags} onChange={(v) => set({ tags: v })} />
               <ImageUploader value={meta.coverImage} onChange={(url) => set({ coverImage: url })} onDelete={() => set({ coverImage: '' })} label="Cover image" aspectRatio="16:9" />
               <Textarea label="Intro" value={meta.intro} onChange={(v) => set({ intro: v })} rows={2} placeholder="A short intro line" />
               <div className="grid grid-cols-2 gap-3">

@@ -142,9 +142,9 @@ export default function UsersPage() {
   const canManage = sessionRole === 'super_admin' || sessionRole === 'admin';
 
   return (
-    <div>
+    <div className="admin-narrow">
       <div className="flex items-center justify-between mb-6">
-        <div>
+        <div className="admin-narrow">
           <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage CMS user accounts and roles</p>
         </div>
@@ -222,7 +222,7 @@ export default function UsersPage() {
       {modal?.type === 'invite' && (
         <ModalShell title="Invite user" onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div>
+            <div className="admin-narrow">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
               <input
                 type="email"
@@ -233,7 +233,7 @@ export default function UsersPage() {
               />
               <p className="text-xs text-gray-400 mt-1.5">They'll receive an email invitation to create their account.</p>
             </div>
-            <div>
+            <div className="admin-narrow">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
               <select
                 value={inviteRole}
@@ -258,7 +258,7 @@ export default function UsersPage() {
       {modal?.type === 'editRole' && (
         <ModalShell title={`Change role — ${modal.user.name}`} onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <div>
+            <div className="admin-narrow">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
               <select
                 value={editRole}

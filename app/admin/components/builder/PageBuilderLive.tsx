@@ -29,11 +29,19 @@ export default function PageBuilderLive() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [scale, setScale] = useState(1);
+  const [pageSettings, setPageSettings] = useState<{ title: { en: string; fr: string }; slugEn: string; slugFr: string }>({ title: { en: '', fr: '' }, slugEn: '', slugFr: '' });
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
-    fetch(`/api/pages/${pageName}`).then((r) => r.json()).then((d) => setSections(d?.sections ?? [])).catch(() => {}).finally(() => setLoading(false));
+    fetch(`/api/pages/${pageName}`).then((r) => r.json()).then((d) => setSections(d?.sections ?? [])).catch(() => {});
+    // Load page metadata
+    fetch('/api/pages').then((r) => r.json()).then((all: any[]) => {
+      const p = all.find((pg: any) => pg.pageName === pageName);
+      if (p) setPageSettings({ title: p.title || { en: '', fr: '' }, slugEn: p.slugEn || pageName, slugFr: p.slugFr || pageName });
+    }).catch(() => {});
+    setLoading(false);
   }, [pageName]);
 
   // Compute scale so the canvas fits the available width
@@ -59,7 +67,7 @@ export default function PageBuilderLive() {
     setDirty(true); setInsertAt(null);
   }, [insertAt]);
   const handleDragEnd = (e: DragEndEvent) => { const { active, over } = e; if (over && active.id !== over.id) { setSections((p) => arrayMove(p, p.findIndex((s) => s.id === active.id), p.findIndex((s) => s.id === over.id))); setDirty(true); } };
-  const handleSave = async () => { setSaving(true); try { const r = await fetch(`/api/pages/${pageName}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sections }) }); if (r.ok) { toast.success('Saved'); setDirty(false); } else toast.error('Failed'); } catch { toast.error('Failed'); } setSaving(false); };
+  const handleSave = async () => { setSaving(true); try { const r = await fetch(`/api/pages/${pageName}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sections, title: pageSettings.title, slugEn: pageSettings.slugEn, slugFr: pageSettings.slugFr }) }); if (r.ok) { toast.success('Saved'); setDirty(false); } else toast.error('Failed'); } catch { toast.error('Failed'); } setSaving(false); };
   const openLibraryAt = (pos: 'above' | 'below', sid: string) => { const i = sections.findIndex((s) => s.id === sid); setInsertAt(pos === 'above' ? i : i + 1); setLibraryOpen(true); };
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" /></div>;
@@ -83,7 +91,8 @@ export default function PageBuilderLive() {
         </div>
         <div className="h-5 w-px bg-gray-200" />
         <button onClick={() => { setInsertAt(null); setLibraryOpen(true); }} className="text-sm text-blue-600 font-medium">+ Add section</button>
-        <button onClick={() => window.open(`/p/${pageName}`, '_blank')} className="text-sm text-gray-500 hover:text-gray-800">Preview</button>
+        <button onClick={() => setSettingsOpen(true)} className="text-sm text-gray-500 hover:text-gray-800">⚙ Settings</button>
+        <button onClick={() => window.open(`/${locale}/${locale === 'fr' ? pageSettings.slugFr : pageSettings.slugEn}`, '_blank')} className="text-sm text-gray-500 hover:text-gray-800">Preview</button>
         <button onClick={handleSave} disabled={saving || !dirty} className={`text-sm font-medium px-4 py-1.5 rounded-lg ${dirty ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400'}`}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
 
@@ -113,6 +122,23 @@ export default function PageBuilderLive() {
       </div>
 
       {libraryOpen && <SectionLibrary onSelect={addSection} onClose={() => { setLibraryOpen(false); setInsertAt(null); }} />}
+
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSettingsOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900">Page Settings</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs font-medium text-gray-500">🇬🇧 Title</label><input value={pageSettings.title.en} onChange={(e) => { setPageSettings({ ...pageSettings, title: { ...pageSettings.title, en: e.target.value } }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" /></div>
+              <div><label className="text-xs font-medium text-gray-500">🇫🇷 Titre</label><input value={pageSettings.title.fr} onChange={(e) => { setPageSettings({ ...pageSettings, title: { ...pageSettings.title, fr: e.target.value } }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs font-medium text-gray-500">🇬🇧 Slug</label><input value={pageSettings.slugEn} onChange={(e) => { setPageSettings({ ...pageSettings, slugEn: e.target.value }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" placeholder={pageName} /><p className="text-[10px] text-gray-400 mt-1">/en/{pageSettings.slugEn || pageName}</p></div>
+              <div><label className="text-xs font-medium text-gray-500">🇫🇷 Slug</label><input value={pageSettings.slugFr} onChange={(e) => { setPageSettings({ ...pageSettings, slugFr: e.target.value }); setDirty(true); }} className="w-full mt-1 text-sm border border-gray-200 rounded-lg px-3 py-2" placeholder={pageName} /><p className="text-[10px] text-gray-400 mt-1">/fr/{pageSettings.slugFr || pageName}</p></div>
+            </div>
+            <div className="flex justify-end"><button onClick={() => setSettingsOpen(false)} className="text-sm text-gray-500 hover:text-gray-800">Done</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

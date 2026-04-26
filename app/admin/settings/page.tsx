@@ -158,7 +158,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div>
+    <div className="admin-narrow">
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-gray-900">Settings</h1>
         <p className="text-gray-600 mt-1">Manage your site configuration</p>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                   onChange={(v) => setFormData((p) => ({ ...p, email: v }))} />
                 <Input label="Phone" type="text" value={formData.phone}
                   onChange={(v) => setFormData((p) => ({ ...p, phone: v }))} />
-                <div>
+                <div className="admin-narrow">
                   <label className="block text-sm font-medium mb-1.5 text-gray-900">Logo</label>
                   {formData.logo && (
                     <div className="mb-3 p-4 bg-gray-50 rounded-md border border-gray-200">
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50" />
                   {uploading && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
                 </div>
-                <div>
+                <div className="admin-narrow">
                   <label className="block text-sm font-medium mb-1.5 text-gray-900">Brand Color</label>
                   <p className="text-xs text-gray-500 mb-2">Used as fallback background for products without images.</p>
                   <div className="flex items-center gap-3">

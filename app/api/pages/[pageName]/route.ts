@@ -27,7 +27,8 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const page = await pageQueries.upsert(params.pageName, body);
+    const { title, slugEn, slugFr, ...content } = body;
+    const page = await pageQueries.upsert(params.pageName, content, { title, slugEn, slugFr });
     return NextResponse.json(page.content);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

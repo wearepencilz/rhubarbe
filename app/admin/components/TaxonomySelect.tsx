@@ -7,20 +7,15 @@ import { Button } from '@/app/admin/components/ui/button';
 export type TaxonomyCategory =
   | 'flavourTypes'
   | 'keyNotes'
-  | 'ingredientCategories'
-  | 'ingredientRoles'
-  | 'tastingNotes'
-  | 'ingredientTextures'
-  | 'ingredientProcesses'
-  | 'ingredientAttributes'
-  | 'ingredientUsedAs'
   | 'productCategories'
   | 'formatCategories'
   | 'servingStyles'
   | 'modifierTypes'
   | 'allergens'
-  | 'storyCategories'
-  | 'storyTags';
+  | 'cateringTemperature'
+  | 'cateringDietary'
+  | 'journalCategories'
+  | 'journalTags';
 
 interface TaxonomyValue {
   id: string;

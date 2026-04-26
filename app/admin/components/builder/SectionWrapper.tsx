@@ -41,7 +41,7 @@ export default function SectionWrapper({ section, onDelete, onOpenLibrary, child
 
       {/* Top toolbar */}
       {hovered && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 bg-white border border-gray-200 rounded-full shadow-lg px-2 py-1">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 bg-white border border-gray-200 rounded-full shadow-lg px-2 py-1">
           <button {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-gray-700 px-1 text-xs touch-none" title="Drag">⠿</button>
           <span className="text-[10px] text-gray-500 font-medium px-1">{meta.icon} {meta.label}</span>
           <button onClick={() => onOpenLibrary('above', section.id)} className="text-gray-400 hover:text-blue-600 px-0.5" title="Add above"><Plus className="w-3.5 h-3.5" /></button>

@@ -16,8 +16,7 @@ const groups: DashboardGroup[] = [
   {
     label: 'Products',
     cards: [
-      { title: 'Products', description: 'Generated products linked to Shopify', href: '/admin/products', icon: '🎁' },
-      { title: 'Ingredients', description: 'Ingredient library with provenance', href: '/admin/ingredients', icon: '🌿' },
+      { title: 'Products', description: 'Products linked to Shopify', href: '/admin/products', icon: '🎁' },
     ],
   },
   {
@@ -25,24 +24,28 @@ const groups: DashboardGroup[] = [
     cards: [
       { title: 'Menus', description: 'Weekly preorder menus and launches', href: '/admin/menus', icon: '📅' },
       { title: 'Catering', description: 'Catering products and lead times', href: '/admin/volume-products', icon: '📦' },
+      { title: 'Cake', description: 'Signature cake products and pricing', href: '/admin/cake-products', icon: '🎂' },
       { title: 'Orders', description: 'Preorders, prep sheets, and pickup lists', href: '/admin/orders', icon: '🧾' },
-      { title: 'Pickup Locations', description: 'Physical pickup points and instructions', href: '/admin/pickup-locations', icon: '📍' },
+      { title: 'Pickup Locations', description: 'Physical pickup points', href: '/admin/pickup-locations', icon: '📍' },
     ],
   },
   {
     label: 'Content',
     cards: [
-      { title: 'Journal', description: 'Editorial journal entries and features', href: '/admin/journal', icon: '📖' },
+      { title: 'Journal', description: 'Editorial journal entries', href: '/admin/journal', icon: '📖' },
       { title: 'Recipes', description: 'Recipes and culinary content', href: '/admin/recipes', icon: '🍳' },
-      { title: 'Pages', description: 'Static page content management', href: '/admin/pages', icon: '📄' },
-      { title: 'Requests', description: 'Catering and signature cake enquiries', href: '/admin/requests', icon: '📬' },
+      { title: 'FAQs', description: 'FAQ topics and questions', href: '/admin/faqs', icon: '❓' },
+      { title: 'Pages', description: 'Compose pages with sections', href: '/admin/pages', icon: '📄' },
+      { title: 'Requests', description: 'Catering and cake enquiries', href: '/admin/requests', icon: '📬' },
     ],
   },
   {
     label: 'System',
     cards: [
-      { title: 'Users', description: 'Manage admin users and access', href: '/admin/users', icon: '👤' },
-      { title: 'Taxonomies', description: 'Tags, types, and classification values', href: '/admin/taxonomies', icon: '🏷️' },
+      { title: 'Design', description: 'Typography and design tokens', href: '/admin/design', icon: '🎨' },
+      { title: 'Translations', description: 'UI labels per locale', href: '/admin/translations', icon: '🌐' },
+      { title: 'Users', description: 'Admin users and access', href: '/admin/users', icon: '👤' },
+      { title: 'Taxonomies', description: 'Tags, types, and values', href: '/admin/taxonomies', icon: '🏷️' },
       { title: 'Settings', description: 'Global configuration', href: '/admin/settings', icon: '⚙️' },
     ],
   },

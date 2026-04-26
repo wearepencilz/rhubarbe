@@ -1,39 +1,44 @@
 import { db } from '@/lib/db/client';
 import { pages } from '@/lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, or, asc } from 'drizzle-orm';
 
 export async function list() {
   return db.select().from(pages).orderBy(asc(pages.pageName));
 }
 
-/**
- * Get a page by its page name.
- * Returns the content jsonb object, or null if not found.
- */
 export async function getByName(pageName: string) {
-  const [row] = await db
-    .select()
-    .from(pages)
-    .where(eq(pages.pageName, pageName));
+  const [row] = await db.select().from(pages).where(eq(pages.pageName, pageName));
+  return row ?? null;
+}
 
+/** Resolve a page by locale-specific slug (e.g. "recettes" → recipes page) */
+export async function getBySlug(slug: string) {
+  const [row] = await db.select().from(pages)
+    .where(or(eq(pages.slugEn, slug), eq(pages.slugFr, slug), eq(pages.pageName, slug)));
   return row ?? null;
 }
 
 /**
  * Upsert a page — insert or update content by page name.
  */
-export async function upsert(pageName: string, content: Record<string, unknown>) {
+export async function upsert(pageName: string, content: Record<string, unknown>, meta?: { title?: any; slugEn?: string; slugFr?: string }) {
   const [row] = await db
     .insert(pages)
     .values({
       pageName,
       content,
+      title: meta?.title || null,
+      slugEn: meta?.slugEn || pageName,
+      slugFr: meta?.slugFr || pageName,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: pages.pageName,
       set: {
         content,
+        ...(meta?.title ? { title: meta.title } : {}),
+        ...(meta?.slugEn ? { slugEn: meta.slugEn } : {}),
+        ...(meta?.slugFr ? { slugFr: meta.slugFr } : {}),
         updatedAt: new Date(),
       },
     })

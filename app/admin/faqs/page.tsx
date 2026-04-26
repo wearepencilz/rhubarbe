@@ -114,7 +114,7 @@ export default function FaqsPage() {
   if (loading) return <div className="flex justify-center py-16"><div className="h-6 w-6 animate-spin rounded-full border-b-2 border-blue-600" /></div>;
 
   return (
-    <div className="max-w-3xl">
+    <div className="admin-narrow">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">FAQs</h1>

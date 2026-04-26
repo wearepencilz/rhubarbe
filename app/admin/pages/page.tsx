@@ -10,21 +10,6 @@ import { useToast } from '@/app/admin/components/ToastContainer';
 import { Trash01, Edit01 } from '@untitledui/icons';
 
 // Legacy pages with their own dedicated editors — not deletable
-const LEGACY_PAGES: Record<string, { label: string; description: string }> = {
-  home: { label: 'Home', description: 'Homepage — hero, about, editorial sections' },
-  about: { label: 'About', description: '/about — story, team, address' },
-  journal: { label: 'Journal', description: '/journal — listing page, compose with sections' },
-  recipes: { label: 'Recipes', description: '/recipes — recipes page, compose with sections' },
-  contact: { label: 'Contact', description: '/contact — catering & cake inquiry forms' },
-  visit: { label: 'Visit / Come See Us', description: '/visit — hours, address, photo' },
-  flavours: { label: 'Flavours / Archive', description: '/flavours — flavour archive listing' },
-  archive: { label: 'Archive', description: '/archive — full flavour archive' },
-  'thank-you': { label: 'Thank You', description: '/thank-you — post-checkout confirmation' },
-  traiteur: { label: 'Catering (FR)', description: 'Catering tab content — heading, intro (FR & EN)' },
-  gateaux: { label: 'Signature Cakes (FR)', description: 'Signature Cakes tab content (FR & EN)' },
-  translations: { label: 'Translations', description: 'All UI labels and text per locale' },
-};
-
 interface PageRecord {
   id: string;
   pageName: string;
@@ -47,12 +32,12 @@ export default function PagesIndex() {
   }, []);
 
   // Section-based pages (have sections array in content)
-  const sectionPages = pages.filter((p) => p.content?.sections && !LEGACY_PAGES[p.pageName]);
+  const sectionPages = pages.filter((p) => p.content?.sections);
 
   const handleCreate = async () => {
     const slug = newName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     if (!slug) { toast.error('Enter a valid page name'); return; }
-    if (LEGACY_PAGES[slug] || pages.find((p) => p.pageName === slug)) { toast.error('Page already exists'); return; }
+    if (pages.find((p) => p.pageName === slug)) { toast.error('Page already exists'); return; }
     setCreating(true);
     try {
       await fetch(`/api/pages/${slug}`, {
@@ -81,7 +66,7 @@ export default function PagesIndex() {
   };
 
   return (
-    <div>
+    <div className="admin-narrow">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Pages</h1>
@@ -90,45 +75,27 @@ export default function PagesIndex() {
         <Button color="primary" size="sm" onClick={() => setShowCreate(true)}>New page</Button>
       </div>
 
-      {/* Section-based pages (page builder) */}
-      {sectionPages.length > 0 && (
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Composed Pages</p>
-          <div className="space-y-2 max-w-2xl">
-            {sectionPages.map((page) => (
-              <div key={page.pageName} className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-gray-300 transition-all group">
-                <Link href={`/admin/pages/${page.pageName}`} className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{page.pageName}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{page.content?.sections?.length || 0} sections · /p/{page.pageName}</p>
-                </Link>
-                <div className="flex items-center gap-1">
-                  <a href={`/p/${page.pageName}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600"><Edit01 className="w-4 h-4" /></a>
-                  <button onClick={() => setDeleteConfirm({ show: true, name: page.pageName })} className="p-1.5 text-gray-400 hover:text-red-500"><Trash01 className="w-4 h-4" /></button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Legacy pages */}
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Site Pages</p>
-        <div className="space-y-2 max-w-2xl">
-          {Object.entries(LEGACY_PAGES).map(([key, { label, description }]) => (
-            <Link
-              key={key}
-              href={`/admin/pages/${key}`}
-              className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-gray-300 hover:shadow-sm transition-all group"
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-900">{label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-              </div>
-              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+      <div className="space-y-2">
+        {sectionPages.map((page) => (
+          <div key={page.pageName} className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-5 py-4 hover:border-gray-300 transition-all group">
+            <Link href={`/admin/pages/${page.pageName}`} className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900">{(page as any).title?.en || page.pageName}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {(page.content as any)?.sections?.length || 0} sections · 
+                <span className="text-gray-400"> /en/</span>{(page as any).slugEn || page.pageName}
+                <span className="text-gray-400"> · /fr/</span>{(page as any).slugFr || page.pageName}
+              </p>
             </Link>
-          ))}
-        </div>
+            <div className="flex items-center gap-1">
+              <Link href={`/admin/pages/${page.pageName}`} className="p-1.5 text-gray-400 hover:text-blue-600" title="Edit sections"><Edit01 className="w-4 h-4" /></Link>
+              <a href={`/p/${page.pageName}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-gray-400 hover:text-gray-600" title="View on site">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+              </a>
+              <button onClick={() => setDeleteConfirm({ show: true, name: page.pageName })} className="p-1.5 text-gray-400 hover:text-red-500" title="Delete"><Trash01 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+        {sectionPages.length === 0 && !loading && <p className="text-sm text-gray-400 text-center py-8">No pages yet. Create one to get started.</p>}
       </div>
 
       {/* Create modal */}

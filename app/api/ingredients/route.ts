@@ -89,7 +89,6 @@ export async function POST(request: NextRequest) {
       imageAlt: body.imageAlt ?? null,
       description: body.description ?? null,
       story: body.story ?? null,
-      tastingNotes: body.tastingNotes || [],
       supplier: body.supplier ?? null,
       farm: body.farm ?? null,
       isOrganic: body.isOrganic || false,

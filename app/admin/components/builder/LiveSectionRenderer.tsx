@@ -26,9 +26,9 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
   switch (s.type) {
     case 'faq-simple':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-20" style={{ ...solar, backgroundColor: clr.accent1 }}>
-          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-4xl md:text-5xl font-semibold shrink-0" style={{ color: clr.primary }} />
-          <div className="flex-1 max-w-[645px]">
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.accent1 }}>
+          <div className="md:w-1/2 shrink-0"><ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-4xl md:text-5xl font-semibold" style={{ color: clr.primary }} /></div>
+          <div className="md:w-1/2">
             <FaqLivePreview topic={s.topic} onTopicChange={(topic) => set({ topic })} />
           </div>
         </section>
@@ -36,9 +36,9 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
 
     case 'faq-grouped':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-20" style={{ ...solar, backgroundColor: clr.bg }}>
-          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-4xl md:text-5xl font-semibold shrink-0" style={{ color: clr.primary }} />
-          <div className="flex-1 max-w-[645px]">
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <div className="md:w-1/2 shrink-0"><ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-4xl md:text-5xl font-semibold" style={{ color: clr.primary }} /></div>
+          <div className="md:w-1/2">
             <FaqLivePreview topics={s.topics} onTopicsChange={(topics) => set({ topics })} grouped />
           </div>
         </section>
@@ -139,8 +139,8 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
 
     case 'heading-page':
       return (
-        <section className="px-6 pt-20 pb-6 md:px-[60px] md:pt-[200px] md:pb-[60px] flex flex-col items-end" style={{ ...solar, backgroundColor: clr.bg }}>
-          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h1" className="text-4xl md:text-5xl font-semibold text-right" style={{ color: clr.primary }} />
+        <section className="px-6 pt-20 pb-6 md:px-[60px] md:pt-[200px] md:pb-[60px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h1" className="text-4xl md:text-5xl font-semibold" style={{ color: clr.primary }} />
         </section>
       );
 
@@ -157,30 +157,37 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
 
     case 'quote':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px]" style={{ ...solar, backgroundColor: clr.bg }}>
-          <ET value={s.text} onChange={(text) => set({ text })} locale={locale} className="text-2xl md:text-[36px] font-semibold leading-snug text-left" style={{ color: clr.primary }} multiline placeholder="Enter quote..." />
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <div className="hidden md:block md:w-1/2" />
+          <div className="md:w-1/2"><ET value={s.text} onChange={(text) => set({ text })} locale={locale} className="text-2xl md:text-[36px] font-semibold leading-snug" style={{ color: clr.primary }} multiline placeholder="Enter quote..." /></div>
         </section>
       );
 
     case 'text':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] space-y-4 md:space-y-6" style={{ ...solar, backgroundColor: clr.bg }}>
-          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-xl md:text-[26px] font-semibold text-left" style={{ color: clr.primary }} />
-          <ET value={s.body} onChange={(body) => set({ body })} locale={locale} className="text-sm md:text-base font-semibold text-left" style={{ color: clr.primary }} multiline />
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <div className="hidden md:block md:w-1/2" />
+          <div className="md:w-1/2 space-y-4 md:space-y-6">
+            <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-xl md:text-[26px] font-semibold" style={{ color: clr.primary }} />
+            <ET value={s.body} onChange={(body) => set({ body })} locale={locale} className="text-sm md:text-base font-semibold" style={{ color: clr.primary }} multiline />
+          </div>
         </section>
       );
 
     case 'instructions':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] space-y-4 md:space-y-6" style={{ ...solar, backgroundColor: clr.bg }}>
-          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-xl md:text-[26px] font-semibold text-left" style={{ color: clr.primary }} />
-          <div className="space-y-4 md:space-y-6">
-            {s.steps.map((step, i) => (
-              <div key={i} className="flex gap-2">
-                <span className="text-sm md:text-base font-semibold shrink-0" style={{ color: clr.primary }}>{i + 1}.</span>
-                <ET value={step} onChange={(v) => { const steps = [...s.steps]; steps[i] = v; set({ steps }); }} locale={locale} className="text-sm md:text-base font-semibold text-left" style={{ color: clr.primary }} multiline />
-              </div>
-            ))}
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <div className="hidden md:block md:w-1/2" />
+          <div className="md:w-1/2 space-y-4 md:space-y-6">
+            <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-xl md:text-[26px] font-semibold" style={{ color: clr.primary }} />
+            <div className="space-y-4 md:space-y-6">
+              {s.steps.map((step, i) => (
+                <div key={i} className="flex gap-2">
+                  <span className="text-sm md:text-base font-semibold shrink-0" style={{ color: clr.primary }}>{i + 1}.</span>
+                  <ET value={step} onChange={(v) => { const steps = [...s.steps]; steps[i] = v; set({ steps }); }} locale={locale} className="text-sm md:text-base font-semibold" style={{ color: clr.primary }} multiline />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       );
@@ -198,13 +205,16 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
 
     case 'steps':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] space-y-8 md:space-y-20" style={{ ...solar, backgroundColor: clr.bg }}>
-          {s.steps.map((step, i) => (
-            <div key={i} className="space-y-4 md:space-y-[30px]">
-              <ET value={step.label} onChange={(label) => { const steps = [...s.steps]; steps[i] = { ...step, label }; set({ steps }); }} locale={locale} className="text-6xl md:text-[90px] font-semibold leading-none text-left" style={{ color: clr.primary }} />
-              <ET value={step.body} onChange={(body) => { const steps = [...s.steps]; steps[i] = { ...step, body }; set({ steps }); }} locale={locale} className="text-sm md:text-base font-semibold text-left" style={{ color: clr.primary }} multiline />
-            </div>
-          ))}
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <div className="hidden md:block md:w-1/2" />
+          <div className="md:w-1/2 space-y-8 md:space-y-20">
+            {s.steps.map((step, i) => (
+              <div key={i} className="space-y-4 md:space-y-[30px]">
+                <ET value={step.label} onChange={(label) => { const steps = [...s.steps]; steps[i] = { ...step, label }; set({ steps }); }} locale={locale} className="text-6xl md:text-[90px] font-semibold leading-none" style={{ color: clr.primary }} />
+                <ET value={step.body} onChange={(body) => { const steps = [...s.steps]; steps[i] = { ...step, body }; set({ steps }); }} locale={locale} className="text-sm md:text-base font-semibold" style={{ color: clr.primary }} multiline />
+              </div>
+            ))}
+          </div>
         </section>
       );
 
@@ -221,13 +231,13 @@ export default function LiveSectionRenderer({ section, locale, onChange }: P) {
 
     case 'contact-form':
       return (
-        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-20" style={{ ...solar, backgroundColor: clr.bg }}>
-          <ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-4xl md:text-5xl font-semibold shrink-0" style={{ color: clr.primary }} />
-          <div className="flex-1 space-y-12">
+        <section className="px-6 py-6 md:px-[60px] md:py-[90px] flex flex-col md:flex-row gap-6 md:gap-[80px]" style={{ ...solar, backgroundColor: clr.bg }}>
+          <div className="md:w-1/2 shrink-0"><ET value={s.title} onChange={(title) => set({ title })} locale={locale} tag="h2" className="text-4xl md:text-5xl font-semibold" style={{ color: clr.primary }} /></div>
+          <div className="md:w-1/2 space-y-12">
             <ContactFormClient />
             <div className="space-y-[18px]">
               {[{ k: 'phone' as const, l: 'Phone' }, { k: 'email' as const, l: 'e-mail' }, { k: 'socialLinks' as const, l: 'socials' }].map(({ k, l }) => (
-                <div key={k}><div className="h-px bg-black/10" /><div className="flex flex-col md:flex-row gap-2 md:gap-[50px] py-3"><span className="md:w-[224px] text-base font-semibold uppercase tracking-[0.05em]">{l}</span><ET value={s[k]} onChange={(v) => set({ [k]: v })} locale={locale} className="text-base font-semibold uppercase tracking-[0.05em] opacity-50" multiline /></div></div>
+                <div key={k}><div className="h-px bg-black/10" /><div className="flex gap-2 py-3"><span className="w-1/2 text-base font-semibold uppercase tracking-[0.05em]">{l}</span><ET value={s[k]} onChange={(v) => set({ [k]: v })} locale={locale} className="w-1/2 text-base font-semibold uppercase tracking-[0.05em] opacity-50" multiline /></div></div>
               ))}
               <div className="h-px bg-black/10" />
             </div>

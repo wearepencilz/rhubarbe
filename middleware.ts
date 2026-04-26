@@ -3,46 +3,83 @@ import { NextResponse } from 'next/server';
 
 const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 const isLoginRoute = createRouteMatcher(['/admin/login(.*)']);
-const LOCALES = ['fr', 'en'];
+
+// Known French slug → English route mappings for pages with dedicated Next.js routes
+const FR_SLUGS: Record<string, string> = {
+  'accueil': '/',
+  'recettes': '/recipes',
+  'merci': '/thank-you',
+  // journal and contact are the same in both languages
+};
 
 export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname;
 
-  // ── Locale prefix handling ───────────────────────────────
-  // /fr/... or /en/... → set cookie + rewrite to path without prefix
-  const localeMatch = path.match(/^\/(fr|en)(\/.*)?$/);
-  if (localeMatch && !path.startsWith('/api') && !path.startsWith('/admin')) {
-    const locale = localeMatch[1];
-    const rest = localeMatch[2] || '/';
-    const url = req.nextUrl.clone();
-    url.pathname = rest;
-    const response = NextResponse.rewrite(url);
-    response.cookies.set('locale', locale, { path: '/', maxAge: 31536000, sameSite: 'lax' });
-    return response;
+  // Skip static/api/admin
+  if (path.startsWith('/api') || path.startsWith('/admin') || path.startsWith('/_next') || path.includes('.')) {
+    if (isLoginRoute(req)) return;
+    if (isAdminRoute(req)) { await auth.protect(); }
+    return;
   }
 
-  // Redirect bare storefront URLs to locale-prefixed version (skip api, admin, _next, static)
-  if (!path.startsWith('/api') && !path.startsWith('/admin') && !path.startsWith('/_next') && !path.includes('.')) {
-    const cookie = req.cookies.get('locale')?.value;
-    const locale = LOCALES.includes(cookie || '') ? cookie : 'fr';
+  // ── Locale prefix handling: /fr/... or /en/... ───────────
+  const localeMatch = path.match(/^\/(fr|en)(\/.*)?$/);
+  if (localeMatch) {
+    const locale = localeMatch[1];
+    let rest = localeMatch[2] || '/';
+
+    // Set locale cookie
+    const setCookie = (res: NextResponse) => {
+      res.cookies.set('locale', locale, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+      return res;
+    };
+
+    // For French locale, check if the slug is a translated slug
+    if (locale === 'fr') {
+      const slug = rest.replace(/^\//, '').split('/')[0];
+      if (FR_SLUGS[slug] !== undefined) {
+        const url = req.nextUrl.clone();
+        url.pathname = FR_SLUGS[slug] || rest;
+        return setCookie(NextResponse.rewrite(url));
+      }
+    }
+
+    // For any locale, try /p/[slug] for composed pages (e.g. /fr/recettes, /en/recipes)
+    // First strip the locale, then check if it's a known Next.js route
+    const knownRoutes = ['/', '/journal', '/recipes', '/contact', '/thank-you', '/order', '/catering', '/cake'];
+    if (knownRoutes.includes(rest)) {
+      const url = req.nextUrl.clone();
+      url.pathname = rest;
+      return setCookie(NextResponse.rewrite(url));
+    }
+
+    // Otherwise rewrite to /p/[slug] for composed pages
+    const slug = rest.replace(/^\//, '');
+    if (slug) {
+      const url = req.nextUrl.clone();
+      url.pathname = `/p/${slug}`;
+      return setCookie(NextResponse.rewrite(url));
+    }
+
+    // Root with locale
     const url = req.nextUrl.clone();
-    url.pathname = `/${locale}${path}`;
-    return NextResponse.redirect(url, 307);
+    url.pathname = '/';
+    return setCookie(NextResponse.rewrite(url));
   }
 
   // ── Legacy redirects ─────────────────────────────────────
   if (path === '/stories' || path.startsWith('/stories/')) {
-    const newPath = path.replace(/^\/stories/, '/journal');
     const url = req.nextUrl.clone();
-    url.pathname = newPath;
+    url.pathname = path.replace(/^\/stories/, '/journal');
     return NextResponse.redirect(url, 301);
   }
 
-  // ── Admin auth ───────────────────────────────────────────
-  if (isLoginRoute(req)) return;
-  if (isAdminRoute(req)) {
-    await auth.protect();
-  }
+  // ── Bare URLs → redirect to locale-prefixed ──────────────
+  const cookie = req.cookies.get('locale')?.value;
+  const locale = (cookie === 'en' || cookie === 'fr') ? cookie : 'fr';
+  const url = req.nextUrl.clone();
+  url.pathname = `/${locale}${path}`;
+  return NextResponse.redirect(url, 307);
 });
 
 export const config = {

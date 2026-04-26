@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
       onlineOrderable: false,
       pickupOnly: false,
       keyNotes: [],
-      tastingNotes: null,
       allergens: [],
       category: null,
       serves: null,
