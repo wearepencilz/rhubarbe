@@ -92,9 +92,6 @@ async function getConfig(): Promise<ShopifyAdminConfig> {
     authMethod = 'direct_token';
   }
   
-  // Log authentication method (first 10 chars of token for debugging)
-  console.log(`[Shopify Auth] Using ${authMethod}, token prefix: ${accessToken.substring(0, 10)}...`);
-  
   return { shop, accessToken };
 }
 
