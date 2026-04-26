@@ -7,7 +7,7 @@ export default function SiteNav() {
     { href: '/order', label: 'weekly menu' },
     { href: '/catering', label: 'catering' },
     { href: '/cake', label: 'cakes' },
-    { href: '/stories', label: 'stories' },
+    { href: '/journal', label: 'journal' },
   ];
 
   return (

@@ -1,6 +1,10 @@
 import { db } from '@/lib/db/client';
 import { pages } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
+
+export async function list() {
+  return db.select().from(pages).orderBy(asc(pages.pageName));
+}
 
 /**
  * Get a page by its page name.
@@ -36,4 +40,9 @@ export async function upsert(pageName: string, content: Record<string, unknown>)
     .returning();
 
   return row;
+}
+
+export async function remove(pageName: string) {
+  const [deleted] = await db.delete(pages).where(eq(pages.pageName, pageName)).returning();
+  return !!deleted;
 }

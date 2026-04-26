@@ -125,9 +125,9 @@ const en: Translations = {
     ingredients: '[INGREDIENTS]',
     ingredientsLabel: 'Ingredients',
   },
-  stories: {
+  journal: {
     read: 'Read →',
-    moreStories: 'More stories',
+    moreStories: 'More entries',
     nothingYet: 'Nothing here yet.',
     wordBy: (name: string) => `Word by ${name}`,
   },

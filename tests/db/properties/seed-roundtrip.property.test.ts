@@ -159,7 +159,7 @@ function transformStory(s: Record<string, unknown>) {
   };
 }
 
-function transformNews(n: Record<string, unknown>) {
+function transformRecipe(n: Record<string, unknown>) {
   return {
     legacyId: n.id != null ? String(n.id) : null,
     title: (n.title as string) ?? null,
@@ -305,7 +305,7 @@ const arbStory = fc.record({
   status: fc.option(fc.constantFrom('draft', 'published'), { nil: undefined }),
 });
 
-const arbNewsItem = fc.record({
+const arbRecipeItem = fc.record({
   id: fc.option(fc.oneof(arbNonEmptyString, fc.integer({ min: 1 })), { nil: undefined }),
   title: arbOptionalString,
   content: fc.option(fc.anything(), { nil: undefined }),
@@ -523,7 +523,7 @@ describe('Property 1: Seed data round-trip (full suite)', () => {
   });
 
   // 7. Stories
-  describe('Stories', () => {
+  describe('Journal', () => {
     it('should preserve legacy ID and normalize bilingual fields', () => {
       fc.assert(
         fc.property(arbStory, (s) => {
@@ -564,11 +564,11 @@ describe('Property 1: Seed data round-trip (full suite)', () => {
   });
 
   // 8. News
-  describe('News', () => {
+  describe('Recipes', () => {
     it('should preserve legacy ID and content through transformation', () => {
       fc.assert(
-        fc.property(arbNewsItem, (n) => {
-          const row = transformNews(n as unknown as Record<string, unknown>);
+        fc.property(arbRecipeItem, (n) => {
+          const row = transformRecipe(n as unknown as Record<string, unknown>);
 
           // Legacy ID coerced to string
           if (n.id != null) {

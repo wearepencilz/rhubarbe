@@ -11,6 +11,7 @@ import { Providers } from './providers';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/home/SiteFooter';
 import PublicLayout from '@/components/PublicLayout';
+import DesignTokensStyle from '@/components/DesignTokensStyle';
 import UnifiedCartPanelRoot from '@/components/UnifiedCartPanelRoot';
 import CakeCartSlotRegistrar from '@/components/CakeCartSlotRegistrar';
 import WeeklyCartSlotRegistrar from '@/components/WeeklyCartSlotRegistrar';
@@ -56,6 +57,7 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/Solar.woff" as="font" type="font/woff" crossOrigin="anonymous" />
       </head>
       <body>
+        <DesignTokensStyle />
         <Providers>
           <CartDrawerProvider>
           <CartProvider>

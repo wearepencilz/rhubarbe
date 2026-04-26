@@ -123,9 +123,9 @@ const fr = {
     ingredients: '[INGRÉDIENTS]',
     ingredientsLabel: 'Ingrédients',
   },
-  stories: {
+  journal: {
     read: 'Lire →',
-    moreStories: 'Plus de récits',
+    moreStories: 'Plus d\'articles',
     nothingYet: 'Rien pour l\'instant.',
     wordBy: (name: string) => `Texte de ${name}`,
   },
@@ -281,7 +281,7 @@ export type Translations = {
   volumeOrder: { title: string; subtitle: string; quantity: string; minimum: string; leadTimeTitle: string; yourOrder: string; noItems: string; startHint: string; estTotal: string; items: string; taxNote: string; fulfillment: string; pickup: string; delivery: string; date: string; time: string; earliest: string; allergenNote: string; allergenPlaceholder: string; checkout: string; loading: string; minWarning: string; noProducts: string; loadError: string; checkoutError: string; noDateError: string; mobileCheckout: string };
   cakeOrder: { title: string; subtitle: string; quantity: string; minimum: string; leadTimeTitle: string; yourOrder: string; noItems: string; startHint: string; estTotal: string; items: string; taxNote: string; pickup: string; date: string; earliest: string; eventType: string; eventOptions: { birthday: string; wedding: string; corporate: string; other: string }; specialInstructions: string; specialInstructionsPlaceholder: string; checkout: string; mobileCheckout: string; loading: string; checkoutError: string; loadError: string; noProducts: string; numberOfPeople: string; numberOfPeopleShort: string; dateWarning: string; minWarning: string; noDateError: string; selectEvent: string; pricingTitle: string; perPerson: string; selected: string; selectCake: string; removeCake: string; noPricing: string };
   flavours: { title: string; ingredients: string; ingredientsLabel: string };
-  stories: { read: string; moreStories: string; nothingYet: string; wordBy: (name: string) => string };
+  journal: { read: string; moreStories: string; nothingYet: string; wordBy: (name: string) => string };
   availability: { inStock: string; preorder: string; soldOut: string; ships: (date: string) => string; loading: string; unavailableInfo: string; notAvailable: string; available: string; orderBy: string; pickupDate: string; pickupLocation: string; timeSlot: string; quantity: string; decreaseQty: string; increaseQty: string; multiples: (n: number) => string };
   footer: { copyright: (year: number, name: string) => string };
   allergens: { title: string; contains: string; dairy: string; egg: string; 'tree-nuts': string; peanuts: string; soy: string; gluten: string; sesame: string };

@@ -28,12 +28,29 @@ Key fields: `id` (e.g. `SC-BOCD-1007A`), `flavourId`, `date`, `ingredients[]` (w
 
 Decision values: `approved | needs-adjustment | rejected | testing`
 
-### Story
-Editorial content layer.
+### Journal
+Editorial content layer (renamed from Stories). Body content uses the section-based page builder.
 
-Key fields: `title`, `slug`, `content`, `excerpt`, `category`, `relatedFlavours[]`, `relatedIngredients[]`, `featuredImage`, `publishedAt`, `author`
+Key fields: `title` (bilingual), `slug`, `content` (contains `sections: Section[]`, `intro`, `wordBy`, `wordByRole`), `category`, `tags[]`, `coverImage`, `status`, `publishedAt`
 
 Categories: `founders | ethos | collaboration | journal | event | test-kitchen | heritage`
+
+### Recipe
+Culinary content (renamed from News). Body content uses the section-based page builder.
+
+Key fields: `title`, `slug`, `content` (contains `sections: Section[]`), `category`, `coverImage`, `status`, `publishedAt`
+
+### Page
+Composable pages built from sections via the page builder.
+
+Key fields: `pageName` (unique), `content` (contains `sections: Section[]`), `updatedAt`
+
+Predefined pages: `home`, `about`, `journal`, `recipes`. Custom pages created via admin.
+
+### FAQ
+Centrally managed FAQ items grouped by topic. Referenced by FAQ sections in the page builder.
+
+Key fields: `topic`, `question` (bilingual), `answer` (bilingual), `sortOrder`
 
 ### Launch Event
 Marketing campaigns and drops.
@@ -56,10 +73,10 @@ Key fields: `companyName`, `logo`, `featuredProducts[]`, `flavourOfTheWeek`, `so
 | Ingredient | Flavour | many-to-many | An ingredient can appear in many flavours |
 | Flavour | Batch | one-to-many | A flavour has many batch iterations |
 | Flavour | Shopify Product | one-to-many | A flavour may map to multiple products (pint, soft serve kit) |
-| Flavour | Story | many-to-many | Stories can feature multiple flavours |
-| Ingredient | Story | many-to-many | Stories can feature multiple ingredients |
+| Flavour | Journal | many-to-many | Journal entries can feature multiple flavours |
+| Ingredient | Journal | many-to-many | Journal entries can feature multiple ingredients |
 | Launch Event | Flavour | many-to-many | An event can feature multiple flavours |
-| Launch Event | Story | many-to-many | An event can link to editorial stories |
+| Launch Event | Journal | many-to-many | An event can link to journal entries |
 
 ## Lifecycle Rules
 
@@ -91,8 +108,18 @@ PUT/DELETE      /api/flavours/[id]
 GET/POST        /api/batches
 PUT/DELETE      /api/batches/[id]
 
-GET/POST        /api/stories
-PUT/DELETE      /api/stories/[id]
+GET/POST        /api/journal
+GET/PUT/DELETE  /api/journal/[id]
+
+GET/POST        /api/recipes
+GET/PUT/DELETE  /api/recipes/[id]
+
+GET             /api/pages
+GET/PUT/DELETE  /api/pages/[pageName]
+
+GET/POST        /api/faqs
+GET             /api/faqs/topics
+PUT/DELETE      /api/faqs/[id]
 
 GET/POST        /api/launch-events
 PUT/DELETE      /api/launch-events/[id]

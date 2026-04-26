@@ -32,8 +32,8 @@ const groups: DashboardGroup[] = [
   {
     label: 'Content',
     cards: [
-      { title: 'Stories', description: 'Brand stories and editorial features', href: '/admin/stories', icon: '📖' },
-      { title: 'News', description: 'Editorial content and updates', href: '/admin/news', icon: '📰' },
+      { title: 'Journal', description: 'Editorial journal entries and features', href: '/admin/journal', icon: '📖' },
+      { title: 'Recipes', description: 'Recipes and culinary content', href: '/admin/recipes', icon: '🍳' },
       { title: 'Pages', description: 'Static page content management', href: '/admin/pages', icon: '📄' },
       { title: 'Requests', description: 'Catering and signature cake enquiries', href: '/admin/requests', icon: '📬' },
     ],

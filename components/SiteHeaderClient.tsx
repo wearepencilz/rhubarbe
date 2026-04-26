@@ -85,7 +85,7 @@ export default function SiteHeaderClient({ logo, companyName }: SiteHeaderClient
             <span>|</span>
             <span>9h-12h</span>
             <span>|</span>
-            <LanguageSwitcher color="#1A3821" />
+            <LanguageSwitcher />
             <span>|</span>
             <button
               onClick={() => openCart()}

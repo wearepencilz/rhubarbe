@@ -1,34 +1,37 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useLocale } from '@/contexts/LocaleContext';
 
-export default function LanguageSwitcher({ color }: { color?: string }) {
-  const { locale, setLocale } = useLocale();
+export default function LanguageSwitcher() {
+  const { locale } = useLocale();
+  const pathname = usePathname();
+
+  // Strip existing locale prefix to get the base path
+  const basePath = pathname.replace(/^\/(fr|en)/, '') || '/';
 
   return (
     <div
       className="flex items-center gap-1 text-[16px] lowercase leading-none"
       style={{ fontFamily: 'var(--font-solar-display)', color: '#1A3821' }}
     >
-      <button
-        onClick={() => setLocale('fr')}
+      <a
+        href={`/fr${basePath}`}
         className="transition-opacity"
         style={{ opacity: locale === 'fr' ? 1 : 0.4 }}
         aria-label="Français"
-        aria-pressed={locale === 'fr'}
       >
         fr
-      </button>
+      </a>
       <span style={{ opacity: 0.4 }}>/</span>
-      <button
-        onClick={() => setLocale('en')}
+      <a
+        href={`/en${basePath}`}
         className="transition-opacity"
         style={{ opacity: locale === 'en' ? 1 : 0.4 }}
         aria-label="English"
-        aria-pressed={locale === 'en'}
       >
         en
-      </button>
+      </a>
     </div>
   );
 }

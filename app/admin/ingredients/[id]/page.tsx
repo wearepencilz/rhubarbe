@@ -169,7 +169,7 @@ export default function EditIngredientPage({ params }: { params: { id: string } 
       const [ingRes, flavoursRes, storiesRes] = await Promise.all([
         fetch(`/api/ingredients/${params.id}`),
         fetch('/api/flavours'),
-        fetch('/api/stories'),
+        fetch('/api/journal'),
       ]);
 
       if (ingRes.ok) {
@@ -423,8 +423,8 @@ export default function EditIngredientPage({ params }: { params: { id: string } 
 
           {linkedStories.length > 0 && (
             <RelatedItems
-              title="Linked stories"
-              items={linkedStories.map((s) => ({ id: s.id, name: s.title, href: `/admin/stories/${s.id}` }))}
+              title="Linked journal entries"
+              items={linkedStories.map((s) => ({ id: s.id, name: s.title, href: `/admin/journal/${s.id}` }))}
               emptyMessage=""
               badgeColor="purple"
             />

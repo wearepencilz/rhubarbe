@@ -33,3 +33,19 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { pageName: string } }
+) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const deleted = await pageQueries.remove(params.pageName);
+    if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

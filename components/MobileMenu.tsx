@@ -14,7 +14,7 @@ const menuItems = [
   { href: '/order', label: 'menu' },
   { href: '/catering', label: 'catering' },
   { href: '/cake', label: 'cakes' },
-  { href: '/stories', label: 'stories' },
+  { href: '/journal', label: 'journal' },
 ];
 
 export default function MobileMenu({ open, onClose }: MobileMenuProps) {

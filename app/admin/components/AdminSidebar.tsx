@@ -35,8 +35,9 @@ const sections: NavSectionType[] = [
     {
         label: 'Content',
         items: [
-            { label: 'Stories', href: '/admin/stories', icon: '📖' },
-            { label: 'News', href: '/admin/news', icon: '📰' },
+            { label: 'Journal', href: '/admin/journal', icon: '📖' },
+            { label: 'Recipes', href: '/admin/recipes', icon: '🍳' },
+            { label: 'FAQs', href: '/admin/faqs', icon: '❓' },
             { label: 'Pages', href: '/admin/pages', icon: '📄' },
             { label: 'Requests', href: '/admin/requests', icon: '📬' },
         ],
@@ -44,6 +45,7 @@ const sections: NavSectionType[] = [
     {
         label: 'System',
         items: [
+            { label: 'Design', href: '/admin/design', icon: '🎨' },
             { label: 'Users', href: '/admin/users', icon: '👤' },
             { label: 'Taxonomies', href: '/admin/taxonomies', icon: '🏷️' },
             { label: 'Settings', href: '/admin/settings', icon: '⚙️' },

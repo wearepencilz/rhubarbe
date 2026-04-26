@@ -12,7 +12,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { db, client } from '../client';
-import { stories, news, requests } from '../schema';
+import { journal, recipes, requests } from '../schema';
 
 // --- JSON shape interfaces ---
 
@@ -102,7 +102,7 @@ async function seedStoriesNewsRequests() {
       ...(s.updatedAt ? { updatedAt: new Date(s.updatedAt) } : {}),
     }));
 
-    await db.insert(stories).values(storyRows).onConflictDoNothing();
+    await db.insert(journal).values(storyRows).onConflictDoNothing();
     console.log(`Seeded ${storyRows.length} story rows (duplicates skipped).`);
   } else {
     console.log('No story rows to seed.');
@@ -122,7 +122,7 @@ async function seedStoriesNewsRequests() {
       ...(n.updatedAt ? { updatedAt: new Date(n.updatedAt) } : {}),
     }));
 
-    await db.insert(news).values(newsRows).onConflictDoNothing();
+    await db.insert(recipes).values(newsRows).onConflictDoNothing();
     console.log(`Seeded ${newsRows.length} news rows (duplicates skipped).`);
   } else {
     console.log('No news rows to seed.');

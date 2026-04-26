@@ -18,8 +18,8 @@ import { resolve } from 'path';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
-import * as storiesQueries from '@/lib/db/queries/stories';
-import * as newsQueries from '@/lib/db/queries/news';
+import * as journalQueries from '@/lib/db/queries/journal';
+import * as recipesQueries from '@/lib/db/queries/recipes';
 import * as requestsQueries from '@/lib/db/queries/requests';
 
 // --- JSON shape interfaces ---
@@ -41,7 +41,7 @@ interface StoryJson {
   updatedAt?: string;
 }
 
-interface NewsJson {
+interface RecipeJson {
   id?: string | number;
   title?: string;
   content?: unknown;
@@ -68,11 +68,11 @@ interface RequestJson {
 }
 
 // --- Load source JSON once ---
-const storiesPath = resolve(process.cwd(), 'public/data/backups/stories.json');
-const storiesJson: StoryJson[] = JSON.parse(readFileSync(storiesPath, 'utf-8'));
+const journalPath = resolve(process.cwd(), 'public/data/backups/stories.json');
+const journalJson: StoryJson[] = JSON.parse(readFileSync(journalPath, 'utf-8'));
 
-const newsPath = resolve(process.cwd(), 'public/data/backups/news.json');
-const newsJson: NewsJson[] = JSON.parse(readFileSync(newsPath, 'utf-8'));
+const recipesPath = resolve(process.cwd(), 'public/data/backups/news.json');
+const recipesJson: RecipeJson[] = JSON.parse(readFileSync(recipesPath, 'utf-8'));
 
 const requestsPath = resolve(process.cwd(), 'public/data/backups/requests.json');
 const requestsJson: RequestJson[] = JSON.parse(readFileSync(requestsPath, 'utf-8'));
@@ -112,13 +112,13 @@ describe('Property 3: API response shape invariant', () => {
     client = postgres(TEST_DATABASE_URL, { max: 1 });
     db = drizzle(client);
 
-    // Clean and seed stories
-    await db.execute(sql`DELETE FROM stories`);
-    for (const s of storiesJson) {
+    // Clean and seed journal
+    await db.execute(sql`DELETE FROM journal`);
+    for (const s of journalJson) {
       const biTitle = toBilingual(s.title);
       const biSubtitle = toBilingual(s.subtitle);
       await db.execute(
-        sql`INSERT INTO stories (id, legacy_id, slug, title, subtitle, content, category, tags, cover_image, status, published_at, created_at, updated_at)
+        sql`INSERT INTO journal (id, legacy_id, slug, title, subtitle, content, category, tags, cover_image, status, published_at, created_at, updated_at)
             VALUES (
               gen_random_uuid(),
               ${s.id != null ? String(s.id) : null},
@@ -137,11 +137,11 @@ describe('Property 3: API response shape invariant', () => {
       );
     }
 
-    // Clean and seed news
-    await db.execute(sql`DELETE FROM news`);
-    for (const n of newsJson) {
+    // Clean and seed recipes
+    await db.execute(sql`DELETE FROM recipes`);
+    for (const n of recipesJson) {
       await db.execute(
-        sql`INSERT INTO news (id, legacy_id, title, content, created_at, updated_at)
+        sql`INSERT INTO recipes (id, legacy_id, title, content, created_at, updated_at)
             VALUES (
               gen_random_uuid(),
               ${n.id != null ? String(n.id) : null},
@@ -180,8 +180,8 @@ describe('Property 3: API response shape invariant', () => {
   });
 
   afterAll(async () => {
-    await db.execute(sql`DELETE FROM stories`);
-    await db.execute(sql`DELETE FROM news`);
+    await db.execute(sql`DELETE FROM journal`);
+    await db.execute(sql`DELETE FROM recipes`);
     await db.execute(sql`DELETE FROM requests`);
     await client.end();
   });
@@ -253,18 +253,18 @@ describe('Property 3: API response shape invariant', () => {
 
   // --- Stories property test (gracefully handle empty array) ---
   it('should return all expected fields with correct types for every story record', async () => {
-    if (storiesJson.length === 0) {
+    if (journalJson.length === 0) {
       // stories.json is empty — verify the DB also returns empty
-      const allStories = await storiesQueries.list();
+      const allStories = await journalQueries.list();
       expect(allStories).toEqual([]);
       return;
     }
 
     await fc.assert(
       fc.asyncProperty(
-        fc.constantFrom(...storiesJson),
+        fc.constantFrom(...journalJson),
         async (jsonItem) => {
-          const allStories = await storiesQueries.list();
+          const allStories = await journalQueries.list();
           const row = allStories.find(
             (s) => s.legacyId === (jsonItem.id != null ? String(jsonItem.id) : null)
           );
@@ -323,18 +323,18 @@ describe('Property 3: API response shape invariant', () => {
 
   // --- News property test (gracefully handle empty array) ---
   it('should return all expected fields with correct types for every news record', async () => {
-    if (newsJson.length === 0) {
+    if (recipesJson.length === 0) {
       // news.json is empty — verify the DB also returns empty
-      const allNews = await newsQueries.list();
+      const allNews = await recipesQueries.list();
       expect(allNews).toEqual([]);
       return;
     }
 
     await fc.assert(
       fc.asyncProperty(
-        fc.constantFrom(...newsJson),
+        fc.constantFrom(...recipesJson),
         async (jsonItem) => {
-          const allNews = await newsQueries.list();
+          const allNews = await recipesQueries.list();
           const row = allNews.find(
             (n) => n.legacyId === (jsonItem.id != null ? String(jsonItem.id) : null)
           );

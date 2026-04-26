@@ -18,7 +18,7 @@ const SECTIONS: { key: string; label: string; nested?: { key: string; label: str
   { key: 'order', label: 'Order' },
   { key: 'volumeOrder', label: 'Catering Order' },
   { key: 'flavours', label: 'Flavours' },
-  { key: 'stories', label: 'Stories' },
+  { key: 'journal', label: 'Journal' },
   { key: 'availability', label: 'Availability' },
   { key: 'allergens', label: 'Allergens' },
   { key: 'dietary', label: 'Dietary' },

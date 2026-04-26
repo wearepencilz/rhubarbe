@@ -502,8 +502,8 @@ export const productIngredients = pgTable('product_ingredients', {
   ingredientIdIdx: index('product_ingredients_ingredient_id_idx').on(table.ingredientId),
 }));
 
-// Stories — bilingual content with story blocks
-export const stories = pgTable('stories', {
+// Journal — bilingual editorial content (renamed from stories)
+export const journal = pgTable('journal', {
   id: uuid('id').primaryKey().defaultRandom(),
   legacyId: text('legacy_id'),
   slug: text('slug').unique(),
@@ -518,21 +518,42 @@ export const stories = pgTable('stories', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
-  slugIdx: index('stories_slug_idx').on(table.slug),
-  statusIdx: index('stories_status_idx').on(table.status),
-  categoryIdx: index('stories_category_idx').on(table.category),
+  slugIdx: index('journal_slug_idx').on(table.slug),
+  statusIdx: index('journal_status_idx').on(table.status),
+  categoryIdx: index('journal_category_idx').on(table.category),
 }));
 
-// News — simple content entries
-export const news = pgTable('news', {
+// Recipes — content entries (renamed from news, extended)
+export const recipes = pgTable('recipes', {
   id: uuid('id').primaryKey().defaultRandom(),
   legacyId: text('legacy_id'),
+  slug: text('slug').unique(),
   title: text('title'),
   content: customJsonb<unknown>('content'),
+  category: text('category'),
+  coverImage: text('cover_image'),
+  status: text('status').default('published'),
+  publishedAt: timestamp('published_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => ({
-  legacyIdIdx: index('news_legacy_id_idx').on(table.legacyId),
+  legacyIdIdx: index('recipes_legacy_id_idx').on(table.legacyId),
+  slugIdx: index('recipes_slug_idx').on(table.slug),
+  statusIdx: index('recipes_status_idx').on(table.status),
+  categoryIdx: index('recipes_category_idx').on(table.category),
+}));
+
+// FAQs — centrally managed, grouped by topic
+export const faqs = pgTable('faqs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  topic: text('topic').notNull(),
+  question: customJsonb<{ en: string; fr: string }>('question').notNull(),
+  answer: customJsonb<{ en: string; fr: string }>('answer').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+  topicIdx: index('faqs_topic_idx').on(table.topic),
 }));
 
 // Requests — traiteur and gateaux order requests
