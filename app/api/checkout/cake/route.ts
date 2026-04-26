@@ -76,6 +76,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Pickup date is required' }, { status: 400 });
     }
 
+    // Server-side date validations (spec §7)
+    const pickupDateObj = new Date(pickupDate.slice(0, 10) + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    // §7.5 — Sunday blocking
+    if (pickupDateObj.getDay() === 0) {
+      return NextResponse.json({ error: 'Sunday pickup is not available.' }, { status: 400 });
+    }
+
+    // Resolve lead time for validation
+    const validationTiers = await getCakeLeadTimeTiers(items[0].productId);
+    const validationApplicable = validationTiers
+      .filter((t) => t.minPeople <= numberOfPeople)
+      .sort((a, b) => b.minPeople - a.minPeople);
+    const validationLeadDays = validationApplicable[0]?.leadTimeDays ?? 7;
+
+    // §7.1 — Lead time minimum
+    const earliest = new Date(today); earliest.setDate(earliest.getDate() + validationLeadDays);
+    if (pickupDateObj < earliest) {
+      return NextResponse.json({ error: `This product requires at least ${validationLeadDays} days lead time.` }, { status: 400 });
+    }
+
+    // §7.2 — Max advance days
+    const productRows = await import('@/lib/db/queries/cake-products').then((m) => m.getCakeProductById(items[0].productId));
+    const maxAdvanceDays = productRows?.maxAdvanceDays;
+    if (maxAdvanceDays) {
+      const latest = new Date(today); latest.setDate(latest.getDate() + maxAdvanceDays);
+      if (pickupDateObj > latest) {
+        return NextResponse.json({ error: `Orders cannot be placed more than ${maxAdvanceDays} days in advance.` }, { status: 400 });
+      }
+    }
+
     // Server-side capacity check
     const capRaw = await settingsQueries.getByKey('cakeCapacity');
     const capVal = (capRaw?.value ?? {}) as Record<string, unknown>;

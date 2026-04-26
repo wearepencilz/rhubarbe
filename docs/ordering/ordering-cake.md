@@ -67,14 +67,14 @@ Stored on the product as `cakeFlavourConfig` JSON array:
 - `allergens[]` values: `dairy | egg | gluten | tree-nuts | peanuts | sesame | soy | fish`
 - **Single-select**: XXL, wedding, sheet cake — dropdown
 - **Multi-select**: Croquembouche (max N), tasting (max 3) — chip buttons
-- `active: false` → hidden regardless of date
+- `active: false` → hidden regardless of date (filtered out in `filterAvailableFlavours()` in `cake-rules.ts`)
 - **endDate filtering**: A flavour is hidden if `today + leadTimeDays > flavour.endDate` — stricter than checking if the date has passed. See spec §7.3 for full logic.
 
 ---
 
 ## Allergen Display
 
-Allergens exist at two levels: product-level (base, always present) and flavour-level (per selection). The UI shows **one consolidated block** — the union of product-level and selected flavour allergens. Where a flavour overrides a product allergen (e.g. gluten-free flavour), the flavour value takes precedence. Updates live on flavour change.
+Allergens exist at two levels: product-level (base, always present) and flavour-level (per selection). The UI computes a **consolidated set** — the union of product-level allergens and all selected flavour allergens (via `Set`). This updates live on flavour change.
 
 For multi-select (tasting, croquembouche): union of all selected flavour allergens merged with the product base.
 
@@ -95,7 +95,7 @@ Resolution: largest `minPeople ≤ resolved size value` → that tier's `leadTim
 
 - For grid products, the **resolved size** (not raw guest input) is used for tier lookup
 - `deliveryOnly = true` disables the pickup option for that configuration
-- Earliest date = `today + leadTimeDays`
+- Earliest date = `today + leadTimeDays` (computed from the resolved tier, not a hardcoded value)
 
 ---
 
@@ -160,16 +160,19 @@ Looked up by resolved size. Displayed as a visual tier diagram in the cart sideb
 ## Checkout (`POST /api/checkout/cake`)
 
 1. **Validation**: items required, pickupDate required
-2. **Capacity check**: server-side re-check against `maxCakes` setting — returns 409 if exceeded
-3. **Variant resolution**:
+2. **Sunday blocking**: returns 400 if pickup date falls on a Sunday
+3. **Lead time check**: resolves lead time from `cake_lead_time_tiers` based on resolved size; returns 400 if pickup date is too soon
+4. **Max advance days**: reads `maxAdvanceDays` from the product; returns 400 if pickup date exceeds the limit
+5. **Capacity check**: server-side re-check against `maxCakes` setting — returns 409 if exceeded
+6. **Variant resolution**:
    - Grid items: resolve via pricing grid (exact flavour + size match)
    - Legacy items: resolve via headcount tier
    - Unresolvable → 422 error
-4. **Tax resolution**: same category/quantity threshold logic as regular checkout
-5. **Cart creation**: Shopify Storefront cart with attributes:
+7. **Tax resolution**: same category/quantity threshold logic as regular checkout
+8. **Cart creation**: Shopify Storefront cart with attributes:
    - `Order Type: cake`, `Pickup Date`, `Fulfillment Type`, `Number of People`, `Event Type`, `Lead Time Days`, `Selected Flavours`, `Calculated Price`
    - Delivery address attributes if delivery
-6. Returns `{ checkoutUrl }` → redirect to Shopify
+9. Returns `{ checkoutUrl }` → redirect to Shopify
 
 ---
 

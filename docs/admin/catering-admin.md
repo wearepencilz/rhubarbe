@@ -1,6 +1,8 @@
-# Catering Admin — Orders, Prep Sheet, Pickup List & Settings
+# Catering Admin — Products, Orders, Prep Sheet, Pickup List, Email Template & Settings
 
-All four sections live under `/admin/volume-products/` and share the same data source: the `orders` table filtered by `orderType = 'volume'`.
+Six sections live under `/admin/volume-products/` with a shared tab nav.
+
+**Tab navigation:** Products · Orders · Prep Sheet · Pickup List · Settings
 
 ---
 
@@ -10,7 +12,9 @@ All four sections live under `/admin/volume-products/` and share the same data s
 
 **Data source:** `GET /api/orders?orderType=volume` — returns all volume orders regardless of status.
 
-**Layout:** `TableCard` with search input. No timeline (catering has no production window concept).
+**Layout:**
+- Top: `CateringProductionTimeline` — a 35-day heatmap centred on the current week, showing order density per day. Supports week navigation (prev/next) and clicking a day to filter the table below.
+- Below: `TableCard` with search input
 
 **Table columns:** Order # · Customer · Order Date · Fulfillment Date · Qty · Total · Status badge
 
@@ -148,11 +152,35 @@ Each type has independently configurable:
 | Ordering rule logic | `lib/catering/ordering-rules.ts` |
 | Lead time logic | `lib/catering/lead-time.ts` |
 
+---
+
+## Email Template (`/admin/volume-products/email-template`)
+
+**Purpose:** Edit the bilingual (EN/FR) confirmation email sent to customers after a catering order is paid.
+
+**Template key:** `volume-order-confirmation`
+
+**Available variables:** `{{orderNumber}}`, `{{customerName}}`, `{{fulfillmentDate}}`, `{{fulfillmentTime}}`, `{{variantBreakdown}}`, `{{allergenNote}}`, `{{totalQuantity}}`
+
+Uses `TranslationFields` for bilingual subject/body editing with `AdminLocaleSwitcher`.
+
+---
+
+## Dietary Filter Logic
+
+The storefront dietary filter uses **AND logic**: a product must match **all** selected dietary tags to appear. For example, selecting both "vegetarian" and "gluten-free" shows only products tagged with both.
+
+---
+
+## Server-Side Lead Time Validation
+
+`POST /api/checkout/volume` validates lead time server-side: for each cart item, it resolves the applicable lead time tier based on quantity and returns 400 if the fulfillment date is too soon.
+
 ## Differences from Cake Admin
 
 | Concern | Cake | Catering |
 |---|---|---|
-| Orders page | Includes production timeline Gantt | Table only, no timeline |
+| Orders page | Includes production timeline Gantt | Includes 35-day production heatmap |
 | Prep sheet notes | Event type + # people (parsed from `specialInstructions`) | Allergen notes + special instructions (separate DB fields) |
 | Pickup list details | Event type + people count column | Allergen note under customer name |
 | Settings: capacity | `maxCakes` production limit with overlap window | No capacity concept |

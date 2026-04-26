@@ -70,7 +70,7 @@ function FlavourDropdown({ product, locale, selectedFlavourHandles, onToggleFlav
   const isFr = locale === 'fr';
   const isMulti = isCroquembouche(product) || isTasting(product);
   const maxFlavours = product.cakeMaxFlavours ?? 3;
-  const available = product.cakeFlavourConfig.filter((f) => !f.endDate || f.endDate >= earliestDateStr);
+  const available = product.cakeFlavourConfig.filter((f) => f.active !== false && (!f.endDate || f.endDate >= earliestDateStr));
 
   if (isMulti) {
     const atLimit = selectedFlavourHandles.length >= maxFlavours;
@@ -141,7 +141,14 @@ function CakeProductCard({ product, locale, brandColor, earliestDateStr }: {
   const hasFlavours = (isGridBased(product) || isTasting(product)) && product.cakeFlavourConfig.length > 0;
   const flavourReady = !hasFlavours || localFlavours.length > 0;
 
-  const allergens = product.allergens ?? [];
+  const allergens = useMemo(() => {
+    const set = new Set(product.allergens ?? []);
+    for (const h of localFlavours) {
+      const f = product.cakeFlavourConfig.find((c) => c.handle === h);
+      if (f?.allergens) f.allergens.forEach((a) => set.add(a));
+    }
+    return [...set];
+  }, [product.allergens, product.cakeFlavourConfig, localFlavours]);
   const tastingPrice = isTasting(product) && product.pricingGrid.length > 0 ? product.pricingGrid[0].priceInCents : null;
   const description = tr(product.cakeDescription, locale);
   const flavourNotes = tr(product.cakeFlavourNotes, locale);
@@ -271,9 +278,12 @@ export default function CakeOrderPageClient({ cmsContent }: { cmsContent?: any }
   }, [ctxProducts]);
 
   const earliestDateStr = useMemo(() => {
-    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+7);
-    return toDateString(d);
-  }, []);
+    const minLead = products.reduce((min, p) => {
+      const shortest = p.leadTimeTiers?.length ? Math.min(...p.leadTimeTiers.map((t) => t.leadTimeDays)) : 7;
+      return Math.min(min, shortest);
+    }, 7);
+    return toDateString(getEarliestDate(minLead));
+  }, [products]);
 
   const displayProducts = useMemo(() => products.filter((p) => !isAddonProduct(p, products)), [products]);
 

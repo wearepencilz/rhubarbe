@@ -8,6 +8,7 @@ import { fetchProductCategories } from '@/lib/shopify/queries/product-categories
 import { resolveCategoryVariants } from '@/lib/tax/resolve-category-variants';
 import type { CategoryCartItem } from '@/lib/tax/resolve-category-variants';
 import { getVariantTaxUnitCount } from '@/lib/tax/resolve-variant';
+import { getLeadTimeTiers } from '@/lib/db/queries/volume-products';
 
 function parseCollections(raw: string | null | undefined): string[] {
   if (!raw) return [];
@@ -62,6 +63,23 @@ export async function POST(request: NextRequest) {
     }
     if (!fulfillmentDate) {
       return NextResponse.json({ error: 'Fulfillment date is required' }, { status: 400 });
+    }
+
+    // Server-side lead time validation
+    const fulfillmentDateObj = new Date(fulfillmentDate.slice(0, 10) + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    // Check lead time for each product based on its quantity
+    for (const item of items) {
+      const tiers = await getLeadTimeTiers(item.productId);
+      if (tiers.length) {
+        const applicable = tiers.filter((t) => t.minQuantity <= item.quantity).sort((a, b) => b.minQuantity - a.minQuantity);
+        const leadDays = applicable[0]?.leadTimeDays ?? tiers[0].leadTimeDays;
+        const earliest = new Date(today); earliest.setDate(earliest.getDate() + leadDays);
+        if (fulfillmentDateObj < earliest) {
+          return NextResponse.json({ error: `${item.productName} requires at least ${leadDays} days lead time for qty ${item.quantity}.` }, { status: 400 });
+        }
+      }
     }
 
     // Resolve Shopify variant IDs

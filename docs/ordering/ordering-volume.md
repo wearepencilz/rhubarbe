@@ -108,7 +108,7 @@ Default lead time (no tiers): 28 days (`lib/catering/lead-time.ts`).
 
 1. `GET /api/storefront/volume-products` returns all `volumeEnabled` products where `cateringEndDate` is null or in the future
 2. Products grouped by `cateringType` on the page
-3. Filterable by `dietaryTags` and `temperatureTags`
+3. Filterable by `dietaryTags` (AND logic — product must match **all** selected tags) and `temperatureTags` (OR logic — product must match **any** selected tag; multi-select allowed)
 4. Customer selects variant quantities per product
 5. Cart persisted to localStorage
 6. Quantity validation runs client-side using the product's ordering rules
@@ -119,13 +119,15 @@ Default lead time (no tiers): 28 days (`lib/catering/lead-time.ts`).
 ## Checkout (`POST /api/checkout/volume`)
 
 1. **Validation**: items required, fulfillmentDate required
-2. **Variant resolution**: each item must have a `shopifyVariantId` (resolved from Shopify if missing)
-3. **Tax resolution**: same category/quantity threshold logic as regular checkout
-4. **Cart creation**: Shopify Storefront cart with attributes:
+2. **Server-side lead time validation**: for each cart item, resolves lead time tier based on quantity; returns 400 if fulfillment date is too soon
+3. **Variant resolution**: each item must have a `shopifyVariantId` (resolved from Shopify if missing)
+4. **Tax resolution**: same category/quantity threshold logic as regular checkout
+5. **Cart creation**: Shopify Storefront cart with attributes:
    - `Order Type: volume`, `Fulfillment Date`, `Fulfillment Type`
+   - `Catering Types` — list of catering types present in the cart (sent as `cateringTypes` in the POST body)
    - `Allergen Note` (if provided)
    - Delivery address attributes if delivery
-5. Returns `{ checkoutUrl }` → redirect to Shopify
+6. Returns `{ checkoutUrl }` → redirect to Shopify
 
 ---
 

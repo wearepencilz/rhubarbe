@@ -573,7 +573,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const filteredDinatoireProducts = useMemo(() => {
     let result = dinatoireProducts;
     if (dietaryFilter.length > 0) {
-      result = result.filter((p) => dietaryFilter.some((tag) => p.dietaryTags?.includes(tag)));
+      result = result.filter((p) => dietaryFilter.every((tag) => p.dietaryTags?.includes(tag)));
     }
     if (temperatureFilter.length) {
       result = result.filter((p) => temperatureFilter.some((tag) => p.temperatureTags?.includes(tag)));
@@ -620,7 +620,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
   const activeProducts = useMemo(() => {
     if (!activeType) return [];
     let all = activeType === 'dinatoire' ? dinatoireProducts : (groupedProducts[activeType] ?? []);
-    if (dietaryFilter.length) all = all.filter((p) => dietaryFilter.some((tag) => p.dietaryTags?.includes(tag)));
+    if (dietaryFilter.length) all = all.filter((p) => dietaryFilter.every((tag) => p.dietaryTags?.includes(tag)));
     if (temperatureFilter.length) all = all.filter((p) => temperatureFilter.some((tag) => p.temperatureTags?.includes(tag)));
     return all;
   }, [activeType, groupedProducts, dinatoireProducts, dietaryFilter, temperatureFilter]);
@@ -681,7 +681,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
       const isoDate = fulfillmentTime ? `${fulfillmentDate}T${fulfillmentTime}:00` : `${fulfillmentDate}T00:00:00`;
       const res = await fetch('/api/checkout/volume', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: checkoutItems, fulfillmentDate: isoDate, fulfillmentType, allergenNote: allergenNote.trim() || null, locale }),
+        body: JSON.stringify({ items: checkoutItems, fulfillmentDate: isoDate, fulfillmentType, allergenNote: allergenNote.trim() || null, locale, cateringTypes: [...new Set(cartGroups.map((g) => g.cateringType))] }),
       });
       const data = await res.json();
       if (!res.ok) { setCheckoutError(data.error || V.checkoutError); return; }
@@ -717,7 +717,7 @@ export default function VolumeOrderPageClient({ cmsContent }: { cmsContent?: any
                 temperatureFilters={activeType === 'dinatoire' ? visibleTemperatureTags.map((tag) => {
                   // Count products matching this temp tag AND the current dietary filter
                   const pool = dietaryFilter.length
-                    ? dinatoireProducts.filter((p) => dietaryFilter.some((d) => p.dietaryTags?.includes(d)))
+                    ? dinatoireProducts.filter((p) => dietaryFilter.every((d) => p.dietaryTags?.includes(d)))
                     : dinatoireProducts;
                   return {
                     value: tag.value,

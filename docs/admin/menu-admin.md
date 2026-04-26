@@ -131,8 +131,9 @@ Notes displayed as plain gray text. No allergen field — menu orders don't have
 | Concern | Source |
 |---|---|
 | Menu list | `GET /api/launches?status=<filter>` |
-| Create menu | `GET /admin/menus/create` |
+| Create menu | `GET /admin/menus/create` (reuses the edit page component with `isNew` flag — `params.id === 'create'`) |
 | Edit menu | `GET /admin/menus/[id]` |
+| Save menu | `POST /api/launches` (create) or `PATCH /api/launches/[id]` (update) |
 | Duplicate menu | `POST /api/launches/[id]/duplicate` |
 | Archive menu | `DELETE /api/launches/[id]` |
 | Order list | `GET /api/orders?orderType=launch` |
@@ -153,4 +154,4 @@ Notes displayed as plain gray text. No allergen field — menu orders don't have
 | Pickup list grouping | Menu → pickup slot | Date only | Date only |
 | Pickup list QR scan | Yes | No | No |
 | Settings page | No | Yes (location + maxCakes) | Yes (location + per-type rules) |
-| Production timeline | No | Yes (Gantt on orders page) | No |
+| Production timeline | No | Yes (Gantt on orders page) | Yes (35-day heatmap on orders page) |

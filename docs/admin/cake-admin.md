@@ -1,6 +1,29 @@
-# Cake Admin — Orders, Prep Sheet, Pickup List & Settings
+# Cake Admin — Products, Orders, Prep Sheet, Pickup List, Email Template & Settings
 
-All four sections live under `/admin/cake-products/` and share the same data source: the `orders` table filtered by `orderType = 'cake'`.
+Six sections live under `/admin/cake-products/` with a shared tab nav.
+
+**Tab navigation:** Products · Orders · Prep Sheet · Pickup List · Settings
+
+The root page (`/admin/cake-products`) is the **Products** list. Orders and operational views are on sub-tabs.
+
+---
+
+## Products (`/admin/cake-products`)
+
+**Purpose:** Manage all cake products — grouped by type (Cakes, Tasting, Add-Ons).
+
+**Data source:** `GET /api/cake-products` — returns all cake-enabled products.
+
+**Layout:** Grouped `TableCard` sections by product type, with "Import from Shopify" and "Create Cake Product" buttons.
+
+**Table columns per group:** Product (image + name) · Min People · Tiers · Status badge · Edit action
+
+**Groups:** Cakes (cake-xxl, sheet-cake, wedding-cake-tiered, croquembouche) · Tasting (wedding-cake-tasting) · Add-Ons (cake-addon) · Uncategorized (null type)
+
+**Interactions:**
+- Clicking a row navigates to `/admin/cake-products/[id]` (edit page)
+- "Import from Shopify" opens a multi-select Shopify product picker
+- "Create Cake Product" navigates to `/admin/cake-products/create`
 
 ---
 
@@ -127,9 +150,39 @@ Lead time is set per product in the product editor — not here.
 
 | Concern | Source |
 |---|---|
+| Product list | `GET /api/cake-products` |
 | Order list | `GET /api/orders?orderType=cake` |
 | Upcoming orders | `GET /api/orders/upcoming?orderType=cake` |
 | Fulfill an order | `PATCH /api/orders/[id]` `{ status: 'fulfilled' }` |
 | Capacity settings | `GET/PUT /api/settings` → `cakeCapacity.maxCakes` |
 | Pickup location | `GET/PUT /api/settings` → `cakePickupLocationId` |
 | Event/people metadata | Parsed from `order.specialInstructions` via `parseCakeMetadata()` in `lib/utils/parse-cake-metadata.ts` |
+
+---
+
+## Email Template (`/admin/cake-products/email-template`)
+
+**Purpose:** Edit the bilingual (EN/FR) confirmation email sent to customers after a cake order is paid.
+
+**Template key:** `cake-order-confirmation`
+
+**Available variables:** `{{orderNumber}}`, `{{customerName}}`, `{{pickupDate}}`, `{{numberOfPeople}}`, `{{eventType}}`, `{{variantBreakdown}}`, `{{specialInstructions}}`, `{{totalQuantity}}`
+
+Uses `TranslationFields` for bilingual subject/body editing with `AdminLocaleSwitcher`.
+
+---
+
+## Allergen Consolidation
+
+Allergens are consolidated from two levels: **product-level** (base allergens, always present) and **flavour-level** (per selected flavour). The UI shows the union of both. For multi-select products (tasting, croquembouche), all selected flavour allergens are merged with the product base.
+
+---
+
+## Server-Side Validations (Checkout)
+
+`POST /api/checkout/cake` performs these server-side checks before creating a Shopify cart:
+
+1. **Sunday blocking** — returns 400 if pickup date falls on a Sunday
+2. **Lead time** — resolves lead time from `cake_lead_time_tiers` based on resolved size; returns 400 if pickup date is too soon
+3. **Max advance days** — reads `maxAdvanceDays` from the product; returns 400 if pickup date exceeds the limit
+4. **Production capacity** — re-checks concurrent production count against `maxCakes`; returns 409 if capacity exceeded
