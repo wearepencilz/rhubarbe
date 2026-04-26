@@ -1,5 +1,6 @@
 ---
-inclusion: auto
+inclusion: fileMatch
+fileMatchPattern: "app/admin/**"
 description: Admin UI rules — Untitled UI components, Tailwind conventions, form/table/modal patterns, and auth.
 ---
 

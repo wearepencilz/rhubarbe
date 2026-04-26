@@ -1,5 +1,6 @@
 ---
-inclusion: auto
+inclusion: fileMatch
+fileMatchPattern: "{app/api/**,app/admin/**,lib/db/**,types/**}"
 description: CMS content types, entity relationships, lifecycle rules, and API routes.
 ---
 

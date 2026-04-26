@@ -1,5 +1,5 @@
 ---
-inclusion: auto
+inclusion: manual
 description: Pre-deployment checklist and workflow for deploying to Vercel with the highest likelihood of success.
 ---
 
