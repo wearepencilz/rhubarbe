@@ -153,14 +153,15 @@ async function ContentJournal({ s, l }: { s: Extract<Section, { type: 'content-j
     <section className="flex flex-col md:flex-row gap-6 md:gap-8 p-6 md:p-[60px]" style={{ backgroundColor: clr.bg }}>
       {entries.map((e: any) => {
         const title = typeof e.title === 'object' ? t(e.title, l) : e.title || '';
+        const href = `/${s.source === 'recipes' ? 'recipes' : 'journal'}/${e.slug}`;
         return (
-          <div key={e.id} className="flex-1 flex flex-col gap-4 md:gap-8">
+          <a key={e.id} href={href} className="flex-1 flex flex-col gap-4 md:gap-8 group">
             {e.coverImage && <img src={e.coverImage} alt={title} className="w-full h-[442px] md:h-[522px] object-cover" />}
             <div className="space-y-2 md:space-y-4">
               <div style={ts('body-xs')} className="flex items-center gap-2"><span>{e.category || 'journal'} |</span><span>{e.publishedAt ? new Date(e.publishedAt).toLocaleDateString('fr-CA') : ''}</span></div>
               <h3 style={ts('display-sm')}>{title}</h3>
             </div>
-          </div>
+          </a>
         );
       })}
     </section>
@@ -175,11 +176,12 @@ async function Content2Up({ s, l }: { s: Extract<Section, { type: 'content-2up' 
     <section className="flex flex-col md:flex-row gap-6 md:gap-8 p-6 md:p-[60px]" style={{ backgroundColor: clr.bg }}>
       {entries.map((e: any) => {
         const title = typeof e.title === 'object' ? t(e.title, l) : e.title || '';
+        const href = `/${s.source === 'recipes' ? 'recipes' : 'journal'}/${e.slug}`;
         return (
-          <div key={e.id} className="flex-1 flex flex-col gap-4 md:gap-8">
+          <a key={e.id} href={href} className="flex-1 flex flex-col gap-4 md:gap-8 group">
             {e.coverImage && <img src={e.coverImage} alt={title} className="w-full h-[442px] md:flex-1 object-cover" />}
             <div className="flex justify-between"><span style={ts('heading-xs')}>{s.source}</span><h3 style={ts('display-md')}>{title}</h3></div>
-          </div>
+          </a>
         );
       })}
     </section>
