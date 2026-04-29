@@ -116,7 +116,7 @@ export function CateringCartProvider({ children }: { children: React.ReactNode }
     fetch('/api/storefront/volume-products')
       .then((r) => r.json())
       .then((data: any) => {
-        setProducts(data.products ?? data);
+        setProducts(Array.isArray(data.products) ? data.products : Array.isArray(data) ? data : []);
         if (data.cateringTypeSettings) setTypeSettings(data.cateringTypeSettings);
         if (data.deliveryMinForAnyday != null) setDeliveryMinForAnyday(data.deliveryMinForAnyday);
         if (data.closedPickupDays) setClosedPickupDays(data.closedPickupDays);
