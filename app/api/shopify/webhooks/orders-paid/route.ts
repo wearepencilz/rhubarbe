@@ -197,6 +197,11 @@ async function processShopifyOrder(shopifyOrder: any) {
     leadTimeDays: cakeLeadTimeDays ? parseInt(cakeLeadTimeDays) : undefined,
   };
 
+  const checkoutMode = attrs.get('Checkout Mode');
+  if (checkoutMode === 'draft') {
+    console.log(`[Webhook] Order ${shopifyOrderId} originated from draft order checkout`);
+  }
+
   // Build order items from line items
   // For volume orders, the Shopify line item title contains the variant label
   const itemsData = (shopifyOrder.line_items || []).map((li: any) => {

@@ -679,7 +679,7 @@ export default function OrderPageClient({ initialSlug }: { initialSlug?: string 
 
       // Redirect straight to Shopify checkout
       // (Confirmation page code kept below, commented out, in case we want to re-enable)
-      window.location.href = data.checkoutUrl;
+      window.location.href = data.checkoutUrl || data.invoiceUrl;
     } catch {
       setCheckoutError(isFr ? 'Erreur réseau. Veuillez réessayer.' : 'Network error. Please try again.');
     } finally {

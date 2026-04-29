@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
+import { createDraftOrder } from '@/lib/shopify/admin';
+import { getCheckoutMode } from '@/lib/checkout/checkout-mode';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
 import { findExemptVariant } from '@/lib/tax/find-exempt-variant';
 import { fetchTaxSettings } from '@/lib/tax/tax-settings';
@@ -212,6 +214,38 @@ export async function POST(request: NextRequest) {
     }
     const note = noteLines.join('\n');
 
+    const mode = getCheckoutMode('launch');
+
+    if (mode === 'draft') {
+      // Draft order path — hard-fail on skipped items
+      if (skippedItems.length > 0) {
+        return NextResponse.json(
+          { error: `The following products could not be resolved: ${skippedItems.join(', ')}. Please contact us.` },
+          { status: 422 },
+        );
+      }
+
+      const draft = await createDraftOrder({
+        lineItems: lines.map((l) => ({
+          variantId: l.merchandiseId,
+          quantity: l.quantity,
+        })),
+        customAttributes: [
+          { key: 'Order Type', value: 'launch' },
+          { key: 'Checkout Mode', value: 'draft' },
+          ...attributes,
+        ],
+        note,
+        tags: ['launch', 'menu'],
+      });
+
+      return NextResponse.json({
+        invoiceUrl: draft.invoiceUrl,
+        draftOrderId: draft.id,
+      });
+    }
+
+    // Cart path (legacy)
     const cart = await createCart({ lines, attributes, note });
 
     return NextResponse.json({

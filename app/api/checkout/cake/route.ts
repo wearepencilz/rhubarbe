@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCart } from '@/lib/shopify/cart';
 import { getProductVariantId } from '@/lib/shopify/admin';
+import { createDraftOrder } from '@/lib/shopify/admin';
+import { getCheckoutMode } from '@/lib/checkout/checkout-mode';
 import { getTaxConfigByIds } from '@/lib/db/queries/products';
 import { findExemptVariant } from '@/lib/tax/find-exempt-variant';
 import { fetchTaxSettings } from '@/lib/tax/tax-settings';
@@ -328,6 +330,36 @@ export async function POST(request: NextRequest) {
     }
     const note = noteLines.join('\n');
 
+    const mode = getCheckoutMode('cake');
+
+    if (mode === 'draft') {
+      const draftLineItems = items.map((item, i) => {
+        const lineAttrs: Array<{ key: string; value: string }> = [];
+        if (item.sizeValue) lineAttrs.push({ key: 'Size', value: item.sizeValue });
+        if (item.flavourHandle) lineAttrs.push({ key: 'Flavour', value: item.flavourHandle });
+        if (item.isAddon) lineAttrs.push({ key: 'Add-on', value: 'true' });
+        if (item.variantLabel) lineAttrs.push({ key: 'Variant', value: item.variantLabel });
+        return {
+          variantId: lines[i].merchandiseId,
+          quantity: item.quantity,
+          ...(lineAttrs.length ? { customAttributes: lineAttrs } : {}),
+        };
+      });
+
+      const draft = await createDraftOrder({
+        lineItems: draftLineItems,
+        customAttributes: [
+          { key: 'Checkout Mode', value: 'draft' },
+          ...attributes,
+        ],
+        note,
+        tags: ['cake', resolvedFulfillmentType],
+      });
+
+      return NextResponse.json({ invoiceUrl: draft.invoiceUrl, draftOrderId: draft.id });
+    }
+
+    // Cart path (legacy)
     const cart = await createCart({ lines, attributes, note });
 
     return NextResponse.json({ checkoutUrl: cart.checkoutUrl, cartId: cart.id });

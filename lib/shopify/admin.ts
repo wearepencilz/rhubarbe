@@ -92,9 +92,6 @@ async function getConfig(): Promise<ShopifyAdminConfig> {
     authMethod = 'direct_token';
   }
   
-  // Log authentication method (first 10 chars of token for debugging)
-  console.log(`[Shopify Auth] Using ${authMethod}, token prefix: ${accessToken.substring(0, 10)}...`);
-  
   return { shop, accessToken };
 }
 
@@ -732,13 +729,30 @@ export async function updateProduct(input: UpdateProductInput) {
   return product;
 }
 
-export interface DraftOrderInput {
-  lineItems: Array<{ variantId: string; quantity: number }>;
-  note?: string;
+export interface DraftOrderLineItem {
+  variantId: string;
+  quantity: number;
   customAttributes?: Array<{ key: string; value: string }>;
+  requiresShipping?: boolean;
+  taxable?: boolean;
 }
 
-export async function createDraftOrder(input: DraftOrderInput) {
+export interface DraftOrderInput {
+  lineItems: DraftOrderLineItem[];
+  note?: string;
+  customAttributes?: Array<{ key: string; value: string }>;
+  email?: string;
+  tags?: string[];
+}
+
+export interface DraftOrderResult {
+  id: string;
+  invoiceUrl: string;
+  name: string;
+  totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
+}
+
+export async function createDraftOrder(input: DraftOrderInput): Promise<DraftOrderResult> {
   const mutation = `
     mutation draftOrderCreate($input: DraftOrderInput!) {
       draftOrderCreate(input: $input) {
@@ -746,21 +760,26 @@ export async function createDraftOrder(input: DraftOrderInput) {
           id
           invoiceUrl
           name
-          totalPrice
+          totalPriceSet { shopMoney { amount currencyCode } }
         }
-        userErrors {
-          field
-          message
-        }
+        userErrors { field message }
       }
     }
   `;
 
   const variables = {
     input: {
-      lineItems: input.lineItems,
+      lineItems: input.lineItems.map((li) => ({
+        variantId: li.variantId,
+        quantity: li.quantity,
+        requiresShipping: li.requiresShipping ?? false,
+        ...(li.customAttributes?.length ? { customAttributes: li.customAttributes } : {}),
+        ...(li.taxable !== undefined ? { taxable: li.taxable } : {}),
+      })),
       note: input.note,
-      customAttributes: input.customAttributes,
+      ...(input.customAttributes?.length ? { customAttributes: input.customAttributes } : {}),
+      ...(input.email ? { email: input.email } : {}),
+      ...(input.tags?.length ? { tags: input.tags } : {}),
     },
   };
 

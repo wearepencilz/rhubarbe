@@ -347,6 +347,7 @@ export const orders = pgTable('orders', {
   allergenNotes: text('allergen_notes'),
   leadTimeDays: integer('lead_time_days'),
   cateringType: text('catering_type'),  // 'brunch' | 'lunch' | 'dinatoire' (primary type for volume orders)
+  draftOrderId: text('draft_order_id'),  // Shopify draft order GID (e.g. gid://shopify/DraftOrder/123)
 
   orderDate: timestamp('order_date').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
